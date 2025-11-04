@@ -2,14 +2,15 @@
 
 ## Overview
 
-This spec defines the complete shop and roguelike progression system for Rollio. The game is now structured as a "run" of levels, where each level has a point threshold to reach within a limited number of rounds. Between levels, players visit shops to upgrade their capabilities for the next challenge.
+This spec defines the complete shop and roguelike progression system for Rollio. Each game is now structured as a "run" of levels, where each level has a point threshold to reach within a limited number of rounds, rolls, or flops. Between levels, players visit shops to upgrade their capabilities for the next challenge.
 
 ## Core Concepts
 
 ### Game Structure Redefinition
 
-- **Level**: A single challenge with rounds, threshold, and win/lose conditions
-- **Run**: A complete game consisting of multiple levels until failure
+- **Level**: A single challenge with round(s) and a point threshold
+- **Round**: One or more successive rolls; ends with either flopping or banking points
+- **Run**: Consists of multiple levels until failure
 - **Game**: The entire Rollio experience (multiple runs, meta-progression)
 
 ### Level System
@@ -33,14 +34,14 @@ Between levels, players visit shops to:
 
 ### Level Structure
 
-| Level | Rounds | Point Threshold | Difficulty | Shop Features                   |
-| ----- | ------ | --------------- | ---------- | ------------------------------- |
-| 1     | 8      | 3000            | Tutorial   | Basic items, low prices         |
-| 2     | 7      | 5000            | Easy       | More variety, moderate prices   |
-| 3     | 6      | 8000            | Medium     | Advanced items, higher prices   |
-| 4     | 6      | 12000           | Hard       | Rare items, expensive           |
-| 5     | 5      | 18000           | Expert     | Legendary items, very expensive |
-| 6+    | 5      | +6000/level     | Boss       | Boss mechanics, special items   |
+| Level | Rounds | Point Threshold | Shop Features                   |
+| ----- | ------ | --------------- | ------------------------------- |
+| 1     | 8      | 500             | Basic items, low prices         |
+| 2     | 7      | 5000            | More variety, moderate prices   |
+| 3     | 6      | 8000            | Advanced items, higher prices   |
+| 4     | 6      | 12000           | Rare items, expensive           |
+| 5     | 5      | 18000           | Legendary items, very expensive |
+| 6+    | 5      | +6000/level     | Boss mechanics, special items   |
 
 ### Difficulty Scaling
 

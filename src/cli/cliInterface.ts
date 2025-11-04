@@ -152,7 +152,7 @@ export class CLIInterface implements GameInterface {
 
   async askForNextRound(gameState?: any, roundState?: any, useCallback?: (idx: number) => Promise<void>): Promise<string> {
     while (true) {
-      const nextRoundNumber = (gameState?.roundNumber || 0) + 1;
+      const nextRoundNumber = (gameState?.core?.roundNumber || 0) + 1;
       const input = await this.ask(DisplayFormatter.formatNextRoundPrompt(nextRoundNumber), gameState?.consumables, { consumables: gameState?.consumables, useCallback, allowInventory: true });
       if (input.trim().toLowerCase() === 'i') {
         continue;

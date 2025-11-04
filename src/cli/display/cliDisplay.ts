@@ -82,7 +82,7 @@ export class CLIDisplayFormatter {
    */
   static formatEndOfRoundSummary(forfeitedPoints: number, pointsAdded: number, consecutiveFlops: number, roundNumber?: number, flopPenalty?: number): string[] {
     const lines: string[] = [];
-    lines.push(`📊 ROUND ${roundNumber} SUMMARY`);
+    lines.push(`\n📊 ROUND ${roundNumber} SUMMARY`);
     if (forfeitedPoints > 0) {
       lines.push(`  Points forfeited: -${forfeitedPoints}`);
     }

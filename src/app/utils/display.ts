@@ -96,7 +96,7 @@ export class DisplayFormatter {
   }
 
   static formatBankOrRerollPrompt(diceToReroll: number): string {
-    return `(b) Bank points or (r) reroll ${diceToReroll} dice: `;
+    return `Bank points (b) or reroll ${diceToReroll} dice (r): `;
   }
 
   static formatDiceSelectionPrompt(): string {
