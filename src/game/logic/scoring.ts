@@ -1,13 +1,56 @@
-import { DEFAULT_GAME_CONFIG } from '../core/gameInitializer';
-import { Die, DieValue, ScoringCombination, Charm } from '../core/types';
+import { Die, DieValue, ScoringCombination, Charm } from '../types';
 import { debugLog, getDebugMode, debugAction, debugVerbose } from '../utils/debug';
 import { applyMaterialEffects } from './materialSystem';
+
+/*
+  Ideas for balancing:
+  
+  Odds of each combination (default dice set):
+  - God's Straight: impossible
+  - Straight: 
+  - Four Pairs: impossible
+  - Three Pairs: 
+  - Triple Triplets: impossible
+  - Two Triplets: 
+  - Seven of a Kind: impossible
+  - Six of a Kind: 
+  - Five of a Kind: 
+  - Four of a Kind: 
+  - Three of a Kind: 
+  - Single One: 1 in 6
+  - Single Five: 1 in 6
+
+  How each odds change based on factors:
+  - More dice
+  - More faces
+  - Manipulated faces
+  - Materials
+  - Charms
+  - Consumables
+  - Blessings
+  - Rolls / rerolls
+
+  Odds of flopping based on number of dice:
+  - 1 die: 2 in 3 = 66.67%
+  - 2 dice: 4 in 9 = 44.44%
+  - 3 dice: 
+  - 4 dice: 
+  - 5 dice: 
+  - 6 dice: 
+*/
 
 // Define scoring combination types for type safety
 export type ScoringCombinationType = 
   | 'godStraight' | 'straight' | 'fourPairs' | 'threePairs' | 'tripleTriplets' | 'twoTriplets'
   | 'sevenOfAKind' | 'sixOfAKind' | 'fiveOfAKind' | 'fourOfAKind' | 'threeOfAKind'
   | 'singleOne' | 'singleFive';
+
+// Export array of all scoring types for iteration (e.g., creating counters)
+export const ALL_SCORING_TYPES: ScoringCombinationType[] = [
+  'godStraight', 'straight', 'fourPairs', 'threePairs', 'tripleTriplets', 'twoTriplets',
+  'sevenOfAKind', 'sixOfAKind', 'fiveOfAKind', 'fourOfAKind', 'threeOfAKind',
+  'singleOne', 'singleFive'
+];
 
 interface ScoringContext {
   charms: Charm[];
@@ -71,11 +114,6 @@ export function getScoringCombinations(
   
   if (allPartitionings.length === 0) {
     return [];
-  }
-  
-  // Summary log of partitionings found 
-  if (getDebugMode()) {
-    debugLog(`Found ${allPartitionings.length} valid partitionings`);
   }
   
   // Return the first valid partitioning for validation

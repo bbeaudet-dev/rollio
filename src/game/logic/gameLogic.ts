@@ -1,9 +1,9 @@
-import { DEFAULT_GAME_CONFIG, DEFAULT_SHOP_STATE } from '../core/gameInitializer';
+import { DEFAULT_GAME_CONFIG} from '../utils/factories';
 import { debugStateChangeWithContext, debugLog, debugActionWithContext, debugAction, debugVerbose } from '../utils/debug';
-import { Die, DieValue, ScoringCombination, Charm, GameState, RoundState, LevelState } from '../core/types';
+import { Die, DieValue, ScoringCombination, Charm, GameState, RoundState, LevelState } from '../types';
 import { getLevelConfig, MAX_LEVEL } from '../data/levels';
-import { calculateRerollsForLevel, calculateLivesForLevel } from './rerollLogic';
-import { getScoringCombinations, hasAnyScoringCombination, getAllPartitionings } from '../logic/scoring';
+import { createInitialLevelState } from '../utils/factories';
+import { hasAnyScoringCombination, getAllPartitionings } from '../logic/scoring';
 import { validateDiceSelection } from '../utils/effectUtils';
 import { getRandomInt } from '../utils/effectUtils';
 
@@ -62,8 +62,9 @@ export function validateDiceSelectionAndScore(input: string, diceHand: Die[], co
   const selectedIndices = validateDiceSelection(input, diceHand.map(die => die.rolledValue) as DieValue[]);
   debugVerbose(`Selected dice indices: [${selectedIndices.join(', ')}]`);
   
-  const combos = getScoringCombinations(diceHand, selectedIndices, context);
+  // Get all partitionings once (getScoringCombinations calls this internally, so we cache it)
   const allPartitionings = getAllPartitionings(diceHand, selectedIndices, context);
+  const combos = allPartitionings.length > 0 ? allPartitionings[0] : [];
   const totalComboDice = combos.reduce((sum, c) => sum + c.dice.length, 0);
   
   const valid = combos.length > 0 && totalComboDice === selectedIndices.length;
@@ -254,7 +255,7 @@ export function isLevelCompleted(gameState: GameState): boolean {
  * Applies level effects (boss effects, modifiers) to rerolls and lives
  * Returns modified values after applying all effects
  */
-function applyLevelEffects(
+export function applyLevelEffects(
   baseRerolls: number,
   baseLives: number,
   levelConfig: ReturnType<typeof getLevelConfig>
@@ -307,24 +308,8 @@ export function advanceToNextLevel(gameState: GameState): void {
   };
   gameState.history.levelHistory.push(completedLevel);
   
-  // Calculate base rerolls and lives (from game state + charms/blessings)
-  const baseRerolls = calculateRerollsForLevel(gameState);
-  const baseLives = calculateLivesForLevel(gameState);
-  
-  // Apply level effects (boss effects, modifiers)
-  const { rerolls, lives } = applyLevelEffects(baseRerolls, baseLives, levelConfig);
-  
-  // Create new level state
-  const newLevel: LevelState = {
-    levelNumber: newLevelNumber,
-    levelThreshold: levelConfig.pointThreshold,
-    rerollsRemaining: rerolls,
-    livesRemaining: lives,
-    consecutiveFlops: 0,
-    pointsBanked: 0,
-    shop: DEFAULT_SHOP_STATE,
-    currentRound: undefined,
-  };
+  // Create new level state using factory function
+  const newLevel = createInitialLevelState(newLevelNumber, gameState);
   
   gameState.currentLevel = newLevel;
   
@@ -362,6 +347,9 @@ export function updateGameStateAfterRound(
     
     gameState.currentLevel.pointsBanked += roundActionResult.pointsScored;
     gameState.history.totalScore += roundActionResult.pointsScored;
+    
+    // Mark round as banked for displayBetweenRounds
+    roundState.banked = true;
     
     debugLog(`[BANKING] Added ${roundActionResult.pointsScored} points. Level ${gameState.currentLevel.levelNumber}: Points banked: ${gameState.currentLevel.pointsBanked} / Threshold: ${gameState.currentLevel.levelThreshold}`);
     // Reset consecutive flops on bank
@@ -406,6 +394,9 @@ export function updateGameStateAfterRound(
   } else if (roundActionResult.flop) {
     // Set forfeitedPoints for display and Forfeit Recovery consumable
     roundState.forfeitedPoints = roundState.roundPoints;
+    
+    // Mark round as flopped for displayBetweenRounds
+    roundState.flopped = true;
         
     // Apply penalty to level's banked points if needed
     const consecutiveFlopLimit = gameState.config?.penalties?.consecutiveFlopLimit ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit;
