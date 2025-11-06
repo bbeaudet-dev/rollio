@@ -1,0 +1,31 @@
+{
+  "debug": true,
+  "verbose": false,
+  "logToFile": true,
+  "logFiles": {
+    "actions": "debug.actions.log",
+    "state": "debug.state.log"
+  },
+  "includeCallStack": true,
+  "includeNextAction": true,
+  "logActions": {
+    "gameFlow": true,
+    "scoring": true,
+    "diceRolls": true,
+    "charmActivation": true,
+    "consumableUsage": true,
+    "materialEffects": true,
+    "roundTransitions": true,
+    "stateChanges": true
+  },
+  "performance": {
+    "enableTiming": true,
+    "logSlowOperations": true,
+    "slowThresholdMs": 10
+  },
+  "stateLogging": {
+    "fullState": true,
+    "diffOnly": false
+  }
+}
+
