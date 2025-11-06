@@ -9,7 +9,7 @@ import {
   LUXURY_SET, 
   RANDOM_SET,
   ALL_DICE_SETS 
-} from '../content/diceSets';
+} from '../data/diceSets';
 
 describe('Game State', () => {
   describe('createInitialGameState', () => {
@@ -17,12 +17,10 @@ describe('Game State', () => {
       const gameState = createInitialGameState(BASIC_DICE_SET);
       
       // Check all required properties exist
-      expect(gameState).toHaveProperty('gameScore', 0);
-      expect(gameState).toHaveProperty('roundNumber', 0);
-      expect(gameState).toHaveProperty('rollCount', 0);
+      expect(gameState.history).toHaveProperty('totalScore', 0);
+      expect(gameState.currentLevel.currentRound).toHaveProperty('roundNumber', 1);
       expect(gameState).toHaveProperty('diceSet');
-      expect(gameState).toHaveProperty('consecutiveFlops', 0);
-      expect(gameState).toHaveProperty('hotDiceCounterGlobal', 0);
+      expect(gameState.currentLevel).toHaveProperty('consecutiveFlops', 0);
       expect(gameState).toHaveProperty('money');
       expect(gameState).toHaveProperty('charms');
       expect(gameState).toHaveProperty('consumables');
@@ -32,9 +30,9 @@ describe('Game State', () => {
     it('should create 6 dice with correct initial state for Basic set', () => {
       const gameState = createInitialGameState(BASIC_DICE_SET);
       
-      expect(gameState.core.diceSet).toHaveLength(6);
+      expect(gameState.diceSet).toHaveLength(6);
       
-      gameState.core.diceSet.forEach((die, index) => {
+      gameState.diceSet.forEach((die, index) => {
         expect(die).toHaveProperty('id', `d${index + 1}`);
         expect(die).toHaveProperty('sides', 6);
         expect(die).toHaveProperty('allowedValues', [1, 2, 3, 4, 5, 6]);
@@ -56,21 +54,21 @@ describe('Game State', () => {
     it('should initialize empty arrays for charms and consumables', () => {
       const gameState = createInitialGameState(BASIC_DICE_SET);
       
-      expect(gameState.core.charms).toEqual([]);
-      expect(gameState.core.consumables).toEqual([]);
+      expect(gameState.charms).toEqual([]);
+      expect(gameState.consumables).toEqual([]);
     });
 
     it('should work with High Roller dice set', () => {
       const gameState = createInitialGameState(HIGH_ROLLER_SET);
       
-      expect(gameState.core.diceSet).toHaveLength(6);
+      expect(gameState.diceSet).toHaveLength(6);
       expect(gameState.config.diceSetConfig.name).toBe('High Roller');
       expect(gameState.config.diceSetConfig.startingMoney).toBe(5);
       expect(gameState.config.diceSetConfig.charmSlots).toBe(3);
       expect(gameState.config.diceSetConfig.consumableSlots).toBe(2);
       
       // Check that all dice have high values (4,5,6)
-      gameState.core.diceSet.forEach(die => {
+      gameState.diceSet.forEach(die => {
         expect(die.allowedValues).toEqual([4, 4, 5, 5, 6, 6]);
       });
     });
@@ -78,14 +76,14 @@ describe('Game State', () => {
     it('should work with Low Baller dice set', () => {
       const gameState = createInitialGameState(LOW_BALLER_SET);
       
-      expect(gameState.core.diceSet).toHaveLength(6);
+      expect(gameState.diceSet).toHaveLength(6);
       expect(gameState.config.diceSetConfig.name).toBe('Low Baller');
       expect(gameState.config.diceSetConfig.startingMoney).toBe(15);
       expect(gameState.config.diceSetConfig.charmSlots).toBe(3);
       expect(gameState.config.diceSetConfig.consumableSlots).toBe(2);
       
       // Check that all dice have low values (1,2,3)
-      gameState.core.diceSet.forEach((die: any) => {
+      gameState.diceSet.forEach((die: any) => {
         expect(die.allowedValues).toEqual([1, 1, 2, 2, 3, 3]);
       });
     });
@@ -93,7 +91,7 @@ describe('Game State', () => {
     it('should work with Collector dice set (more than 6 dice)', () => {
       const gameState = createInitialGameState(COLLECTOR_SET);
       
-      expect(gameState.core.diceSet).toHaveLength(8);
+      expect(gameState.diceSet).toHaveLength(8);
       expect(gameState.config.diceSetConfig.name).toBe('Collector Set');
       expect(gameState.config.diceSetConfig.startingMoney).toBe(5);
       expect(gameState.config.diceSetConfig.charmSlots).toBe(2);
@@ -103,14 +101,14 @@ describe('Game State', () => {
     it('should work with Luxury dice set (fewer than 6 dice)', () => {
       const gameState = createInitialGameState(LUXURY_SET);
       
-      expect(gameState.core.diceSet).toHaveLength(4);
+      expect(gameState.diceSet).toHaveLength(4);
       expect(gameState.config.diceSetConfig.name).toBe('Luxury');
       expect(gameState.config.diceSetConfig.startingMoney).toBe(15);
       expect(gameState.config.diceSetConfig.charmSlots).toBe(3);
       expect(gameState.config.diceSetConfig.consumableSlots).toBe(2);
       
       // Check that all dice have crystal material
-      gameState.core.diceSet.forEach((die: any) => {
+      gameState.diceSet.forEach((die: any) => {
         expect(die.material).toBe('crystal');
       });
     });
@@ -119,7 +117,7 @@ describe('Game State', () => {
       const randomConfig = RANDOM_SET();
       const gameState = createInitialGameState(randomConfig);
       
-      expect(gameState.core.diceSet).toHaveLength(randomConfig.dice.length);
+      expect(gameState.diceSet).toHaveLength(randomConfig.dice.length);
       expect(gameState.config.diceSetConfig.name).toBe('Random Set');
       expect(gameState.config.diceSetConfig.startingMoney).toBeGreaterThanOrEqual(1);
       expect(gameState.config.diceSetConfig.startingMoney).toBeLessThanOrEqual(20);
@@ -136,7 +134,7 @@ describe('Game State', () => {
       staticDiceSets.forEach(diceSet => {
         const gameState = createInitialGameState(diceSet);
         
-        expect(gameState.core.diceSet).toHaveLength(diceSet.dice.length);
+        expect(gameState.diceSet).toHaveLength(diceSet.dice.length);
         expect(gameState.config.diceSetConfig.name).toBe(diceSet.name);
         expect(gameState.config.diceSetConfig.startingMoney).toBe(diceSet.startingMoney);
         expect(gameState.config.diceSetConfig.charmSlots).toBe(diceSet.charmSlots);
@@ -215,7 +213,7 @@ describe('Game State', () => {
       expect(roundState).toHaveProperty('roundPoints', 0);
       expect(roundState).toHaveProperty('diceHand');
       expect(roundState).toHaveProperty('rollHistory');
-      expect(roundState).toHaveProperty('hotDiceCounterRound', 0);
+      expect(roundState).toHaveProperty('hotDiceCounter', 0);
       expect(roundState).toHaveProperty('forfeitedPoints', 0);
       expect(roundState).toHaveProperty('isActive', true);
     });
@@ -223,14 +221,14 @@ describe('Game State', () => {
     it('should create round state with specified round number', () => {
       const roundState = createInitialRoundState(5);
       
-      expect(roundState.core.rollNumber).toBe(5);
+      expect(roundState.roundNumber).toBe(5);
     });
 
     it('should initialize empty arrays for diceHand and roll history', () => {
       const roundState = createInitialRoundState();
       
-      expect(roundState.core.diceHand).toEqual([]);
-      expect(roundState.history.rollHistory).toEqual([]);
+      expect(roundState.diceHand).toEqual([]);
+      expect(roundState.rollHistory).toEqual([]);
     });
   });
 
@@ -239,20 +237,20 @@ describe('Game State', () => {
       const gameState = createInitialGameState(BASIC_DICE_SET);
       
       // Mark some dice as scored
-      gameState.core.diceSet[0].scored = true;
-      gameState.core.diceSet[2].scored = true;
-      gameState.core.diceSet[4].scored = true;
+      gameState.diceSet[0].scored = true;
+      gameState.diceSet[2].scored = true;
+      gameState.diceSet[4].scored = true;
       
       // Verify some are scored
-      expect(gameState.core.diceSet[0].scored).toBe(true);
-      expect(gameState.core.diceSet[2].scored).toBe(true);
-      expect(gameState.core.diceSet[4].scored).toBe(true);
+      expect(gameState.diceSet[0].scored).toBe(true);
+      expect(gameState.diceSet[2].scored).toBe(true);
+      expect(gameState.diceSet[4].scored).toBe(true);
       
       // Reset scored state
-      resetDiceScoredState(gameState.core.diceSet);
+      resetDiceScoredState(gameState.diceSet);
       
       // Verify all are now false
-      gameState.core.diceSet.forEach((die: any) => {
+      gameState.diceSet.forEach((die: any) => {
         expect(die.scored).toBe(false);
       });
     });
@@ -265,8 +263,8 @@ describe('Game State', () => {
       const serialized = JSON.stringify(gameState);
       const deserialized = JSON.parse(serialized) as GameState;
       
-      expect(deserialized.core.money).toBe(gameState.core.money);
-      expect(deserialized.core.diceSet.length).toBe(gameState.core.diceSet.length);
+      expect(deserialized.money).toBe(gameState.money);
+      expect(deserialized.diceSet.length).toBe(gameState.diceSet.length);
       expect(deserialized.config.diceSetConfig.name).toBe(gameState.config.diceSetConfig.name);
     });
   });

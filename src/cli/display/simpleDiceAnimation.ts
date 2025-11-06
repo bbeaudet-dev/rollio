@@ -1,5 +1,5 @@
 import { Die } from '../../game/core/types';
-import { MATERIALS } from '../../game/content/materials';
+import { MATERIALS } from '../../game/data/materials';
 
 /**
  * Simple dice animation using normal terminal output
@@ -48,14 +48,16 @@ export class SimpleDiceAnimation {
   /**
    * Animate dice roll with actual game dice
    * dice should have the final rolled values already set
+   * animatedIndices: optional array of dice indices to animate (if not provided, all dice animate)
    * Returns a promise that resolves when animation completes
    */
-  public async animateDiceRoll(dice: Die[], rollNumber?: number): Promise<void> {
+  public async animateDiceRoll(dice: Die[], rollNumber?: number, animatedIndices?: number[]): Promise<void> {
     if (this.isAnimating) {
       return Promise.resolve();
     }
     
-
+    // If animatedIndices not provided, animate all dice
+    const indicesToAnimate = animatedIndices ?? dice.map((_, i) => i);
 
     return new Promise<void>((resolve) => {
       this.resolveAnimation = resolve;
@@ -69,11 +71,14 @@ export class SimpleDiceAnimation {
       this.animationInterval = setInterval(() => {
         frame++;
         
-        // Use random values during animation, but final frame uses actual values
+        // Use random values during animation for selected dice, but final frame uses actual values
+        // For non-animated dice, always show their actual rolledValue
         const isFinalFrame = frame >= totalFrames - 1;
-        const animatedDice = dice.map(die => ({
+        const animatedDice = dice.map((die, index) => ({
           ...die,
-          rolledValue: isFinalFrame ? die.rolledValue : Math.floor(Math.random() * die.sides) + 1 as any
+          rolledValue: (indicesToAnimate.includes(index) && !isFinalFrame)
+            ? Math.floor(Math.random() * die.sides) + 1 as any  // Animate selected dice
+            : die.rolledValue  // Show actual value for non-animated dice or final frame
         }));
         
         // Create animated display (without Roll #)

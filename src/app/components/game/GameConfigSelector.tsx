@@ -29,9 +29,9 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { ALL_DICE_SETS } = await import('../../../game/content/diceSets');
-        const { CHARMS } = await import('../../../game/content/charms');
-        const { CONSUMABLES } = await import('../../../game/content/consumables');
+        const { ALL_DICE_SETS } = await import('../../../game/data/diceSets');
+        const { CHARMS } = await import('../../../game/data/charms');
+        const { CONSUMABLES } = await import('../../../game/data/consumables');
         
         setDiceSets(ALL_DICE_SETS);
         setCharms(CHARMS);

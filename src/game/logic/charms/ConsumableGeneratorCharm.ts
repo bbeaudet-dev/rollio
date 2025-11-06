@@ -1,5 +1,5 @@
 import { BaseCharm, CharmRoundStartContext, CharmScoringContext } from '../../logic/charmSystem';
-import { CONSUMABLES } from '../consumables';
+import { CONSUMABLES } from '../../data/consumables';
 
 export class ConsumableGeneratorCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): number {
@@ -8,15 +8,12 @@ export class ConsumableGeneratorCharm extends BaseCharm {
 
   onRoundStart(context: CharmRoundStartContext): void {
     const { gameState } = context;
-    const maxSlots = gameState.core.consumableSlots ?? 2;
-    if (gameState.core.consumables.length < maxSlots) {
+    const maxSlots = gameState.consumableSlots ?? 2;
+    if (gameState.consumables.length < maxSlots) {
       // Pick a random consumable
       const idx = Math.floor(Math.random() * CONSUMABLES.length);
       const newConsumable = { ...CONSUMABLES[idx] };
-      gameState.core.consumables.push(newConsumable);
-      if (typeof gameState.meta.interface?.log === 'function') {
-        gameState.meta.interface.log(`✨ Consumable Generator: You gained a new consumable: ${newConsumable.name}!`);
-      }
+      gameState.consumables.push(newConsumable);
     }
   }
 } 

@@ -138,6 +138,11 @@ export class CLIInterface implements GameInterface {
     }
   }
 
+  async askForReroll(dice: Die[], rerollsRemaining: number): Promise<string> {
+    await this.log(`\nReroll available! (${rerollsRemaining} reroll${rerollsRemaining > 1 ? 's' : ''} remaining)`);
+    return await this.ask(`Select dice to reroll (1-${dice.length}, or Enter to skip): `, '');
+  }
+
   async askForBankOrReroll(diceToReroll: number): Promise<string> {
     // Do not allow inventory use at this prompt
     while (true) {
@@ -152,7 +157,9 @@ export class CLIInterface implements GameInterface {
 
   async askForNextRound(gameState?: any, roundState?: any, useCallback?: (idx: number) => Promise<void>): Promise<string> {
     while (true) {
-      const nextRoundNumber = (gameState?.core?.roundNumber || 0) + 1;
+      // Get round number from currentRound in currentLevel
+      const currentRoundNumber = gameState?.currentLevel?.currentRound?.roundNumber || 0;
+      const nextRoundNumber = currentRoundNumber + 1;
       const input = await this.ask(DisplayFormatter.formatNextRoundPrompt(nextRoundNumber), gameState?.consumables, { consumables: gameState?.consumables, useCallback, allowInventory: true });
       if (input.trim().toLowerCase() === 'i') {
         continue;
@@ -222,7 +229,7 @@ export class CLIInterface implements GameInterface {
 
   async askForDiceSetSelection(diceSetNames: string[]): Promise<number> {
     // Import the dice sets to get their setType
-    const { ALL_DICE_SETS } = await import('../game/content/diceSets');
+      const { ALL_DICE_SETS } = await import('../game/data/diceSets');
     
     let prompt = '\n🎲 DICE SET SELECTION\n\n';
     
@@ -231,7 +238,7 @@ export class CLIInterface implements GameInterface {
     const advancedSets: { name: string; index: number }[] = [];
     const mayhemSets: { name: string; index: number }[] = [];
     
-    ALL_DICE_SETS.forEach((set, i) => {
+    ALL_DICE_SETS.forEach((set: any, i: number) => {
       const name = typeof set === 'function' ? 'Chaos' : set.name;
       const setType = typeof set === 'function' ? 'mayhem' : set.setType;
       
@@ -349,9 +356,8 @@ export class CLIInterface implements GameInterface {
     return selectedIndices;
   }
 
-  async askForGameRules(): Promise<{ winCondition: number; penaltyEnabled: boolean; consecutiveFlopLimit: number; consecutiveFlopPenalty: number }> {
+  async askForGameRules(): Promise<{ penaltyEnabled: boolean; consecutiveFlopLimit: number; consecutiveFlopPenalty: number }> {
     // Get user inputs (interface concern)
-    const winConditionInput = await this.ask('  Set win condition (default 10000): ', DEFAULT_GAME_CONFIG.winCondition.toString());
     const penaltyEnabledInput = await this.ask('  Enable flop penalty? (y/n, default y): ', 'y');
     
     let flopLimitInput: string | undefined;
@@ -365,7 +371,6 @@ export class CLIInterface implements GameInterface {
     
     // Delegate parsing and validation to ConfigManager (game logic concern)
     return ConfigManager.parseGameRules({
-      winConditionInput,
       penaltyEnabledInput,
       flopLimitInput,
       flopPenaltyInput
@@ -395,13 +400,13 @@ export class CLIInterface implements GameInterface {
       await this.log(DisplayFormatter.formatGameScore(score));
   }
 
-  async displayFlopMessage(forfeitedPoints: number, consecutiveFlops: number, gameScore: number, consecutiveFlopPenalty: number, consecutiveFlopLimit: number): Promise<void> {
+  async displayFlopMessage(forfeitedPoints: number, consecutiveFlops: number, levelBankedPoints: number, consecutiveFlopPenalty: number, consecutiveFlopLimit: number): Promise<void> {
     const { formatFlopMessage } = require('../game/utils/effectUtils');
-    await this.log(formatFlopMessage(forfeitedPoints, consecutiveFlops, gameScore, consecutiveFlopPenalty, consecutiveFlopLimit), this.MESSAGE_DELAY);
+    await this.log(formatFlopMessage(forfeitedPoints, consecutiveFlops, levelBankedPoints, consecutiveFlopPenalty, consecutiveFlopLimit), this.MESSAGE_DELAY);
   }
 
-  async displayGameEnd(gameState: any, isWin: boolean): Promise<void> {
-    const lines = DisplayFormatter.formatGameEnd(gameState, isWin);
+  async displayGameEnd(gameState: any): Promise<void> {
+    const lines = DisplayFormatter.formatGameEnd(gameState);
     for (const line of lines) {
       await this.log(line, this.MESSAGE_DELAY);
     }
@@ -432,11 +437,21 @@ export class CLIInterface implements GameInterface {
   }
 
   async displayBetweenRounds(gameState: GameState): Promise<void> {
-    await this.log('\n--- Between Rounds ---');
-    await this.log(`Money: $${gameState.core.money}`);
-    await this.log(`Charms: ${(gameState.core.charms || []).length > 0 ? (gameState.core.charms || []).map((c: any) => c.name).join(', ') : 'None'}`);
-    await this.log(`Consumables: ${(gameState.core.consumables || []).length > 0 ? (gameState.core.consumables || []).map((c: any) => c.name).join(', ') : 'None'}`);
+    const roundNumber = gameState.currentLevel.currentRound?.roundNumber || 0;
+    await this.log(`\n=== Round ${roundNumber} Complete ===`);
+    await this.log(`Round points: ${gameState.currentLevel.currentRound?.roundPoints || 0}`);
+    await this.log(`Points banked: ${gameState.currentLevel.pointsBanked} / ${gameState.currentLevel.levelThreshold}`);
+    await this.log(`Flops: ${gameState.currentLevel.consecutiveFlops}`);
+    await this.log(`Lives: ${gameState.currentLevel.livesRemaining}`);
     await this.log('----------------------\n');
+  }
+
+  async askForShopAction(): Promise<string> {
+    return this.ask('(b) Buy item, (n) Next level: ');
+  }
+
+  async askForShopPurchase(shopType: 'charm' | 'consumable' | 'blessing'): Promise<string> {
+    return this.ask(`Select ${shopType} to buy (or Enter to cancel): `);
   }
 
   // Utility methods
