@@ -1004,7 +1004,6 @@ interface ShopState {
 ### Phase 6: Additional Features (From shop-roguelike spec)
 
 - [ ] **Combination Discovery System** (Balatro-style)
-
   - Players cannot see certain advanced combinations until they have played them
   - Hidden combinations: `sevenOfAKind`, `godStraight`, `fourPairs`, `tripleTriplets`
   - Always visible: `singleFive`, `singleOne`, `threeOfAKind`, `fourOfAKind`, `fiveOfAKind`, `sixOfAKind`, `twoTriplets`, `straight`, `threePairs`
@@ -1018,18 +1017,15 @@ interface ShopState {
   - Integration with existing `combinationCounters` in game state
 
 - [ ] **Shop Selling**
-
   - Implement selling items for 50% of buy price (rounded up)
   - Add sell UI/UX to shop interface
 
 - [ ] **Boss Levels** (Level 6+)
-
   - Implement boss mechanics (structure exists in `levels.ts` but not fully implemented)
   - Boss types: The Gambler, The Perfectionist, The Speed Demon, The Collector
   - Boss challenges: Time pressure, scoring penalties, special rules
 
 - [ ] **Dice Upgrades in Shop**
-
   - Add dice upgrade section to shop
   - Implement dice upgrade purchase logic
   - Dice upgrades replace existing dice
