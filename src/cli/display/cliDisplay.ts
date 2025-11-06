@@ -1,4 +1,4 @@
-import { Die, ScoringCombination } from '../../game/core/types';
+import { Die, ScoringCombination } from '../../game/types';
 import { MATERIALS } from '../../game/data/materials';
 
 /**
