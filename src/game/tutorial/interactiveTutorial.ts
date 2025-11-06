@@ -73,10 +73,10 @@ export class InteractiveTutorial {
     await this.gameInterface.log('');
 
     // Roll the dice
-    state.roundState.core.diceHand = state.gameState.core.diceSet.map((die: any) => ({ ...die }));
-    state.rollManager.rollDice(state.roundState.core.diceHand);
+    state.roundState.diceHand = state.gameState.diceSet.map((die: any) => ({ ...die }));
+    state.rollManager.rollDice(state.roundState.diceHand);
 
-    await this.gameInterface.displayRoll(1, state.roundState.core.diceHand);
+    await this.gameInterface.displayRoll(1, state.roundState.diceHand);
     await this.gameInterface.log('');
 
     await this.gameInterface.log('Now you need to select dice to score. Type the dice values you want to select.');
@@ -84,10 +84,10 @@ export class InteractiveTutorial {
     await this.gameInterface.log('');
 
     const input = await this.gameInterface.ask('Select dice to score: ');
-    const selectedIndices = validateDiceSelection(input, state.roundState.core.diceHand.map((die: any) => die.rolledValue!) as any);
+    const selectedIndices = validateDiceSelection(input, state.roundState.diceHand.map((die: any) => die.rolledValue!) as any);
     
     if (selectedIndices.length > 0) {
-      await this.gameInterface.log('✅ Great! You selected: ' + selectedIndices.map((i: number) => state.roundState.core.diceHand[i].rolledValue).join(', '));
+      await this.gameInterface.log('✅ Great! You selected: ' + selectedIndices.map((i: number) => state.roundState.diceHand[i].rolledValue).join(', '));
       await this.gameInterface.log('This would score some points!');
     } else {
       await this.gameInterface.log('❌ Invalid selection. Try again with valid dice values.');
@@ -102,16 +102,16 @@ export class InteractiveTutorial {
     await this.gameInterface.log('');
 
     // Set up a specific roll for teaching
-    state.roundState.core.diceHand = [
-      { ...state.gameState.core.diceSet[0], rolledValue: 1 },
-      { ...state.gameState.core.diceSet[1], rolledValue: 1 },
-      { ...state.gameState.core.diceSet[2], rolledValue: 1 },
-      { ...state.gameState.core.diceSet[3], rolledValue: 2 },
-      { ...state.gameState.core.diceSet[4], rolledValue: 3 },
-      { ...state.gameState.core.diceSet[5], rolledValue: 4 }
+    state.roundState.diceHand = [
+      { ...state.gameState.diceSet[0], rolledValue: 1 },
+      { ...state.gameState.diceSet[1], rolledValue: 1 },
+      { ...state.gameState.diceSet[2], rolledValue: 1 },
+      { ...state.gameState.diceSet[3], rolledValue: 2 },
+      { ...state.gameState.diceSet[4], rolledValue: 3 },
+      { ...state.gameState.diceSet[5], rolledValue: 4 }
     ];
 
-    await this.gameInterface.displayRoll(1, state.roundState.core.diceHand);
+    await this.gameInterface.displayRoll(1, state.roundState.diceHand);
     await this.gameInterface.log('');
 
     await this.gameInterface.log('Look at this roll! You have:');
@@ -120,7 +120,7 @@ export class InteractiveTutorial {
     await this.gameInterface.log('');
 
     await this.gameInterface.log('Let\'s see all possible combinations:');
-    const combinations = CLIDisplayFormatter.formatCombinationsDisplay(state.roundState.core.diceHand, state.gameState);
+    const combinations = CLIDisplayFormatter.formatCombinationsDisplay(state.roundState.diceHand, state.gameState);
     for (const line of combinations) {
       await this.gameInterface.log(line);
     }
@@ -128,7 +128,7 @@ export class InteractiveTutorial {
 
     await this.gameInterface.log('Try selecting "111" for the three of a kind:');
     const input = await this.gameInterface.ask('Select dice to score: ');
-    const selectedIndices = validateDiceSelection(input, state.roundState.core.diceHand.map((die: any) => die.rolledValue!) as any);
+    const selectedIndices = validateDiceSelection(input, state.roundState.diceHand.map((die: any) => die.rolledValue!) as any);
 
     if (selectedIndices.length === 3) {
       await this.gameInterface.log('✅ Perfect! You scored 300 points with Three of a Kind!');
@@ -146,9 +146,9 @@ export class InteractiveTutorial {
     await this.gameInterface.log('');
 
     // Give them some points to work with
-    state.roundState.core.roundPoints = 450;
+    state.roundState.roundPoints = 450;
 
-    await this.gameInterface.log(`You currently have ${state.roundState.core.roundPoints} points in this round.`);
+    await this.gameInterface.log(`You currently have ${state.roundState.roundPoints} points in this round.`);
     await this.gameInterface.log('You can either:');
     await this.gameInterface.log('• Bank these points (type "b")');
     await this.gameInterface.log('• Continue rolling for more points (type "r")');
@@ -164,12 +164,12 @@ export class InteractiveTutorial {
       
             // Simulate a risky roll
       const newRoll = [2, 3, 4, 5, 6, 6];
-      state.roundState.core.diceHand = state.gameState.core.diceSet.map((die: any, i: number) => ({
+      state.roundState.diceHand = state.gameState.diceSet.map((die: any, i: number) => ({
         ...die,
         rolledValue: newRoll[i]
       }));
       
-      await this.gameInterface.displayRoll(2, state.roundState.core.diceHand);
+      await this.gameInterface.displayRoll(2, state.roundState.diceHand);
       await this.gameInterface.log('');
 
       await this.gameInterface.log('You rolled a straight (2,3,4,5,6) + a 6!');
@@ -190,18 +190,18 @@ export class InteractiveTutorial {
     await this.gameInterface.log('');
 
     // Set up a flop scenario
-    state.roundState.core.diceHand = [
-      { ...state.gameState.core.diceSet[0], rolledValue: 2 },
-      { ...state.gameState.core.diceSet[1], rolledValue: 2 },
-      { ...state.gameState.core.diceSet[2], rolledValue: 3 },
-      { ...state.gameState.core.diceSet[3], rolledValue: 4 },
-      { ...state.gameState.core.diceSet[4], rolledValue: 6 },
-      { ...state.gameState.core.diceSet[5], rolledValue: 6 }
+    state.roundState.diceHand = [
+      { ...state.gameState.diceSet[0], rolledValue: 2 },
+      { ...state.gameState.diceSet[1], rolledValue: 2 },
+      { ...state.gameState.diceSet[2], rolledValue: 3 },
+      { ...state.gameState.diceSet[3], rolledValue: 4 },
+      { ...state.gameState.diceSet[4], rolledValue: 6 },
+      { ...state.gameState.diceSet[5], rolledValue: 6 }
     ];
 
-    state.roundState.core.roundPoints = 300; // Give them some points to lose
+    state.roundState.roundPoints = 300; // Give them some points to lose
 
-    await this.gameInterface.displayRoll(1, state.roundState.core.diceHand);
+    await this.gameInterface.displayRoll(1, state.roundState.diceHand);
     await this.gameInterface.log('');
 
     await this.gameInterface.log('Oh no! This roll has no valid scoring combinations.');
@@ -215,11 +215,11 @@ export class InteractiveTutorial {
       await this.gameInterface.log('');
       
       const endOfRoundLines = CLIDisplayFormatter.formatEndOfRoundSummary(
-        300, // forfeited points
-        0, // points added
-        1, // consecutive flops
+        300, // round points
         1, // round number
-        0 // no flop penalty in tutorial
+        false, // isFlop
+        0, // consecutiveFlops
+        3 // livesRemaining
       );
       for (const line of endOfRoundLines) {
         await this.gameInterface.log(line);
@@ -228,7 +228,7 @@ export class InteractiveTutorial {
       await this.gameInterface.log('');
       await this.gameInterface.log('💡 TIP: When you see a bad roll coming, consider banking early!');
     } else {
-      const selectedIndices = validateDiceSelection(input, state.roundState.core.diceHand.map(die => die.rolledValue!) as any);
+      const selectedIndices = validateDiceSelection(input, state.roundState.diceHand.map(die => die.rolledValue!) as any);
       if (selectedIndices.length === 0) {
         await this.gameInterface.log('❌ That\'s right - there are no valid combinations here.');
         await this.gameInterface.log('This is a flop! You lose your 300 round points.');
@@ -246,16 +246,16 @@ export class InteractiveTutorial {
     await this.gameInterface.log('');
 
     // Set up a hot dice scenario
-    state.roundState.core.diceHand = [
-      { ...state.gameState.core.diceSet[0], rolledValue: 1 },
-      { ...state.gameState.core.diceSet[1], rolledValue: 1 },
-      { ...state.gameState.core.diceSet[2], rolledValue: 1 },
-      { ...state.gameState.core.diceSet[3], rolledValue: 5 },
-      { ...state.gameState.core.diceSet[4], rolledValue: 5 },
-      { ...state.gameState.core.diceSet[5], rolledValue: 5 }
+    state.roundState.diceHand = [
+      { ...state.gameState.diceSet[0], rolledValue: 1 },
+      { ...state.gameState.diceSet[1], rolledValue: 1 },
+      { ...state.gameState.diceSet[2], rolledValue: 1 },
+      { ...state.gameState.diceSet[3], rolledValue: 5 },
+      { ...state.gameState.diceSet[4], rolledValue: 5 },
+      { ...state.gameState.diceSet[5], rolledValue: 5 }
     ];
 
-    await this.gameInterface.displayRoll(1, state.roundState.core.diceHand);
+    await this.gameInterface.displayRoll(1, state.roundState.diceHand);
     await this.gameInterface.log('');
 
     await this.gameInterface.log('Look at this amazing roll! You have:');

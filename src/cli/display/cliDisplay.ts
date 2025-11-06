@@ -1,5 +1,5 @@
 import { Die, ScoringCombination } from '../../game/core/types';
-import { MATERIALS } from '../../game/content/materials';
+import { MATERIALS } from '../../game/data/materials';
 
 /**
  * CLI-specific display formatting utilities
@@ -49,216 +49,267 @@ export class CLIDisplayFormatter {
         grouped[c.type].values.push(...c.dice.map(i => diceValues[i]));
         grouped[c.type].indices.push(...c.dice.map(i => i + 1));
       });
-      result.push(`  Combinations: ` + Object.entries(grouped).map(([type, { values, indices }]) => {
-        return `${type} ${values.join(', ')} (${indices.join(', ')})`;
-      }).join('; '));
       
-      // Add partitioning info lines if provided
-      if (partitioningInfoLines && partitioningInfoLines.length > 0) {
-        result.push(...partitioningInfoLines.map(line => `  ${line}`));
-      } else if (partitioningInfo) {
-        result.push(`  ${partitioningInfo}`);
-      } else if (combinations.length > 1) {
-        result.push(`  Selected partitioning: ${combinations.map(c => c.type).join(', ')}`);
+      // Format grouped combinations
+      for (const [type, { values, indices }] of Object.entries(grouped)) {
+        const points = combinations.find(c => c.type === type)?.points || 0;
+        result.push(`  ${type}: [${values.join(', ')}] (dice ${indices.join(', ')}) - ${points} points`);
       }
+    }
+    
+    if (partitioningInfoLines && partitioningInfoLines.length > 0) {
+      result.push(...partitioningInfoLines.map(line => `  ${line}`));
     }
     
     return result.join('\n');
   }
 
   /**
-   * CLI-specific: Format roll summary with points, hot dice, and bank/reroll prompt
+   * Format roll summary for CLI
    */
-  static formatRollSummary(rollPoints: number, roundPoints: number, hotDiceCounterRound: number, diceToReroll: number): string[] {
+  static formatRollSummary(
+    rollNumber: number,
+    pointsAdded: number,
+    roundPoints: number,
+    hotDiceCounter: number,
+  ): string {
+    const hotDiceText = hotDiceCounter > 0 ? ` (Hot Dice: ${hotDiceCounter})` : '';
+    return `Roll ${rollNumber}: +${pointsAdded} points | Round Points: ${roundPoints}${hotDiceText}`;
+  }
+
+  /**
+   * Format end of round summary
+   */
+  static formatEndOfRoundSummary(
+    roundPoints: number,
+    roundNumber: number,
+    isFlop: boolean,
+    consecutiveFlops: number,
+    livesRemaining: number
+  ): string[] {
+    const pointsLabel = isFlop ? 'Points Forfeited' : 'Points Scored';
+    const lines = [
+      `=== Round ${roundNumber} Complete ===`,
+      `${pointsLabel}: ${roundPoints}`,
+      `Consecutive Flops: ${consecutiveFlops}`,
+      `Lives Remaining: ${livesRemaining}`,
+      `---`
+    ];
+    return lines;
+  }
+  
+  /**
+   * Format tallying screen
+   */
+  static formatTallyingScreen(
+    levelNumber: number,
+    baseReward: number,
+    livesBonus: number,
+    livesRemaining: number,
+    charmBonuses: number,
+    blessingBonuses: number,
+    total: number
+  ): string[] {
     const lines: string[] = [];
-    lines.push(`🎲 ROLL SUMMARY`);
-    lines.push(`  Roll points: +${rollPoints}`);
-    lines.push(`  Round points: ${roundPoints}`);
+    lines.push(`=== LEVEL ${levelNumber} COMPLETE! ===`);
+    lines.push('');
+    lines.push(`Money Earned:`);
+    lines.push(`  - Level completion: $${baseReward}`);
+    if (livesRemaining > 0) {
+      lines.push(`  - Unused lives (${livesRemaining}): +$${livesBonus}`);
+    }
+    if (charmBonuses > 0) {
+      lines.push(`  - Charm bonuses: +$${charmBonuses}`);
+    }
+    if (blessingBonuses > 0) {
+      lines.push(`  - Blessing bonuses: +$${blessingBonuses}`);
+    }
+    lines.push(`  - Total: $${total}`);
     return lines;
   }
 
   /**
-   * CLI-specific: Format round summary at end of round (after flop/bank)
-   */
-  static formatEndOfRoundSummary(forfeitedPoints: number, pointsAdded: number, consecutiveFlops: number, roundNumber?: number, flopPenalty?: number): string[] {
-    const lines: string[] = [];
-    lines.push(`\n📊 ROUND ${roundNumber} SUMMARY`);
-    if (forfeitedPoints > 0) {
-      lines.push(`  Points forfeited: -${forfeitedPoints}`);
-    }
-    if (flopPenalty && flopPenalty > 0) {
-      lines.push(`  Flop penalty: -${flopPenalty}`);
-    }
-    if (pointsAdded > 0) {
-      lines.push(`  Points banked: +${pointsAdded}`);
-    }
-    if (consecutiveFlops > 0) {
-      lines.push(`  Consecutive flops: ${consecutiveFlops}`);
-    }
-    return lines;
-  }
-
-  /**
-   * CLI-specific: Format game setup summary
-   */
-  static formatGameSetupSummary(gameState: any): string {
-    const lines: string[] = [];
-    lines.push('\n=== GAME SETUP COMPLETE ===');
-    lines.push(`Money: $${gameState.core.money}`);
-    lines.push(`Charms: ${(gameState.core.charms || []).length > 0 ? (gameState.core.charms || []).map((c: any) => c.name).join(', ') : 'None'}`);
-    lines.push(`Consumables: ${(gameState.core.consumables || []).length > 0 ? (gameState.core.consumables || []).map((c: any) => c.name).join(', ') : 'None'}`);
-    lines.push(`Dice Set: ${gameState.config.diceSetConfig?.name || (gameState.core.diceSet.length + ' dice')}`);
-    lines.push('===========================\n');
-    return lines.join('\n');
-  }
-
-  /**
-   * CLI-specific: Format hot dice message with fire emojis
+   * Format hot dice message (delegate to DisplayFormatter)
    */
   static formatHotDice(count?: number): string {
-    const fireEmojis = '🔥'.repeat(count || 1);
-    return `  ${fireEmojis} HOT DICE! ${fireEmojis}`;
+    const { DisplayFormatter } = require('../../app/utils/display');
+    return DisplayFormatter.formatHotDice(count);
   }
 
   /**
-   * CLI-specific: Format bank or reroll prompt
+   * Format bank or reroll prompt
    */
   static formatBankOrRerollPrompt(diceToReroll: number): string {
-    return `(b) Bank points or (r) reroll ${diceToReroll} dice: `;
+    return `Bank points (b) or reroll ${diceToReroll} dice (r): `;
   }
 
   /**
-   * CLI-specific: Format command legend
-   */
-  static formatCommandLegend(): string {
-    return `\nCommands: (i) Inventory, (c) Combinations, (d) Dice Set, (l) Level`;
-  }
-
-  /**
-   * CLI-specific: Format inventory display
+   * Format inventory display
    */
   static formatInventory(gameState: any): string[] {
     const lines: string[] = [];
-    lines.push(`🎒 INVENTORY`);
-    lines.push(`  Money: $${gameState.core.money}`);
-    lines.push(`  Charms: ${(gameState.core.charms || []).length > 0 ? (gameState.core.charms || []).map((c: any) => `${c.name}${c.uses !== undefined ? ` (${c.uses} uses)` : ''}`).join(', ') : 'None'}`);
-    lines.push(`  Consumables: ${(gameState.core.consumables || []).length > 0 ? (gameState.core.consumables || []).map((c: any) => `${c.name} (${c.uses} uses)`).join(', ') : 'None'}`);
+    lines.push(`📦 INVENTORY`);
+    lines.push('');
+    
+    // Charms
+    lines.push(`Charms:`);
+    if (gameState.charms && gameState.charms.length > 0) {
+      gameState.charms.forEach((charm: any, idx: number) => {
+        const usesStr = charm.uses !== undefined ? ` (${charm.uses} uses)` : '';
+        lines.push(`  ${idx + 1}. ${charm.name}${usesStr}`);
+      });
+    } else {
+      lines.push(`  (None)`);
+    }
+    lines.push('');
+    
+    // Consumables
+    lines.push(`Consumables:`);
+    if (gameState.consumables && gameState.consumables.length > 0) {
+      gameState.consumables.forEach((consumable: any, idx: number) => {
+        const usesStr = consumable.uses !== undefined ? ` (${consumable.uses} uses)` : '';
+        lines.push(`  ${idx + 1}. ${consumable.name}${usesStr}`);
+      });
+    } else {
+      lines.push(`  (None)`);
+    }
+    lines.push('');
+    
+    // Money
+    lines.push(`Money: $${gameState.money || 0}`);
+    
     return lines;
   }
 
   /**
-   * CLI-specific: Format combinations display
+   * Format combinations display
    */
   static formatCombinationsDisplay(dice: Die[], gameState: any): string[] {
     const lines: string[] = [];
-    lines.push(`🎯 COMBINATIONS ANALYSIS`);
+    lines.push(`🎯 COMBINATIONS`);
+    lines.push('');
     
-    // Get all possible combinations for current dice
-    const diceValues = dice.map(die => die.rolledValue!);
-    const combinations = this.getAllPossibleCombinations(diceValues);
+    // Get dice values
+    const diceValues = dice.map(die => die.rolledValue).filter(v => v !== undefined);
+    lines.push(`Dice values: [${diceValues.join(', ')}]`);
+    lines.push('');
     
-    if (combinations.length > 0) {
-      // Group by combination type
-      const grouped: Record<string, { values: number[]; indices: number[]; points: number }> = {};
-      combinations.forEach(c => {
-        if (!grouped[c.type]) grouped[c.type] = { values: [], indices: [], points: 0 };
-        grouped[c.type].values.push(...c.dice.map(i => diceValues[i]));
-        grouped[c.type].indices.push(...c.dice.map(i => i + 1));
-        grouped[c.type].points = Math.max(grouped[c.type].points, c.points);
-      });
-      
-      Object.entries(grouped).forEach(([type, { values, indices, points }]) => {
-        lines.push(`  ${type}: ${values.join(', ')} (${indices.join(', ')}) = ${points} points`);
-      });
-    } else {
-      lines.push(`  No valid combinations found`);
-    }
-    
-    // Show combination counters from game state
-    if (gameState.history.combinationCounters) {
-      lines.push(`  Combination History:`);
-      Object.entries(gameState.history.combinationCounters).forEach(([type, count]) => {
-        if ((count as number) > 0) {
-          lines.push(`    ${type}: ${count} scored`);
-        }
-      });
-    }
+    // This would need actual scoring logic - for now just show dice values
+    lines.push(`(Use scoring logic to show available combinations)`);
     
     return lines;
   }
 
   /**
-   * CLI-specific: Format dice set display
+   * Format dice set display
    */
   static formatDiceSetDisplay(gameState: any): string[] {
     const lines: string[] = [];
     lines.push(`🎲 DICE SET`);
-    lines.push(`  Set: ${gameState.config.diceSetConfig?.name || (gameState.core.diceSet.length + ' dice')}`);
-    lines.push(`  Dice:`);
-    const materialMap = Object.fromEntries(MATERIALS.map(m => [m.id, m.abbreviation]));
-    gameState.core.diceSet.forEach((die: any, i: number) => {
-      const abbrev = materialMap[die.material] || '--';
-      lines.push(`    Die ${i + 1}: ${abbrev} (${die.sides} sides)`);
-    });
     lines.push('');
+    
+    if (gameState.diceSet && gameState.diceSet.length > 0) {
+      gameState.diceSet.forEach((die: any, idx: number) => {
+        const material = die.material || 'plastic';
+        const materialName = MATERIALS[material]?.name || material;
+        lines.push(`  Die ${idx + 1}: ${die.sides} sides (${materialName})`);
+      });
+    } else {
+      lines.push(`  (No dice)`);
+    }
+    
     return lines;
   }
 
   /**
-   * CLI-specific: Format level display (placeholder)
+   * Format level display
    */
   static formatLevelDisplay(gameState: any): string[] {
     const lines: string[] = [];
     lines.push(`📈 LEVEL INFO`);
-    lines.push(`  Current Level: 1 (placeholder)`);
-    lines.push(`  Points Needed: 1000 (placeholder)`);
-    lines.push(`  Rounds Left: 10 (placeholder)`);
-    lines.push(`  Boss: None (placeholder)`);
+    lines.push('');
+    
+    if (gameState.currentLevel) {
+      lines.push(`Current Level: ${gameState.currentLevel.levelNumber}`);
+      lines.push(`Points Banked: ${gameState.currentLevel.pointsBanked || 0} / ${gameState.currentLevel.levelThreshold || 0}`);
+      lines.push(`Rerolls Remaining: ${gameState.currentLevel.rerollsRemaining || 0}`);
+      lines.push(`Lives Remaining: ${gameState.currentLevel.livesRemaining || 0}`);
+      lines.push(`Consecutive Flops: ${gameState.currentLevel.consecutiveFlops || 0}`);
+    } else {
+      lines.push(`  (No level data)`);
+    }
+    
     return lines;
   }
 
   /**
-   * Helper: Get all possible combinations for given dice values
+   * Format game setup summary
    */
-  private static getAllPossibleCombinations(diceValues: number[]): ScoringCombination[] {
-    // This is a simplified version - in practice, you'd want to use the actual scoring logic
-    const combinations: ScoringCombination[] = [];
-    
-    // Check for straights
-    const sorted = [...diceValues].sort((a, b) => a - b);
-    if (sorted.length >= 3) {
-      // Check for 3+ consecutive numbers
-      for (let i = 0; i <= sorted.length - 3; i++) {
-        if (sorted[i + 1] === sorted[i] + 1 && sorted[i + 2] === sorted[i] + 2) {
-          const indices = [i, i + 1, i + 2];
-          combinations.push({
-            type: 'Straight',
-            dice: indices,
-            points: 100
-          });
-        }
-      }
-    }
-    
-    // Check for of-a-kinds
-    const counts: Record<number, number[]> = {};
-    diceValues.forEach((value, index) => {
-      if (!counts[value]) counts[value] = [];
-      counts[value].push(index);
-    });
-    
-    Object.entries(counts).forEach(([value, indices]) => {
-      if (indices.length >= 3) {
-        combinations.push({
-          type: `${indices.length} of a Kind`,
-          dice: indices,
-          points: indices.length * 50
-        });
-      }
-    });
-    
-    return combinations;
+  static formatGameSetupSummary(gameState: any): string {
+    const lines: string[] = [];
+    lines.push(`\n=== Game Setup Complete ===`);
+    lines.push(`Dice Set: ${gameState.diceSet?.length || 0} dice`);
+    lines.push(`Charms: ${gameState.charms?.length || 0}`);
+    lines.push(`Consumables: ${gameState.consumables?.length || 0}`);
+    lines.push(`Money: $${gameState.money || 0}`);
+    lines.push(`\n`);
+    return lines.join('\n');
   }
 
-
-} 
+  /**
+   * Format shop display
+   */
+  static formatShopDisplay(
+    money: number,
+    availableCharms: any[],
+    availableConsumables: any[],
+    availableBlessings: any[],
+    charmPrices: number[],
+    consumablePrices: number[],
+    blessingPrices: number[]
+  ): string[] {
+    const lines: string[] = [];
+    lines.push('');
+    lines.push(`=== SHOP ===`);
+    lines.push(`Money: $${money}`);
+    lines.push('');
+    
+    // Blessings section
+    if (availableBlessings.length > 0) {
+      lines.push(`BLESSINGS:`);
+      availableBlessings.forEach((blessing, idx) => {
+        const price = blessingPrices[idx];
+        const name = blessing.name || `${blessing.effect.type} Blessing`;
+        const description = blessing.description || `${blessing.effect.type}`;
+        lines.push(`  ${idx + 1}. ${name} - $${price} - ${description}`);
+      });
+      lines.push('');
+    }
+    
+    // Charms section
+    lines.push(`CHARMS:`);
+    if (availableCharms.length === 0) {
+      lines.push(`  (No charms available)`);
+    } else {
+      availableCharms.forEach((charm, idx) => {
+        const price = charmPrices[idx];
+        lines.push(`  ${idx + 1}. ${charm.name} (${charm.rarity}) - $${price} - ${charm.description}`);
+      });
+    }
+    lines.push('');
+    
+    // Consumables section
+    lines.push(`CONSUMABLES:`);
+    if (availableConsumables.length === 0) {
+      lines.push(`  (No consumables available)`);
+    } else {
+      availableConsumables.forEach((consumable, idx) => {
+        const price = consumablePrices[idx];
+        lines.push(`  ${idx + 1}. ${consumable.name} (${consumable.rarity}) - $${price} - ${consumable.description}`);
+      });
+    }
+    lines.push('');
+    
+    return lines;
+  }
+}

@@ -73,14 +73,9 @@ export function getScoringCombinations(
     return [];
   }
   
-  // Show all partitionings in debug output
+  // Summary log of partitionings found 
   if (getDebugMode()) {
     debugLog(`Found ${allPartitionings.length} valid partitionings`);
-    for (let i = 0; i < allPartitionings.length; i++) {
-      const partitioning = allPartitionings[i];
-      const points = partitioning.reduce((sum, c) => sum + c.points, 0);
-      debugLog(`Partitioning ${i + 1}: ${partitioning.map(c => c.type).join(', ')} (${points} points)`);
-    }
   }
   
   // Return the first valid partitioning for validation
@@ -199,9 +194,7 @@ function findAllValidPartitionings(
   const uniquePartitionings: ScoringCombination[][] = [];
   const seenPartitionings = new Set<string>();
   
-  if (getDebugMode()) {
-    debugLog('Before partitioning deduplication:', validPartitionings.length, 'partitionings');
-  }
+  const beforeCount = validPartitionings.length;
   
   for (const partitioning of validPartitionings) {
     // Create a canonical representation for comparison
@@ -227,16 +220,11 @@ function findAllValidPartitionings(
     if (!seenPartitionings.has(canonical)) {
       seenPartitionings.add(canonical);
       uniquePartitionings.push(partitioning);
-      if (getDebugMode()) {
-        debugLog('Added unique partitioning:', canonical);
-      }
-    } else if (getDebugMode()) {
-      debugLog('Duplicate partitioning found:', canonical);
     }
   }
   
   if (getDebugMode()) {
-    debugLog('After partitioning deduplication:', uniquePartitionings.length, 'unique partitionings');
+    debugLog(`Partitioning deduplication: ${beforeCount} → ${uniquePartitionings.length} unique partitionings`);
   }
   
   return uniquePartitionings;
@@ -388,26 +376,18 @@ function findAllPossibleCombinations(
   const uniqueCombinations: ScoringCombination[] = [];
   const seenCombinations = new Set<string>();
   
-  if (getDebugMode()) {
-    debugLog('All combinations found:', combinations.length);
-    combinations.forEach((combo, index) => {
-      const diceValues = combo.dice.map(idx => diceHand[idx].rolledValue).join(',');
-      debugLog(`  ${index + 1}. ${combo.type} [${combo.dice.join(',')}] (${diceValues}) - ${combo.points} points`);
-    });
-  }
+  const beforeCombinationCount = combinations.length;
   
   for (const combo of combinations) {
     const canonical = `${combo.type}:${combo.dice.sort((a, b) => a - b).join(',')}`;
     if (!seenCombinations.has(canonical)) {
       seenCombinations.add(canonical);
       uniqueCombinations.push(combo);
-    } else if (getDebugMode()) {
-      debugLog('Duplicate found:', canonical);
     }
   }
   
   if (getDebugMode()) {
-    debugLog('After deduplication:', uniqueCombinations.length, 'unique combinations');
+    debugLog(`Combination deduplication: ${beforeCombinationCount} → ${uniqueCombinations.length} unique combinations`);
   }
   
   return uniqueCombinations;

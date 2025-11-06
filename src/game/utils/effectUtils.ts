@@ -22,7 +22,7 @@ export function formatCombinations(combinations: any[]): string {
 export function formatFlopMessage(
   forfeitedPoints: number, 
   consecutiveFlops: number, 
-  gameScore: number,
+  levelBankedPoints: number,
   consecutiveFlopPenalty: number,
   consecutiveFlopLimit: number
 ): string {
@@ -31,7 +31,7 @@ export function formatFlopMessage(
   if (consecutiveFlops === consecutiveFlopLimit - 1) {
     message += `\n  (${consecutiveFlops} consecutive flops - one more and you lose ${consecutiveFlopPenalty} points!)`;
   } else if (consecutiveFlops >= consecutiveFlopLimit) {
-    message += `\n  (${consecutiveFlops} consecutive flops - you lost ${consecutiveFlopPenalty} points! Game score: ${gameScore})`;
+    message += `\n  (${consecutiveFlops} consecutive flops - you lost ${consecutiveFlopPenalty} points! Banked: ${levelBankedPoints})`;
   }
   
   return message;
@@ -39,19 +39,15 @@ export function formatFlopMessage(
 
 export interface GameStats {
   rounds: number;
-  totalRolls: number;
-  gameScore: number;
+  totalScore: number;
   money: number;
-  hotDiceCounterRound: number;
 }
 
 export function formatGameStats(stats: GameStats): string[] {
   return [
     `Rounds played: ${stats.rounds}`,
-    `Total rolls: ${stats.totalRolls}`,
-    `Current score: ${stats.gameScore}`,
+    `Current score: ${stats.totalScore}`,
     `Money: $${stats.money}`,
-    `Hot dice occurrences: ${stats.hotDiceCounterRound}`,
   ];
 }
 
