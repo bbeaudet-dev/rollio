@@ -1,4 +1,4 @@
-import { Die, GameState } from '../core/types';
+import { Die, GameState } from '../types';
 import { CLIDisplayFormatter } from '../../cli/display/cliDisplay';
 
 /**

@@ -1,4 +1,4 @@
-import { Die } from '../core/types';
+import { Die } from '../types';
 
 // Die size sequence
 export const DIE_SIZE_SEQUENCE = [3, 4, 6, 10, 20] as const;

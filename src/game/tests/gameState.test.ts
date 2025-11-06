@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createInitialGameState, createInitialRoundState, resetDiceScoredState } from '../core/gameInitializer';
-import { GameState, RoundState, DiceSetConfig, Die } from '../core/types';
+import { createInitialGameState, createInitialRoundState, resetDiceScoredState } from '../utils/factories';
+import { GameState, RoundState, DiceSetConfig, Die } from '../types';
 import { 
   BASIC_DICE_SET, 
   HIGH_ROLLER_SET, 

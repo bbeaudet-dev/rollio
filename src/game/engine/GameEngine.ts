@@ -1,10 +1,10 @@
-import { DEFAULT_GAME_CONFIG } from '../core/gameInitializer';
-import { Die, DiceMaterialType } from '../core/types';
+import { DEFAULT_GAME_CONFIG } from '../utils/factories';
+import { Die, DiceMaterialType } from '../types';
 import { GameInterface } from '../interfaces';
 import { setDebugMode, getDebugMode, debugLog, debugAction, debugStateChange } from '../utils/debug';
 import { CharmManager } from '../logic/charmSystem';
 import { registerCharms } from '../logic/charms/index';
-import { applyConsumableEffect } from '../consumableEffects';
+import { applyConsumableEffect } from '../logic/consumableEffects';
 import { DisplayFormatter } from '../../app/utils/display';
 import { CLIDisplayFormatter } from '../../cli/display/cliDisplay';
 import { SetupManager } from './SetupManager';

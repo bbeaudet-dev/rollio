@@ -1,4 +1,4 @@
-import { Charm, Consumable } from '../../game/core/types';
+import { Charm, Consumable } from '../../game/types';
 
 export interface CharmInventoryProps {
   charms: Charm[];

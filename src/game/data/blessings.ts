@@ -3,7 +3,7 @@
  * Blessings are permanent upgrades that can only be purchased once per run
  */
 
-import { Blessing } from '../core/types';
+import { Blessing } from '../types';
 
 /**
  * All available blessings (tier 1, 2, and 3)

@@ -72,6 +72,42 @@ const DEFAULT_CONFIG: DebugConfig = {
 // Debug mode control
 let DEBUG_CONFIG: DebugConfig = DEFAULT_CONFIG;
 
+// Get debug logs directory
+function getDebugLogsDir(): string {
+  return path.join(process.cwd(), 'debug', 'logs');
+}
+
+// Ensure debug logs directory exists
+function ensureDebugLogsDir(): void {
+  if (typeof window !== 'undefined') {
+    return;
+  }
+  try {
+    const logsDir = getDebugLogsDir();
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+  } catch (error) {
+    // Silently fail - will error when trying to write
+  }
+}
+
+// Get current date string for log rotation (YYYY-MM-DD)
+function getDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Get log file path with daily rotation
+function getLogFilePath(baseName: string): string {
+  const dateStr = getDateString();
+  const fileName = baseName.replace('.log', `-${dateStr}.log`);
+  return path.join(getDebugLogsDir(), fileName);
+}
+
 // Load configuration from file
 function loadDebugConfig(): DebugConfig {
   // In browser environment, just use default config
@@ -80,7 +116,7 @@ function loadDebugConfig(): DebugConfig {
   }
   
   try {
-    const configPath = path.join(process.cwd(), 'debug.config.json');
+    const configPath = path.join(process.cwd(), 'debug', 'debug.config.json');
     if (fs.existsSync(configPath)) {
       const configData = fs.readFileSync(configPath, 'utf8');
       const config = JSON.parse(configData);
@@ -95,6 +131,7 @@ function loadDebugConfig(): DebugConfig {
 // Initialize configuration
 try {
   DEBUG_CONFIG = loadDebugConfig();
+  ensureDebugLogsDir();
   // Only log config loading if verbose mode is enabled
   if (DEBUG_CONFIG.debug && DEBUG_CONFIG.verbose) {
     console.log('[DEBUG] Config loaded:', {
@@ -134,6 +171,7 @@ export function getDebugConfig(): DebugConfig {
 
 export function reloadDebugConfig() {
   DEBUG_CONFIG = loadDebugConfig();
+  ensureDebugLogsDir();
 }
 
 // Helper function to extract caller information from stack trace
@@ -189,6 +227,126 @@ function getTimestamp(): string {
   return `${hours}:${minutes}:${seconds}.${ms}`;
 }
 
+// Track current log file paths and dates for rotation
+const currentLogFiles: { actions?: string; state?: string; date?: string } = {};
+
+// Get current log file path (with rotation check)
+function getCurrentLogPath(baseName: string): string {
+  const currentDate = getDateString();
+  const logType = baseName.includes('actions') ? 'actions' : 'state';
+  
+  // If date changed or file not set, update path
+  if (currentLogFiles.date !== currentDate || !currentLogFiles[logType]) {
+    currentLogFiles.date = currentDate;
+    currentLogFiles[logType] = getLogFilePath(baseName);
+  }
+  
+  return currentLogFiles[logType] || getLogFilePath(baseName);
+}
+
+// Concise formatting for dice
+function formatDieConcise(die: any): string {
+  if (!die || typeof die !== 'object') {
+    return JSON.stringify(die);
+  }
+  
+  const parts: string[] = [];
+  if (die.id !== undefined) parts.push(`id=${die.id}`);
+  if (die.sides !== undefined) parts.push(`sides=${die.sides}`);
+  if (die.allowedValues !== undefined) {
+    const values = Array.isArray(die.allowedValues) 
+      ? `[${die.allowedValues.join(',')}]` 
+      : die.allowedValues;
+    parts.push(`allowedValues=${values}`);
+  }
+  if (die.material !== undefined) parts.push(`material=${die.material}`);
+  if (die.scored !== undefined) parts.push(`scored=${die.scored}`);
+  if (die.rolledValue !== undefined) parts.push(`rolledValue=${die.rolledValue}`);
+  
+  return parts.join(', ');
+}
+
+// Concise formatting for combinations
+function formatCombinationConcise(combo: any): string {
+  if (!combo || typeof combo !== 'object') {
+    return JSON.stringify(combo);
+  }
+  
+  const parts: string[] = [];
+  if (combo.type !== undefined) parts.push(`type=${combo.type}`);
+  if (combo.dice !== undefined) {
+    const dice = Array.isArray(combo.dice) 
+      ? `[${combo.dice.join(',')}]` 
+      : combo.dice;
+    parts.push(`dice=${dice}`);
+  }
+  if (combo.points !== undefined) parts.push(`points=${combo.points}`);
+  
+  return parts.join(', ');
+}
+
+// Concise formatting for nested objects
+function formatObjectConcise(obj: any, indent: number = 0): string {
+  if (obj === null || obj === undefined) {
+    return String(obj);
+  }
+  
+  if (typeof obj !== 'object') {
+    return String(obj);
+  }
+  
+  if (Array.isArray(obj)) {
+    // Check if it's an array of dice
+    if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && obj[0].id !== undefined && obj[0].sides !== undefined) {
+      return `[\n${'  '.repeat(indent + 1)}${obj.map(die => formatDieConcise(die)).join(`\n${'  '.repeat(indent + 1)}`)}\n${'  '.repeat(indent)}]`;
+    }
+    // Check if it's an array of combinations
+    if (obj.length > 0 && obj[0] && typeof obj[0] === 'object' && obj[0].type !== undefined && obj[0].dice !== undefined) {
+      return `[\n${'  '.repeat(indent + 1)}${obj.map(combo => formatCombinationConcise(combo)).join(`\n${'  '.repeat(indent + 1)}`)}\n${'  '.repeat(indent)}]`;
+    }
+    // Regular array
+    return `[${obj.map(item => formatObjectConcise(item, indent + 1)).join(', ')}]`;
+  }
+  
+  // Check for diceSetConfig pattern (has dice array)
+  if (obj.dice && Array.isArray(obj.dice)) {
+    const lines: string[] = ['{'];
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === 'dice') {
+        lines.push(`  ${'  '.repeat(indent)}"${key}": [`);
+        for (const die of value as any[]) {
+          lines.push(`    ${'  '.repeat(indent)}${formatDieConcise(die)},`);
+        }
+        lines.push(`  ${'  '.repeat(indent)}],`);
+      } else {
+        lines.push(`  ${'  '.repeat(indent)}"${key}": ${formatObjectConcise(value, indent + 1)},`);
+      }
+    }
+    lines.push(`${'  '.repeat(indent)}}`);
+    return lines.join('\n');
+  }
+  
+  // Regular object - format compactly
+  const entries = Object.entries(obj);
+  if (entries.length === 0) {
+    return '{}';
+  }
+  
+  // For small objects, put on one line
+  if (entries.length <= 3 && entries.every(([_, v]) => typeof v !== 'object' || v === null || Array.isArray(v))) {
+    return `{ ${entries.map(([k, v]) => `"${k}": ${formatObjectConcise(v, indent + 1)}`).join(', ')} }`;
+  }
+  
+  // For larger objects, use multi-line
+  const lines: string[] = ['{'];
+  for (const [key, value] of entries) {
+    const formatted = formatObjectConcise(value, indent + 1);
+    lines.push(`  ${'  '.repeat(indent)}"${key}": ${formatted},`);
+  }
+  lines.push(`${'  '.repeat(indent)}}`);
+  return lines.join('\n');
+}
+
 // Write to action log file
 function writeToActionLog(message: string): void {
   // Don't write to file in browser environment
@@ -202,7 +360,9 @@ function writeToActionLog(message: string): void {
   }
   
   try {
-    const logPath = path.join(process.cwd(), DEBUG_CONFIG.logFiles?.actions || 'debug.actions.log');
+    ensureDebugLogsDir();
+    const baseName = DEBUG_CONFIG.logFiles?.actions || 'debug.actions.log';
+    const logPath = getCurrentLogPath(baseName);
     fs.appendFileSync(logPath, message + '\n', 'utf8');
     // Only log success message if verbose mode is enabled
     if (!writeToActionLog._firstWrite && DEBUG_CONFIG.verbose) {
@@ -212,7 +372,7 @@ function writeToActionLog(message: string): void {
   } catch (error: any) {
     // Log error to console so we can see what's wrong
     console.error('[DEBUG] Failed to write to action log:', error?.message || error, {
-      path: path.join(process.cwd(), DEBUG_CONFIG.logFiles?.actions || 'debug.actions.log'),
+      path: getCurrentLogPath(DEBUG_CONFIG.logFiles?.actions || 'debug.actions.log'),
       debug: DEBUG_CONFIG.debug,
       logToFile: DEBUG_CONFIG.logToFile
     });
@@ -234,7 +394,9 @@ function writeToStateLog(message: string): void {
   }
   
   try {
-    const logPath = path.join(process.cwd(), DEBUG_CONFIG.logFiles?.state || 'debug.state.log');
+    ensureDebugLogsDir();
+    const baseName = DEBUG_CONFIG.logFiles?.state || 'debug.state.log';
+    const logPath = getCurrentLogPath(baseName);
     fs.appendFileSync(logPath, message + '\n', 'utf8');
     // Only log success message if verbose mode is enabled
     if (!writeToStateLog._firstWrite && DEBUG_CONFIG.verbose) {
@@ -244,7 +406,7 @@ function writeToStateLog(message: string): void {
   } catch (error: any) {
     // Log error to console so we can see what's wrong
     console.error('[DEBUG] Failed to write to state log:', error?.message || error, {
-      path: path.join(process.cwd(), DEBUG_CONFIG.logFiles?.state || 'debug.state.log'),
+      path: getCurrentLogPath(DEBUG_CONFIG.logFiles?.state || 'debug.state.log'),
       debug: DEBUG_CONFIG.debug,
       logToFile: DEBUG_CONFIG.logToFile
     });
@@ -447,13 +609,14 @@ export function debugStateChangeWithContext(
     }
   }
   
-  // Write full state if configured
+  // Write full state if configured - use concise formatting
   if (DEBUG_CONFIG.stateLogging?.fullState) {
     writeToStateLog('  FULL_STATE:');
-    writeToStateLog(JSON.stringify(gameState, null, 2));
+    const formattedState = formatObjectConcise(gameState, 1);
+    writeToStateLog(formattedState);
   }
   
   writeToStateLog('---'); // Separator
   
   // Don't log to console - only file logs for state changes
-} 
+}

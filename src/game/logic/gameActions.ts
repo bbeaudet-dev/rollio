@@ -1,4 +1,4 @@
-import { GameState, RoundState } from '../core/types';
+import { GameState, RoundState } from '../types';
 import { validateDiceSelectionAndScore, processDiceScoring, isFlop } from './gameLogic';
 import { getHighestPointsPartitioning } from './scoring';
 import { applyMaterialEffects } from './materialSystem';

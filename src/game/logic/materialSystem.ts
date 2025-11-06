@@ -1,4 +1,4 @@
-import { Die } from '../core/types';
+import { Die } from '../types';
 import { debugAction, debugVerbose } from '../utils/debug';
 
 /*

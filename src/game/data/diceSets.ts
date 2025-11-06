@@ -1,4 +1,4 @@
-import { DiceSetConfig, DiceMaterialType } from '../core/types';
+import { DiceSetConfig, DiceMaterialType } from '../types';
 import { MATERIALS } from './materials';
 
 export const BASIC_DICE_SET: DiceSetConfig = {

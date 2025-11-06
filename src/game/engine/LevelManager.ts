@@ -3,7 +3,7 @@
  * Handles level progression, tallying, and shop phases
  */
 
-import { GameState } from '../core/types';
+import { GameState } from '../types';
 import { GameInterface } from '../interfaces';
 import { calculateLevelRewards, applyLevelRewards, LevelRewards } from '../logic/tallying';
 import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, calculateShopDiscount, applyDiscount, getCharmPrice, getConsumablePrice, getBlessingPrice } from '../logic/shop';

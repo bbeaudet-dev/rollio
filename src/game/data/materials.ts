@@ -1,4 +1,4 @@
-import { DiceMaterial, DiceMaterialType } from '../core/types';
+import { DiceMaterial, DiceMaterialType } from '../types';
 
 export const MATERIALS: DiceMaterial[] = [
   {

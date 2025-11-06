@@ -2,7 +2,7 @@
  * Shop logic and inventory generation
  */
 
-import { GameState, Charm, Consumable, Blessing, ShopState } from '../core/types';
+import { GameState, Charm, Consumable, Blessing, ShopState } from '../types';
 import { CHARMS } from '../data/charms';
 import { CONSUMABLES } from '../data/consumables';
 import { selectRandomBlessing, getBlessingName, getBlessingDescription, enrichBlessingForDisplay } from '../data/blessings';

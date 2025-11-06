@@ -1,5 +1,5 @@
-import { CHARMS } from './data/charms';
-import { getNextDieSize, getPreviousDieSize, getDieSizeDescription, DIE_SIZE_SEQUENCE } from './utils/dieSizeUtils';
+import { CHARMS } from '../data/charms';
+import { getNextDieSize, getPreviousDieSize, getDieSizeDescription, DIE_SIZE_SEQUENCE } from '../utils/dieSizeUtils';
 
 export async function applyConsumableEffect(idx: number, gameState: any, roundState: any, gameInterface: any, charmManager: any): Promise<void> {
   const consumable = gameState.consumables[idx];
@@ -50,7 +50,7 @@ export async function applyConsumableEffect(idx: number, gameState: any, roundSt
       // Pick a random plastic die
       const chosen = plasticDice[Math.floor(Math.random() * plasticDice.length)];
       // Pick a random non-plastic material
-      const MATERIALS = require('./content/materials').MATERIALS;
+      const { MATERIALS } = await import('../data/materials');
       const nonPlasticMaterials = MATERIALS.filter((m: any) => m.id !== 'plastic');
       const newMaterial = nonPlasticMaterials[Math.floor(Math.random() * nonPlasticMaterials.length)];
       chosen.die.material = newMaterial.id;
@@ -67,7 +67,7 @@ export async function applyConsumableEffect(idx: number, gameState: any, roundSt
       }
       // Find available charms not already owned
       const ownedIds = new Set(gameState.charms.map((c: any) => c.id));
-      const available = CHARMS.filter(c => !ownedIds.has(c.id));
+      const available = CHARMS.filter((c: any) => !ownedIds.has(c.id));
       if (available.length === 0) {
         await gameInterface.log('🎁 Charm Giver: No new charms available!');
         shouldRemove = false;

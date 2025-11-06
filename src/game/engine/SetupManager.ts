@@ -1,12 +1,11 @@
 import { GameInterface } from '../interfaces';
 import { CharmManager } from '../logic/charmSystem';
-import { DEFAULT_GAME_CONFIG } from '../core/gameInitializer';
+import { DEFAULT_GAME_CONFIG, createInitialGameState } from '../utils/factories';
 import { ALL_DICE_SETS } from '../data/diceSets';
 import { CHARMS } from '../data/charms';
 import { CONSUMABLES } from '../data/consumables';
 import { MATERIALS } from '../data/materials';
-import { createInitialGameState } from '../core/gameInitializer';
-import { DiceMaterialType } from '../core/types';
+import { DiceMaterialType } from '../types';
 
 /*
  * =============================

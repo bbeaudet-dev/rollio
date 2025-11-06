@@ -1,4 +1,4 @@
-import { Charm, CharmRarity } from '../core/types';
+import { Charm, CharmRarity } from '../types';
 
 export type CharmType = 
   | 'flopShield'
