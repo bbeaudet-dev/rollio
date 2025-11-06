@@ -106,14 +106,14 @@ export function useGameState() {
     
     // Game board data (from round state)
     board: {
-      dice: webState?.roundState?.core?.diceHand || [],
+      dice: webState?.roundState?.diceHand || [],
       selectedDice: webState?.selectedDice || [],
       previewScoring: webState?.previewScoring || null,
     canRoll: webState?.canRoll || false,
     canBank: webState?.canBank || false,
     canReroll: webState?.canReroll || false,
       canSelectDice: webState?.roundState ? 
-        webState.roundState.core.diceHand.length > 0 && !(webState.canBank && webState.canReroll) && !webState.justBanked && !webState.justFlopped : 
+        webState.roundState.diceHand.length > 0 && !(webState.canBank && webState.canReroll) && !webState.justBanked && !webState.justFlopped : 
         false,
       justBanked: webState?.justBanked || false,
       justFlopped: webState?.justFlopped || false,
@@ -123,10 +123,10 @@ export function useGameState() {
     
 
     
-    // Inventory (from core game state)
+    // Inventory (from game state)
     inventory: {
-      charms: webState?.gameState?.core?.charms || [],
-      consumables: webState?.gameState?.core?.consumables || [],
+      charms: webState?.gameState?.charms || [],
+      consumables: webState?.gameState?.consumables || [],
       materialLogs: webState?.materialLogs || [],
       charmLogs: webState?.charmLogs || [],
     },

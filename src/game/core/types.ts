@@ -28,6 +28,8 @@ export interface DiceSetConfig {
   startingMoney: number;
   charmSlots: number;
   consumableSlots: number;
+  rerollValue: number; 
+  livesValue: number;  
   setType: DiceSetType;
 }
 
@@ -76,77 +78,58 @@ export interface Consumable {
   // Add runtime state/effects as needed
 }
 
+export interface Blessing {
+  id: string;
+  tier: 1 | 2 | 3;
+  effect: BlessingEffect;
+}
+
+export type BlessingEffect =
+  | { type: "rerollValue"; amount: number }
+  | { type: "livesValue"; amount: number }
+  | { type: "rerollOnBank"; amount: number }
+  | { type: "rerollOnFlop"; amount: number }
+  | { type: "rerollOnCombination"; combination: string; amount: number }
+  | { type: "charmSlots"; amount: number }
+  | { type: "consumableSlots"; amount: number }
+  | { type: "shopDiscount"; percentage: number }
+  | { type: "flopSubversion"; percentage: number }
+  | { type: "moneyPerLife"; amount: number }
+  | { type: "moneyOnLevelEnd"; amount: number }
+  | { type: "moneyOnRerollUsed"; amount: number };
+
 // GAME ENGINE TYPES
 
-// Roll core state (renamed from RollScoring)
-export interface RollCore {
-  diceHand: Die[];      // Available dice for this roll (subset of diceSet)
-  selectedDice: Die[];  // Dice selected by player for scoring (subset of diceHand)
-  maxRollPoints?: number;
+export interface RollState {
+  rollNumber: number;  // Within round (1, 2, 3... - stays same for rerolls in same sequence)
+  isReroll: boolean;  // false for initial roll, true for rerolls
+  diceHand: Die[];  // Snapshot of dice rolled at this moment
+  selectedDice: Die[];
   rollPoints?: number;
+  maxRollPoints?: number;
   scoringSelection?: number[];
   combinations?: ScoringCombination[];
-}
-
-// Roll metadata and status
-export interface RollMeta {
-  isActive: boolean;
   isHotDice?: boolean;
-  endReason?: RollEndReason;
+  isFlop?: boolean;
 }
 
-// Organized RollState
-export interface RollState {
-  core: RollCore;
-  meta: RollMeta;
-}
-
-// Round metadata and configuration
-export interface RoundMeta {
+// Flattened RoundState (no meta/core/history split)
+export interface RoundState {
+  roundNumber: number;  // Round number within level (1, 2, 3...)
+  roundPoints: number;
+  diceHand: Die[];  // Current dice available to roll (changes as you score)
+  hotDiceCounter: number; 
+  forfeitedPoints: number;
+  crystalsScoredThisRound: number; 
   isActive: boolean;
   endReason?: RoundEndReason;
-}
 
-// Round core state
-export interface RoundCore {
-  rollNumber: number;
-  roundPoints: number;
-  diceHand: Die[];
-  hotDiceCounterRound: number;
-  forfeitedPoints: number;
-}
+  // Roll history for this round
+  rollHistory: RollState[];  // All roll attempts including rerolls
 
-// Round history and tracking
-export interface RoundHistory {
-  rollHistory: RollState[];
-  crystalsScoredThisRound?: number;
-}
-
-// Organized RoundState
-export interface RoundState {
-  meta: RoundMeta;
-  core: RoundCore;
-  history: RoundHistory;
-}
-
-// Game metadata and status
-export interface GameMeta {
-  isActive: boolean;
-  endReason?: GameEndReason;
-}
-
-// Core game data - runtime state that changes during gameplay
-export interface GameCore {
-  gameScore: number;
-  money: number;
-  roundNumber: number;
-  consecutiveFlops: number;
-  diceSet: Die[];
-  charms: Charm[];
-  consumables: Consumable[];
-  currentRound: RoundState;
-  settings: GameSettings;
-  shop: ShopState;
+  // Completed round only (in history)
+  banked?: boolean;
+  flopped?: boolean;
 }
 
 // Game settings that can change during gameplay
@@ -159,7 +142,6 @@ export interface GameSettings {
 // Game configuration - set at start, rarely changes
 export interface GameConfig {
   diceSetConfig: DiceSetConfig;
-  winCondition: number;
   penalties: {
     consecutiveFlopLimit: number;
     consecutiveFlopPenalty: number;
@@ -172,26 +154,70 @@ export interface ShopState {
   isOpen: boolean;
   availableCharms: Charm[];
   availableConsumables: Consumable[];
+  availableBlessings: Blessing[];  // One random blessing per shop
 }
 
-// Game history and tracking data
+// LEVEL STATE (nested for hierarchy)
+export interface LevelState {
+  levelNumber: number;
+  levelThreshold: number;
+
+  // Current level only
+  rerollsRemaining?: number;
+  livesRemaining?: number;
+  consecutiveFlops: number; 
+  pointsBanked: number; 
+  shop?: ShopState;
+  currentRound?: RoundState;
+
+  // Completed level only (in history)
+  completed?: boolean;
+  roundHistory?: RoundState[];
+}
+
+// Game history and tracking data (consolidated here)
 export interface GameHistory {
-  rollCount: number;
-  hotDiceCounterGlobal: number;
-  forfeitedPointsTotal: number;
+  // Cumulative statistics (calculated from nested history)
+  totalScore: number;  // Renamed from gameScore - cumulative banked points
   combinationCounters: CombinationCounters;
-  roundHistory: RoundState[]; // Completed rounds (excluding current)
+
+  // Historical records (nested structure)
+  levelHistory: LevelState[];  // Completed levels (excluding current)
+  
+  // TODO: Future game-wide statistics tracking
+  // We want to track cumulative stats across the entire game/run:
+  // - Total rolls across all rounds
+  // - Total forfeited points across all rounds
+  // - Total hot dice occurrences
+  // - Other cumulative metrics
+  // For now, we only track per-round stats (roundState.hotDiceCounter, roundState.forfeitedPoints)
 }
 
-// Main game state - organized into logical groups
+// Main game state - flattened structure (no meta/core split)
 export interface GameState {
-  meta: GameMeta;
-  core: GameCore;
+  // Game-wide state (flattened - no meta/core split)
+  isActive: boolean;
+  endReason?: GameEndReason;
+  money: number;
+  diceSet: Die[];
+  charms: Charm[];
+  consumables: Consumable[];
+  blessings: Blessing[];
+  rerollValue: number;  // Base value (persists across levels)
+  livesValue: number;   // Base value (persists across levels)
+  charmSlots: number;
+  consumableSlots: number;
+  settings: GameSettings;
   config: GameConfig;
+
+  // Current level state (nested for hierarchy)
+  currentLevel: LevelState;
+
+  // History (consolidated here - all history in one place)
   history: GameHistory;
 }
 
 // ENDGAME TYPES
-export type GameEndReason = 'win' | 'quit';
+export type GameEndReason = 'win' | 'quit' | 'lost';
 export type RoundEndReason = 'flopped' | 'banked';
 export type RollEndReason = 'flopped' | 'scored';

@@ -3,7 +3,7 @@ import { Die, DiceMaterialType } from '../core/types';
 import { GameInterface } from '../interfaces';
 import { setDebugMode, getDebugMode, debugLog, debugAction, debugStateChange } from '../utils/debug';
 import { CharmManager } from '../logic/charmSystem';
-import { registerCharms } from '../content/charms/index';
+import { registerCharms } from '../logic/charms/index';
 import { applyConsumableEffect } from '../consumableEffects';
 import { DisplayFormatter } from '../../app/utils/display';
 import { CLIDisplayFormatter } from '../../cli/display/cliDisplay';
@@ -36,7 +36,9 @@ export class GameEngine {
     this.setupManager = new SetupManager();
     this.roundManager = new RoundManager();
     this.rollManager = new RollManager();
-    setDebugMode(debugMode);
+    if (debugMode) {
+      setDebugMode(true);
+    }
     registerCharms();
     
     debugAction('gameFlow', 'GameEngine initialized', { debugMode });
@@ -82,27 +84,23 @@ export class GameEngine {
     
     debugAction('gameFlow', 'Game setup completed', { 
       diceSetName: diceSetConfig.name, 
-      charmsCount: gameState.core.charms?.length || 0,
-      consumablesCount: gameState.core.consumables?.length || 0
+      charmsCount: gameState.charms?.length || 0,
+      consumablesCount: gameState.consumables?.length || 0
     });
 
     await this.interface.log(CLIDisplayFormatter.formatGameSetupSummary(gameState));
 
     // Main game loop
     debugAction('gameFlow', 'Starting main game loop');
-    while (gameState.meta.isActive) {
-      debugAction('roundTransitions', `Round ${gameState.core.roundNumber + 1} starting`, { 
-        currentScore: gameState.core.gameScore,
-        roundsPlayed: gameState.core.roundNumber
-      });
+    while (gameState.isActive) {
       
       // Ask user to start the round
       const next = await (this.interface as any).askForNextRound(gameState, null, async (idx: number) => await this.useConsumable(idx, gameState, null));
       if (next.trim().toLowerCase() !== 'y') {
         debugAction('gameFlow', 'Player quit game');
-        gameState.meta.isActive = false;
-        gameState.meta.endReason = 'quit';
-        await this.interface.displayGameEnd(gameState, false);
+        gameState.isActive = false;
+        gameState.endReason = 'quit';
+        await this.interface.displayGameEnd(gameState);
         break;
       }
       
@@ -116,15 +114,10 @@ export class GameEngine {
         this.useConsumable.bind(this)
       );
       
-      if (gameState.core.gameScore !== undefined && gameState.config?.winCondition !== undefined && gameState.core.gameScore >= gameState.config.winCondition) {
-        debugAction('gameFlow', 'Player reached win condition', { 
-          finalScore: gameState.core.gameScore, 
-          winCondition: gameState.config.winCondition 
-        });
-        gameState.meta.isActive = false;
-        gameState.meta.endReason = 'win';
-        await this.interface.displayGameEnd(gameState, true);
-      }
+      // In roguelike system, game ends when:
+      // - Lives run out (handled in RoundManager/LevelManager)
+      // - Player quits (handled above)
+      // No winCondition based on totalScore
     }
   }
 
@@ -134,7 +127,7 @@ export class GameEngine {
    * Handles consumable usage, passed as a callback to RoundManager.
    */
   async useConsumable(idx: number, gameState: any, roundState: any): Promise<void> {
-    const consumable = gameState.core.consumables?.[idx];
+    const consumable = gameState.consumables?.[idx];
     debugAction('consumableUsage', `Using consumable: ${consumable?.name || 'Unknown'}`, { 
       consumableIndex: idx,
       roundContext: roundState ? 'in-round' : 'between-rounds'
