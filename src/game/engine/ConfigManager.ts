@@ -12,21 +12,14 @@ export class ConfigManager {
    * Parse and validate game rules from user input
    */
   static parseGameRules(inputs: {
-    winConditionInput?: string;
     penaltyEnabledInput?: string;
     flopLimitInput?: string;
     flopPenaltyInput?: string;
   }): {
-    winCondition: number;
     penaltyEnabled: boolean;
     consecutiveFlopLimit: number;
     consecutiveFlopPenalty: number;
   } {
-    
-    // Parse win condition
-    const winCondition = inputs.winConditionInput?.trim() === '' || !inputs.winConditionInput
-      ? DEFAULT_GAME_CONFIG.winCondition 
-      : parseInt(inputs.winConditionInput.trim(), 10) || DEFAULT_GAME_CONFIG.winCondition;
     
     // Parse penalty enabled
     const penaltyEnabled = inputs.penaltyEnabledInput?.trim() === '' || !inputs.penaltyEnabledInput
@@ -50,7 +43,6 @@ export class ConfigManager {
     }
     
     return {
-      winCondition,
       penaltyEnabled,
       consecutiveFlopLimit,
       consecutiveFlopPenalty
@@ -61,13 +53,11 @@ export class ConfigManager {
    * Get default game configuration
    */
   static getDefaultGameRules(): {
-    winCondition: number;
     penaltyEnabled: boolean;
     consecutiveFlopLimit: number;
     consecutiveFlopPenalty: number;
   } {
     return {
-      winCondition: DEFAULT_GAME_CONFIG.winCondition,
       penaltyEnabled: true,
       consecutiveFlopLimit: DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit,
       consecutiveFlopPenalty: DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty
@@ -78,16 +68,11 @@ export class ConfigManager {
    * Validate game rules
    */
   static validateGameRules(rules: {
-    winCondition: number;
     penaltyEnabled: boolean;
     consecutiveFlopLimit: number;
     consecutiveFlopPenalty: number;
   }): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
-    
-    if (rules.winCondition <= 0) {
-      errors.push('Win condition must be greater than 0');
-    }
     
     if (rules.penaltyEnabled) {
       if (rules.consecutiveFlopLimit <= 0) {

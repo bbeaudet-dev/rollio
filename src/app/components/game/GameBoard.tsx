@@ -98,8 +98,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           fontSize: '16px',
           gap: '30px'
         }}>
-          <div><strong>Game Score:</strong> {gameState.core.gameScore}</div>
-          <div><strong>Money:</strong> ${gameState.core.money}</div>
+          <div><strong>Game Score:</strong> {gameState.history.totalScore}</div>
+          <div><strong>Money:</strong> ${gameState.money}</div>
         </div>
       </div>
 
@@ -134,10 +134,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           selectedIndices={board.selectedDice}
           onDiceSelect={rollActions.handleDiceSelect}
           canSelect={board.canSelectDice && canPlay}
-          roundNumber={gameState.core.roundNumber}
-          rollNumber={roundState.core.rollNumber}
-          hotDiceCount={roundState.core.hotDiceCounterRound}
-          consecutiveFlops={gameState.core.consecutiveFlops}
+          roundNumber={gameState.currentLevel.currentRound?.roundNumber || 1}
+          rollNumber={roundState.roundNumber}
+          hotDiceCount={roundState.hotDiceCounter}
+          consecutiveFlops={gameState.currentLevel.consecutiveFlops}
         />
 
         {/* Points Display - Top Center Overlay */}
@@ -166,7 +166,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           <div style={{ 
             color: board.justBanked ? '#007bff' : 'white'
           }}>
-            Round points: {board.justBanked ? '+' : ''}{roundState.core.roundPoints}
+            Round points: {board.justBanked ? '+' : ''}{roundState.roundPoints}
           </div>
           
           {/* Game Score - show only when just banked points */}
@@ -176,7 +176,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               color: 'white',
               fontWeight: 'bold'
             }}>
-              Game score: {gameState.core.gameScore}
+              Game score: {gameState.history.totalScore}
             </div>
           )}
         </div>
@@ -216,7 +216,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             onBank={gameActions.handleBank}
             canRoll={board.canRoll && canPlay}
             canBank={board.canBank && canPlay}
-            diceToReroll={(roundState.core.diceHand.length === 0 && roundState.history.rollHistory.length > 0) ? gameState.core.diceSet.length : board.dice.length}
+            diceToReroll={(roundState.diceHand.length === 0 && roundState.history.rollHistory.length > 0) ? gameState.diceSet.length : board.dice.length}
             canReroll={board.canReroll && canPlay}
           />
         </div>
@@ -235,10 +235,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             selectedIndices={board.selectedDice}
             onDiceSelect={rollActions.handleDiceSelect}
             canSelect={board.canSelectDice && canPlay}
-            isHotDice={roundState.core.diceHand.length === 0 && roundState.history.rollHistory.length > 0}
-            hotDiceCount={roundState.core.hotDiceCounterRound}
-            roundNumber={gameState.core.roundNumber}
-            rollNumber={roundState.core.rollNumber}
+            isHotDice={roundState.diceHand.length === 0 && roundState.history.rollHistory.length > 0}
+            hotDiceCount={roundState.hotDiceCounter}
+            roundNumber={gameState.currentLevel.currentRound?.roundNumber || 1}
+            rollNumber={roundState.rollNumber}
           />
 
           {/* Flop Notification */}

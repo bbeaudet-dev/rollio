@@ -2,6 +2,7 @@ import { GameState, RoundState } from '../core/types';
 import { validateDiceSelectionAndScore, processDiceScoring, isFlop } from './gameLogic';
 import { getHighestPointsPartitioning } from './scoring';
 import { applyMaterialEffects } from './materialSystem';
+import { debugActionWithContext } from '../utils/debug';
 
 /**
  * Higher-level game actions that coordinate multiple game systems
@@ -22,16 +23,24 @@ export function processCompleteScoring(
   charmEffectData: { basePoints: number; modifiedPoints: number };
   scoringResult: any;
 } {
-  const selectedValues = selectedIndices.map(i => roundState.core.diceHand[i].rolledValue);
+  debugActionWithContext('scoring', 'Starting scoring process', 'Validating selection', {
+    selectedIndices,
+    diceValues: selectedIndices.map(i => roundState.diceHand[i]?.rolledValue)
+  });
+  
+  const selectedValues = selectedIndices.map(i => roundState.diceHand[i].rolledValue);
   const input = selectedValues.join('');
+  
+  debugActionWithContext('scoring', 'Validating dice selection', 'Finding partitionings', { input });
   
   const { scoringResult } = validateDiceSelectionAndScore(
     input, 
-    roundState.core.diceHand, 
-    { charms: gameState.core.charms || [] }
+    roundState.diceHand, 
+    { charms: gameState.charms || [] }
   );
 
   if (!scoringResult.valid) {
+    debugActionWithContext('scoring', 'Validation failed', 'Returning error');
     return {
       success: false,
       finalPoints: 0,
@@ -47,7 +56,15 @@ export function processCompleteScoring(
   const bestPartitioningIndex = getHighestPointsPartitioning(scoringResult.allPartitionings);
   const selectedPartitioning = scoringResult.allPartitionings[bestPartitioningIndex];
   
+  debugActionWithContext('scoring', 'Selected best partitioning', 'Applying charm effects', {
+    partitioning: selectedPartitioning.map(c => c.type),
+    totalPartitionings: scoringResult.allPartitionings.length
+  });
+  
   let basePoints = selectedPartitioning.reduce((sum: number, c: any) => sum + c.points, 0);
+  
+  debugActionWithContext('scoring', 'Applying charm effects', 'Applying material effects', { basePoints });
+  
   const modifiedPoints = charmManager.applyCharmEffects({
     gameState,
     roundState,
@@ -56,55 +73,66 @@ export function processCompleteScoring(
     selectedIndices
   });
   
+  debugActionWithContext('scoring', 'Charm effects applied', 'Applying material effects', {
+    basePoints,
+    modifiedPoints
+  });
+  
   const materialResult = applyMaterialEffects(
-    roundState.core.diceHand,
+    roundState.diceHand,
     selectedIndices,
     modifiedPoints,
     gameState,
     roundState,
     charmManager
   );
+  
+  debugActionWithContext('scoring', 'Material effects applied', 'Updating round state', {
+    finalPoints: materialResult.score,
+    materialLogs: materialResult.materialLogs
+  });
 
   const newRoundState = { ...roundState };
-  newRoundState.core.roundPoints += Math.ceil(materialResult.score);
+  newRoundState.roundPoints += Math.ceil(materialResult.score);
   
   const scoredCrystals = selectedIndices.filter((idx: number) => {
-    const die = newRoundState.core.diceHand[idx];
+    const die = newRoundState.diceHand[idx];
     return die && die.material === 'crystal';
   }).length;
-  newRoundState.history.crystalsScoredThisRound = (newRoundState.history.crystalsScoredThisRound || 0) + scoredCrystals;
+  newRoundState.crystalsScoredThisRound += scoredCrystals;
   
   const scoringActionResult = processDiceScoring(
-    newRoundState.core.diceHand, 
+    newRoundState.diceHand, 
     selectedIndices, 
     { valid: true, points: materialResult.score, combinations: selectedPartitioning }
   );
   
-  newRoundState.core.diceHand = scoringActionResult.newHand;
+  newRoundState.diceHand = scoringActionResult.newHand;
   
   // Add entry to roll history
-  const rollNumber = newRoundState.history.rollHistory.length + 1;
-  newRoundState.history.rollHistory.push({
-    core: {
-      diceHand: [...newRoundState.core.diceHand], // Store remaining dice after scoring
-      selectedDice: [],
-    maxRollPoints: materialResult.score, // TODO: calculate actual max possible
+  // Find the last roll entry to get the current roll number
+  const lastRollEntry = newRoundState.rollHistory.length > 0 
+    ? newRoundState.rollHistory[newRoundState.rollHistory.length - 1]
+    : null;
+  const currentRollNumber = lastRollEntry?.rollNumber || 1;
+  
+  newRoundState.rollHistory.push({
+    rollNumber: currentRollNumber, 
+    isReroll: false,
+    diceHand: [...newRoundState.diceHand], // Store remaining dice after scoring
+    selectedDice: [],
     rollPoints: materialResult.score,
+    maxRollPoints: materialResult.score, // TODO: calculate actual max possible
     scoringSelection: selectedIndices,
     combinations: selectedPartitioning.map((c: any) => c.type),
-    },
-    meta: {
-      isActive: false,
     isHotDice: scoringActionResult.hotDice,
-      endReason: 'scored',
-    },
+    isFlop: false,
   });
   
   let newGameState = { ...gameState };
   const hotDice = scoringActionResult.hotDice;
   if (hotDice) {
-    newRoundState.core.hotDiceCounterRound++;
-    newGameState.history.hotDiceCounterGlobal++;
+    newRoundState.hotDiceCounter++;
   }
 
   return {
@@ -133,14 +161,14 @@ export function calculatePreviewScoring(
     return { isValid: false, points: 0, combinations: [] };
   }
 
-  const selectedValues = selectedIndices.map(i => roundState.core.diceHand[i].rolledValue);
+  const selectedValues = selectedIndices.map(i => roundState.diceHand[i].rolledValue);
   const input = selectedValues.join('');
   
   try {
     const { scoringResult } = validateDiceSelectionAndScore(
       input, 
-      roundState.core.diceHand, 
-      { charms: gameState.core.charms || [] }
+      roundState.diceHand, 
+      { charms: gameState.charms || [] }
     );
     
     if (scoringResult.valid && scoringResult.allPartitionings.length > 0) {
@@ -157,7 +185,7 @@ export function calculatePreviewScoring(
       });
       
       const { score: finalPreviewPoints } = applyMaterialEffects(
-        roundState.core.diceHand,
+        roundState.diceHand,
         selectedIndices,
         modifiedPoints,
         gameState,
@@ -191,16 +219,16 @@ export function processReroll(
   const newRoundState = { ...roundState };
   
   // Increment roll number
-  newRoundState.core.rollNumber++;
+  newRoundState.roundNumber++;
   
-  const isHotDice = newRoundState.core.diceHand.length === 0;
+  const isHotDice = newRoundState.diceHand.length === 0;
   if (isHotDice) {
-    newRoundState.core.diceHand = gameState.core.diceSet.map((die: any) => ({ ...die, scored: false }));
+    newRoundState.diceHand = gameState.diceSet.map((die: any) => ({ ...die, scored: false }));
   }
 
-  rollManager.rollDice(newRoundState.core.diceHand);
+  rollManager.rollDice(newRoundState.diceHand);
   
-  const flopResult = isFlop(newRoundState.core.diceHand);
+  const flopResult = isFlop(newRoundState.diceHand);
   
   return {
     newRoundState,

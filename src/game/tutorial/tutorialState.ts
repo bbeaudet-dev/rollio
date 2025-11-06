@@ -1,4 +1,4 @@
-import { Die, GameState, RoundState } from '../core/types';
+import { Die, GameState, RoundState, DiceSetConfig, DiceMaterialType } from '../core/types';
 import { CharmManager } from '../logic/charmSystem';
 import { RollManager } from '../engine/RollManager';
 
@@ -22,100 +22,102 @@ export class TutorialStateManager {
 
   private createInitialTutorialState(): TutorialState {
     // Create a minimal game state for tutorial
-    const gameState: GameState = {
-      meta: {
-        isActive: true,
-        endReason: undefined
-      },
-      core: {
-          gameScore: 0,
-    roundNumber: 1,
-    diceSet: [
-      { id: 'd1', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-      { id: 'd2', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-      { id: 'd3', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-      { id: 'd4', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-      { id: 'd5', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-      { id: 'd6', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' }
-    ],
-        consecutiveFlops: 0,
-        money: 0,
-        charms: [],
-        consumables: [],
-        currentRound: null as any, // Will be set properly when round starts
-        settings: {
-          sortDice: 'unsorted',
-          gameSpeed: 'default',
-          optimizeRollScore: false
-        },
-        shop: {
-          isOpen: false,
-          availableCharms: [],
-          availableConsumables: []
-        }
-      },
-      config: {
-        winCondition: 1000,
-    diceSetConfig: {
+    const diceSetConfig: DiceSetConfig = {
       name: 'Tutorial Set',
       dice: [
-        { id: 'd1', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-        { id: 'd2', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-        { id: 'd3', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-        { id: 'd4', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-        { id: 'd5', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' },
-        { id: 'd6', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' }
+        { id: 'd1', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' as DiceMaterialType },
+        { id: 'd2', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' as DiceMaterialType },
+        { id: 'd3', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' as DiceMaterialType },
+        { id: 'd4', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' as DiceMaterialType },
+        { id: 'd5', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' as DiceMaterialType },
+        { id: 'd6', sides: 6, allowedValues: [1, 2, 3, 4, 5, 6], material: 'plastic' as DiceMaterialType }
       ],
       startingMoney: 0,
       charmSlots: 0,
       consumableSlots: 0,
+      rerollValue: 0,
+      livesValue: 0,
       setType: 'beginner'
-    },
+    };
+
+    const gameState: GameState = {
+      isActive: true,
+      money: 0,
+      diceSet: diceSetConfig.dice.map(d => ({ ...d, scored: false, rolledValue: undefined })),
+      charms: [],
+      consumables: [],
+      blessings: [],
+      rerollValue: 0,
+      livesValue: 0,
+      charmSlots: 0,
+      consumableSlots: 0,
+      settings: {
+        sortDice: 'unsorted',
+        gameSpeed: 'default',
+        optimizeRollScore: false
+      },
+      config: {
+        diceSetConfig,
         penalties: {
           consecutiveFlopLimit: 3,
           consecutiveFlopPenalty: 1000,
           flopPenaltyEnabled: true
         }
       },
-      history: {
-        rollCount: 0,
-    hotDiceCounterGlobal: 0,
-        forfeitedPointsTotal: 0,
-      combinationCounters: {
-        godStraight: 0,
-        straight: 0,
-        fourPairs: 0,
-        threePairs: 0,
-        tripleTriplets: 0,
-        twoTriplets: 0,
-        sevenOfAKind: 0,
-        sixOfAKind: 0,
-        fiveOfAKind: 0,
-        fourOfAKind: 0,
-        threeOfAKind: 0,
-        singleOne: 0,
-        singleFive: 0
+      currentLevel: {
+        levelNumber: 1,
+        levelThreshold: 1000,
+        rerollsRemaining: 0,
+        livesRemaining: 0,
+        consecutiveFlops: 0,
+        pointsBanked: 0,
+        shop: {
+          isOpen: false,
+          availableCharms: [],
+          availableConsumables: [],
+          availableBlessings: []
+        },
+        currentRound: {
+          roundNumber: 1,
+          roundPoints: 0,
+          diceHand: [],
+          hotDiceCounter: 0,
+          forfeitedPoints: 0,
+          crystalsScoredThisRound: 0,
+          isActive: true,
+          rollHistory: []
+        }
       },
-        roundHistory: []
+      history: {
+        totalScore: 0,
+        combinationCounters: {
+          godStraight: 0,
+          straight: 0,
+          fourPairs: 0,
+          threePairs: 0,
+          tripleTriplets: 0,
+          twoTriplets: 0,
+          sevenOfAKind: 0,
+          sixOfAKind: 0,
+          fiveOfAKind: 0,
+          fourOfAKind: 0,
+          threeOfAKind: 0,
+          singleOne: 0,
+          singleFive: 0
+        },
+        levelHistory: []
       }
     };
 
     const roundState: RoundState = {
-      meta: {
-        isActive: true,
-        endReason: undefined
-      },
-      core: {
-      rollNumber: 0,
+      roundNumber: 1,
       roundPoints: 0,
       diceHand: [],
-      hotDiceCounterRound: 0,
+      hotDiceCounter: 0,
       forfeitedPoints: 0,
-      },
-      history: {
-        rollHistory: [],
-      crystalsScoredThisRound: 0
-      }
+      crystalsScoredThisRound: 0,
+      isActive: true,
+      rollHistory: []
     };
 
     return {
