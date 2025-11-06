@@ -54,18 +54,17 @@ export const MultiplayerGame: React.FC<MultiplayerGameProps> = ({
   useEffect(() => {
     if (game.gameState && game.roundState && currentRoom && socket) {
       socket.emit('update_player_state', currentRoom.id, {
-        gameScore: game.gameState?.core?.gameScore || 0,
-        currentRound: game.gameState?.core?.roundNumber || 0,
-        hotDiceCounterRound: game.roundState?.core?.hotDiceCounterRound || 0,
-        roundPoints: game.roundState?.core?.roundPoints || 0,
+        totalScore: game.gameState?.history?.totalScore || 0,
+        currentRound: game.gameState?.currentLevel?.currentRound?.roundNumber || 0,
+        roundPoints: game.roundState?.roundPoints || 0,
         lastAction: game.board.justBanked ? 'banked' : game.board.justFlopped ? 'flopped' : 'playing'
       });
     }
   }, [
-    game.gameState?.core?.gameScore, 
-    game.gameState?.core?.roundNumber, 
-    game.roundState?.core?.hotDiceCounterRound,
-    game.roundState?.core?.roundPoints,
+    game.gameState?.history?.totalScore, 
+    game.gameState?.currentLevel?.currentRound?.roundNumber, 
+    game.roundState?.hotDiceCounter,
+    game.roundState?.roundPoints,
     game.board.justBanked, 
     game.board.justFlopped, 
     currentRoom, 
