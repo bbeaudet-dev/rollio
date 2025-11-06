@@ -1,6 +1,6 @@
 import readline from 'readline';
-import { DEFAULT_GAME_CONFIG } from '../game/core/gameInitializer';
-import { DieValue, ScoringCombination, GameState, Die } from '../game/core/types';
+import { DEFAULT_GAME_CONFIG } from '../game/utils/factories';
+import { DieValue, ScoringCombination, GameState, Die } from '../game/types';
 import { DisplayInterface, InputInterface, GameInterface } from '../game/interfaces';
 import { DisplayFormatter } from '../app/utils/display';
 import { CLIDisplayFormatter } from './display/cliDisplay';
@@ -438,9 +438,17 @@ export class CLIInterface implements GameInterface {
 
   async displayBetweenRounds(gameState: GameState): Promise<void> {
     const roundNumber = gameState.currentLevel.currentRound?.roundNumber || 0;
+    const roundState = gameState.currentLevel.currentRound;
+    const isFlop = roundState?.flopped || false;
+    const roundPoints = roundState?.roundPoints || 0;
+    
     await this.log(`\n=== Round ${roundNumber} Complete ===`);
-    await this.log(`Round points: ${gameState.currentLevel.currentRound?.roundPoints || 0}`);
-    await this.log(`Points banked: ${gameState.currentLevel.pointsBanked} / ${gameState.currentLevel.levelThreshold}`);
+    
+    // Show "Points Forfeited" for flops, "Points Scored" for banked rounds
+    const pointsLabel = isFlop ? 'Points Forfeited: -' : 'Points Scored: +';
+    await this.log(`${pointsLabel}${roundPoints}`);
+  
+    await this.log(`Points: ${gameState.currentLevel.pointsBanked} / ${gameState.currentLevel.levelThreshold}`);
     await this.log(`Flops: ${gameState.currentLevel.consecutiveFlops}`);
     await this.log(`Lives: ${gameState.currentLevel.livesRemaining}`);
     await this.log('----------------------\n');

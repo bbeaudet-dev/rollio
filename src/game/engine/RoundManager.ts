@@ -1,6 +1,6 @@
 import { GameInterface } from '../interfaces';
 import { CharmManager } from '../logic/charmSystem';
-import { createInitialRoundState } from '../core/gameInitializer';
+import { createInitialRoundState, DEFAULT_GAME_CONFIG } from '../utils/factories';
 import { validateDiceSelectionAndScore, processDiceScoring, processBankAction, processFlop, updateGameStateAfterRound, isFlop } from '../logic/gameLogic';
 import { applyMaterialEffects } from '../logic/materialSystem';
 import { getHighestPointsPartitioning } from '../logic/scoring';
@@ -8,9 +8,8 @@ import { calculateRerollsForLevel, calculateLivesForLevel, validateRerollSelecti
 
 import { DisplayFormatter } from '../../app/utils/display';
 import { CLIDisplayFormatter } from '../../cli/display/cliDisplay';
-import { DEFAULT_GAME_CONFIG } from '../core/gameInitializer';
 import { RollManager } from './RollManager';
-import { Die } from '../core/types';
+import { Die } from '../types';
 import { SimpleDiceAnimation } from '../../cli/display/simpleDiceAnimation';
 import { debugLog, debugAction, debugActionWithContext, debugStateChangeWithContext } from '../utils/debug';
 
@@ -79,7 +78,7 @@ export class RoundManager {
     let currentRollNumber = 1;
     rollManager.rollDice(roundState.diceHand);
     
-    debugActionWithContext('diceRolls', `Initial roll #${currentRollNumber} for round ${nextRoundNumber}`, 'Checking for flop', {
+    debugActionWithContext('diceRolls', `Initial roll #${currentRollNumber} for round ${nextRoundNumber}`, 'Prompting for reroll', {
       rollNumber: currentRollNumber,
       roundNumber: nextRoundNumber,
       diceValues: roundState.diceHand.map(d => d.rolledValue)
@@ -99,7 +98,7 @@ export class RoundManager {
     
     await this.handleRerollPrompt(gameInterface, gameState, roundState, rollManager, currentRollNumber);
     
-    const flopResult = await this.displayRollAndCheckFlop(roundState, gameState, gameInterface, currentRollNumber, charmManager);
+    const flopResult = await this.checkAndHandleFlop(roundState, gameState, gameInterface, charmManager);
     if (flopResult === true) {
       roundActive = false;
       return;
@@ -177,8 +176,21 @@ export class RoundManager {
       /* === Remove Scored Dice and Update History === */
       const scoringActionResult = processDiceScoring(roundState.diceHand, selectedIndices, { valid: true, points: finalPoints, combinations: selectedPartitioning });
       roundState.diceHand = scoringActionResult.newHand;
+      
+      // Get the roll number from the last roll entry
+      // Look for the last entry that has a roll but no scoring
+      let rollNumberForScoring = currentRollNumber;
+      for (let i = roundState.rollHistory.length - 1; i >= 0; i--) {
+        const entry = roundState.rollHistory[i];
+        if (!entry.scoringSelection) {
+          // This is a roll entry, use its roll number
+          rollNumberForScoring = entry.rollNumber;
+          break;
+        }
+      }
+      
       roundState.rollHistory.push({
-        rollNumber: currentRollNumber,
+        rollNumber: rollNumberForScoring,
         isReroll: false,
         diceHand: [...roundState.diceHand], // Snapshot of dice after scoring
         selectedDice: [],
@@ -192,7 +204,7 @@ export class RoundManager {
 
       /* === Display Roll Summary === */
       const rollSummaryLine = CLIDisplayFormatter.formatRollSummary(
-        currentRollNumber,
+        rollNumberForScoring,
         Math.ceil(finalPoints),
         roundState.roundPoints,
         roundState.hotDiceCounter
@@ -234,8 +246,18 @@ export class RoundManager {
       }
     );
     
+    /* === Display Round Summary === */
     if (!levelCompleted) {
       await gameInterface.displayBetweenRounds(gameState);
+      
+      // Check if game should end (lives exhausted) after showing round summary
+      if (gameState.currentLevel.livesRemaining !== undefined && gameState.currentLevel.livesRemaining <= 0) {
+        gameState.isActive = false;
+        gameState.endReason = 'lost';
+        await gameInterface.log('\n=== GAME OVER ===');
+        await gameInterface.log('You ran out of lives!');
+        await gameInterface.displayGameEnd(gameState);
+      }
     }
   }
 
@@ -468,7 +490,7 @@ export class RoundManager {
       
       await this.handleRerollPrompt(gameInterface, gameState, roundState, rollManager, currentRollNumber);
       
-      const flopResult = await this.displayRollAndCheckFlop(roundState, gameState, gameInterface, currentRollNumber, charmManager);
+      const flopResult = await this.checkAndHandleFlop(roundState, gameState, gameInterface, charmManager);
       if (flopResult === true) return { result: 'end', levelCompleted: false };
       if (flopResult === 'flopPrevented') {
         const roundResult = await this.promptBankOrReroll(gameInterface, gameState, roundState, charmManager, rollManager, useConsumable);
@@ -568,11 +590,11 @@ export class RoundManager {
   }
 
   /*
-   * displayRollAndCheckFlop
-   * -----------------------
-   * Helper: Display a roll and check for flop. Returns true if flop (round should end), false otherwise.
+   * checkAndHandleFlop
+   * ------------------
+   * Checks for flop and handles it. Returns true if flop occurred (round should end), 'flopPrevented' if prevented, false otherwise.
    */
-  private async displayRollAndCheckFlop(roundState: any, gameState: any, gameInterface: GameInterface, rollNumber: number, charmManager: CharmManager): Promise<boolean | 'flopPrevented'> {
+  private async checkAndHandleFlop(roundState: any, gameState: any, gameInterface: GameInterface, charmManager: CharmManager): Promise<boolean | 'flopPrevented'> {
     const isFlopResult = isFlop(roundState.diceHand);
     if (isFlopResult) {
       // Try to prevent flop with charms
@@ -584,19 +606,12 @@ export class RoundManager {
         return 'flopPrevented'; 
       }
       
-      // Flop was NOT prevented - now process the flop
+      // Flop was NOT prevented - process the flop
       const levelBankedPoints = gameState.currentLevel.pointsBanked || 0;
       const flopActionResult = processFlop(roundState.roundPoints, levelBankedPoints, gameState);
       
-      // Check if game should end (lives exhausted)
-      if (gameState.currentLevel.livesRemaining !== undefined && gameState.currentLevel.livesRemaining <= 0) {
-        gameState.isActive = false;
-        gameState.endReason = 'lost';
-        await gameInterface.log('\n=== GAME OVER ===');
-        await gameInterface.log('You ran out of lives!');
-        await gameInterface.displayGameEnd(gameState);
-        return true; // Return true to indicate round should end
-      }
+      // Update game state (this sets roundState.flopped = true)
+      updateGameStateAfterRound(gameState, roundState, flopActionResult);
       
       // Display flop message 
       const consecutiveFlops = gameState.currentLevel.consecutiveFlops;
@@ -608,27 +623,7 @@ export class RoundManager {
         (gameState.config?.penalties?.consecutiveFlopLimit ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit)
       );
       
-      updateGameStateAfterRound(gameState, roundState, flopActionResult);
-      
-      // Display end-of-round summary
-      // Calculate penalty based on consecutive flops 
-      const consecutiveFlopLimit = gameState.config?.penalties?.consecutiveFlopLimit ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit;
-      const consecutiveFlopPenalty = gameState.config?.penalties?.consecutiveFlopPenalty ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty;
-      const charmPreventingFlop = (gameState.charms || []).some((charm: any) => charm.flopPreventing);
-      const flopPenalty = consecutiveFlops >= consecutiveFlopLimit && !charmPreventingFlop
-        ? consecutiveFlopPenalty 
-        : 0;
-      const endOfRoundLines = CLIDisplayFormatter.formatEndOfRoundSummary(
-        roundState.roundPoints, // round points
-        roundState.roundNumber,
-        true, // isFlop
-        gameState.currentLevel.consecutiveFlops,
-        gameState.currentLevel.livesRemaining
-      );
-      for (const line of endOfRoundLines) {
-        await gameInterface.log(line);
-      }
-      return true;
+      return true; // Return true to indicate flop occurred (round should end)
     }
     return false;
   }

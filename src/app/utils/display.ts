@@ -1,4 +1,4 @@
-import { Die, ScoringCombination } from '../../game/core/types';
+import { Die, ScoringCombination } from '../../game/types';
 import { formatDiceValues, formatCombinations, formatGameStats } from '../../game/utils/effectUtils';
 import { MATERIALS } from '../../game/data/materials';
 
@@ -47,15 +47,6 @@ export class DisplayFormatter {
   static formatGameEnd(gameState: any): string[] {
     const lines: string[] = [];
     
-    lines.push(`\n=== GAME SUMMARY ===`);
-    
-    const stats = formatGameStats({
-      rounds: (gameState.currentLevel.currentRound?.roundNumber || 1) - 1,
-      totalScore: gameState.history.totalScore,
-      money: gameState.money || 0,
-    });
-    
-    lines.push(...stats);
     lines.push(`\nThanks for playing Rollio!`);
     
     return lines;
