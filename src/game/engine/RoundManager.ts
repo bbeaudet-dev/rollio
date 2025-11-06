@@ -4,6 +4,7 @@ import { createInitialRoundState } from '../core/gameInitializer';
 import { validateDiceSelectionAndScore, processDiceScoring, processBankAction, processFlop, updateGameStateAfterRound, isFlop } from '../logic/gameLogic';
 import { applyMaterialEffects } from '../logic/materialSystem';
 import { getHighestPointsPartitioning } from '../logic/scoring';
+import { calculateRerollsForLevel, calculateLivesForLevel, validateRerollSelection } from '../logic/rerollLogic';
 
 import { DisplayFormatter } from '../../app/utils/display';
 import { CLIDisplayFormatter } from '../../cli/display/cliDisplay';
@@ -11,6 +12,7 @@ import { DEFAULT_GAME_CONFIG } from '../core/gameInitializer';
 import { RollManager } from './RollManager';
 import { Die } from '../core/types';
 import { SimpleDiceAnimation } from '../../cli/display/simpleDiceAnimation';
+import { debugLog, debugAction, debugActionWithContext, debugStateChangeWithContext } from '../utils/debug';
 
 /*
  * =============================
@@ -45,31 +47,78 @@ export class RoundManager {
     useConsumable: (idx: number, gameState: any, roundState: any) => Promise<void>
   ): Promise<void> {
     /* === Round Setup === */
-    gameState.core.roundNumber++; // Increment round number at the start
-    let roundState = createInitialRoundState(gameState.core.roundNumber);
-    roundState.core.diceHand = gameState.core.diceSet.map((die: Die) => ({ ...die, scored: false }));
-    roundState.history.crystalsScoredThisRound = 0;
+    const existingRound = gameState.currentLevel.currentRound;
+    let nextRoundNumber: number;
+    
+    if (existingRound && existingRound.isActive === true) {
+      nextRoundNumber = existingRound.roundNumber;
+      debugLog(`[ROUND SETUP] Using existing active round: ${nextRoundNumber}`);
+    } else if (existingRound === undefined) {
+      // New level - start at round 1
+      nextRoundNumber = 1;
+      debugLog(`[ROUND SETUP] New level detected - starting at round 1`);
+    } else {
+      const lastRoundNumber = existingRound.roundNumber;
+      nextRoundNumber = lastRoundNumber + 1;
+      debugLog(`[ROUND SETUP] Starting new round. Last round: ${lastRoundNumber}, Next: ${nextRoundNumber}`);
+    }
+    
+    debugActionWithContext('roundTransitions', `Starting round ${nextRoundNumber}`, 'Waiting for initial roll', {
+      nextRoundNumber,
+      existingRound: existingRound ? { roundNumber: existingRound.roundNumber, isActive: existingRound.isActive } : null
+    });
+    
+    let roundState = createInitialRoundState(nextRoundNumber);
+    roundState.diceHand = gameState.diceSet.map((die: Die) => ({ ...die, scored: false }));
     charmManager.callAllOnRoundStart({ gameState, roundState });
-    await gameInterface.displayRoundStart(gameState.core.roundNumber);
+    await gameInterface.displayRoundStart(nextRoundNumber);
     let roundActive = true;
+    let levelCompleted = false; // Track if level was completed during this round
 
     /* === Initial Roll and Flop Check === */
-    // Roll the dice and set their values
-    rollManager.rollDice(roundState.core.diceHand);
+    let currentRollNumber = 1;
+    rollManager.rollDice(roundState.diceHand);
     
-    const rollNumber = roundState.history.rollHistory.length + 1;
-    // Display roll number when dice are rolled
-    await this.displayRollNumber(rollNumber, gameInterface);
-    // Animate dice roll with final values
-    await this.diceAnimation.animateDiceRoll(roundState.core.diceHand, rollNumber);
+    debugActionWithContext('diceRolls', `Initial roll #${currentRollNumber} for round ${nextRoundNumber}`, 'Checking for flop', {
+      rollNumber: currentRollNumber,
+      roundNumber: nextRoundNumber,
+      diceValues: roundState.diceHand.map(d => d.rolledValue)
+    });
+    
+      roundState.rollHistory.push({
+        rollNumber: currentRollNumber,
+        isReroll: false,
+        diceHand: [...roundState.diceHand], // Snapshot of initial roll
+        selectedDice: [],
+        rollPoints: 0, 
+        isFlop: isFlop(roundState.diceHand),
+      });
+    
+    await this.displayRollNumber(currentRollNumber, gameInterface);
+    await this.diceAnimation.animateDiceRoll(roundState.diceHand, currentRollNumber);
+    
+    await this.handleRerollPrompt(gameInterface, gameState, roundState, rollManager, currentRollNumber);
+    
+    const flopResult = await this.displayRollAndCheckFlop(roundState, gameState, gameInterface, currentRollNumber, charmManager);
+    if (flopResult === true) {
+      roundActive = false;
+      return;
+    }
 
     while (roundActive) {
       /* === Scoring Selection === */
+      debugActionWithContext('scoring', 'Waiting for user dice selection', 'Validating selection');
       const { selectedIndices, scoringResult } = await this.promptAndValidateScoringSelection(gameInterface, roundState, gameState, useConsumable);
       if (!scoringResult.valid) {
+        debugActionWithContext('scoring', 'Invalid dice selection', 'Waiting for new selection');
         await gameInterface.log('Invalid selection. Please select a valid scoring combination.');
         continue;
       }
+      
+      debugActionWithContext('scoring', 'Valid selection received', 'Processing scoring', {
+        selectedIndices,
+        diceValues: selectedIndices.map(i => roundState.diceHand[i]?.rolledValue)
+      });
 
       /* === Partitioning Selection === */
       const partitioningResult = await this.choosePartitioning(gameInterface, scoringResult);
@@ -80,7 +129,6 @@ export class RoundManager {
       const { finalPoints, scoredCrystals, charmLogs, materialLogs, baseMaterialPoints, finalMaterialPoints } = await this.applyCharmAndMaterialEffects(
         charmManager, gameInterface, selectedPartitioning, roundState, gameState, selectedIndices
       );
-      roundState.history.crystalsScoredThisRound = (roundState.history.crystalsScoredThisRound || 0) + scoredCrystals;
       
       // Display partitioning info if available
       if (partitioningInfo && partitioningInfo.length > 0) {
@@ -110,63 +158,85 @@ export class RoundManager {
       }
       
       // Update round points
-      roundState.core.roundPoints += finalPoints;
-      roundState.core.roundPoints = Math.ceil(roundState.core.roundPoints);
+      roundState.roundPoints += finalPoints;
+      roundState.roundPoints = Math.ceil(roundState.roundPoints);
+
+      /* === Display Combination Summary (before removing dice) === */
+      // Store dice hand before scoring removes dice, so we can show which dice were scored
+      const diceHandBeforeScoring = [...roundState.diceHand];
+      const combinationSummary = CLIDisplayFormatter.formatCombinationSummary(
+        selectedIndices,
+        diceHandBeforeScoring,
+        selectedPartitioning,
+        undefined,
+        partitioningInfo
+      );
+      await gameInterface.log(combinationSummary);
+      await gameInterface.log('');
 
       /* === Remove Scored Dice and Update History === */
-      const scoringActionResult = processDiceScoring(roundState.core.diceHand, selectedIndices, { valid: true, points: finalPoints, combinations: selectedPartitioning });
-      roundState.core.diceHand = scoringActionResult.newHand;
-      roundState.history.rollHistory.push({
-        core: {
-          diceHand: roundState.core.diceHand,
-          selectedDice: [],
-        maxRollPoints: 0, // TODO: calculate this
+      const scoringActionResult = processDiceScoring(roundState.diceHand, selectedIndices, { valid: true, points: finalPoints, combinations: selectedPartitioning });
+      roundState.diceHand = scoringActionResult.newHand;
+      roundState.rollHistory.push({
+        rollNumber: currentRollNumber,
+        isReroll: false,
+        diceHand: [...roundState.diceHand], // Snapshot of dice after scoring
+        selectedDice: [],
         rollPoints: finalPoints,
+        maxRollPoints: 0, // TODO: calculate this
         scoringSelection: selectedIndices,
         combinations: selectedPartitioning,
-        },
-        meta: {
-          isActive: false,
         isHotDice: scoringActionResult.hotDice,
-          endReason: 'scored',
-        },
+        isFlop: false,
       });
 
       /* === Display Roll Summary === */
-      const rollSummaryLines = CLIDisplayFormatter.formatRollSummary(
+      const rollSummaryLine = CLIDisplayFormatter.formatRollSummary(
+        currentRollNumber,
         Math.ceil(finalPoints),
-        roundState.core.roundPoints,
-        roundState.core.hotDiceCounterRound,
-        roundState.core.diceHand.length
+        roundState.roundPoints,
+        roundState.hotDiceCounter
       );
+      const rollSummaryLines = [rollSummaryLine];
       for (const line of rollSummaryLines) {
         await gameInterface.log(line);
       }
 
       /* === Hot Dice Handling === */
       if (scoringActionResult.hotDice) {
-        await gameInterface.displayHotDice(roundState.core.hotDiceCounterRound);
-        
-        // Hot dice! Reset hand to full dice set but don't roll yet
-        roundState.core.diceHand = gameState.core.diceSet.map((die: Die) => ({ ...die, scored: false }));
+        // Increment hot dice counter when hot dice occurs
+        roundState.hotDiceCounter++;
+        await gameInterface.displayHotDice(roundState.hotDiceCounter);
+        roundState.diceHand = gameState.diceSet.map((die: Die) => ({ ...die, scored: false }));
       }
 
       /* === Bank or Reroll Prompt === */
       const roundResult = await this.promptBankOrReroll(gameInterface, gameState, roundState, charmManager, rollManager, useConsumable);
-      if (roundResult === 'banked' || roundResult === 'end') {
+      if (roundResult.levelCompleted) {
+        levelCompleted = true;
+      }
+      if (roundResult.result === 'banked' || roundResult.result === 'end') {
         roundActive = false;
       }
     }
 
     /* === End of Round Bookkeeping === */
-    gameState.core.currentRound = roundState;
-    roundState.history.crystalsScoredThisRound = 0;
-    if (roundState.core.forfeitedPoints > 0) {
-      gameState.history.forfeitedPointsTotal = roundState.core.forfeitedPoints;
-    } else {
-      gameState.history.forfeitedPointsTotal = 0;
+    const oldIsActive = roundState.isActive;
+    roundState.isActive = false;
+    gameState.currentLevel.currentRound = roundState;
+    
+    debugStateChangeWithContext(
+      'playRound',
+      `Round ${roundState.roundNumber} completed`,
+      gameState,
+      {
+        'currentLevel.currentRound.isActive': { old: oldIsActive, new: false }
+      }
+    );
+    
+    if (!levelCompleted) {
+      await gameInterface.displayBetweenRounds(gameState);
     }
-    await gameInterface.displayBetweenRounds(gameState);
   }
 
   /*
@@ -183,12 +253,12 @@ export class RoundManager {
 
     
     const input = await (gameInterface as any).askForDiceSelection(
-      roundState.core.diceHand,
-      gameState.core.consumables,
+      roundState.diceHand,
+      gameState.consumables,
       async (idx: number) => await useConsumable(idx, gameState, roundState),
       gameState
     );
-    return validateDiceSelectionAndScore(input, roundState.core.diceHand, { charms: gameState.core.charms || [] });
+    return validateDiceSelectionAndScore(input, roundState.diceHand, { charms: gameState.charms || [] });
   }
 
 
@@ -281,11 +351,11 @@ export class RoundManager {
     // Instead of logging here, return the logs and base/final points for the interface to format
     // Calculate number of crystal dice scored in this action
     const scoredCrystals = selectedIndices.filter((idx: number) => {
-      const die = roundState.core.diceHand[idx];
+      const die = roundState.diceHand[idx];
       return die && die.material === 'crystal';
     }).length;
     // Log material effects (crystal effect will use the PREVIOUS value)
-    const materialResult = applyMaterialEffects(roundState.core.diceHand, selectedIndices, modifiedPoints, gameState, roundState, charmManager);
+    const materialResult = applyMaterialEffects(roundState.diceHand, selectedIndices, modifiedPoints, gameState, roundState, charmManager);
     let finalPoints = materialResult.score;
     // Return all relevant logs and points for display
     return {
@@ -304,7 +374,7 @@ export class RoundManager {
    * promptBankOrReroll
    * ------------------
    * Prompts the user to bank or reroll, and handles the response.
-   * Returns 'banked', 'reroll', or 'end'.
+   * Returns 'banked', 'reroll', or 'end', and whether a level was completed.
    */
   private async promptBankOrReroll(
     gameInterface: GameInterface,
@@ -313,48 +383,179 @@ export class RoundManager {
     charmManager: CharmManager,
     rollManager: RollManager,
     useConsumable: (idx: number, gameState: any, roundState: any) => Promise<void>
-  ): Promise<'banked' | 'reroll' | 'end'> {
+  ): Promise<{ result: 'banked' | 'reroll' | 'end'; levelCompleted: boolean }> {
     const action = await (gameInterface as any).askForBankOrReroll(
-      roundState.core.diceHand.length,
-      gameState.core.consumables,
+      roundState.diceHand.length,
+      gameState.consumables,
       async (idx: number) => await useConsumable(idx, gameState, roundState)
     );
     if (action.trim().toLowerCase() === 'b') {
-      // Apply charm bank effects
-      const bankedPoints = charmManager.applyBankEffects({ gameState, roundState, bankedPoints: roundState.core.roundPoints });
-      const bankResult = processBankAction(bankedPoints, gameState.core.gameScore);
+      const bankedPoints = charmManager.applyBankEffects({ gameState, roundState, bankedPoints: roundState.roundPoints });
+      const bankResult = processBankAction(bankedPoints);
       
-      // Display end-of-round summary
-      const endOfRoundLines = CLIDisplayFormatter.formatEndOfRoundSummary(
-        0, // forfeited points
-        bankedPoints, // points added
-        0, // consecutive flops
-        gameState.core.roundNumber,
-        0 // no flop penalty for banking
-      );
-      for (const line of endOfRoundLines) {
-        await gameInterface.log(line);
+      const updateResult = updateGameStateAfterRound(gameState, roundState, bankResult);
+      
+      // Handle level completion: tallying and shop
+      if (updateResult.levelCompleted) {
+        if (updateResult.levelAdvanced) {
+          const completedLevelNumber = gameState.currentLevel.levelNumber - 1;
+          // Import and call handleBetweenLevels
+          const { handleBetweenLevels } = await import('./LevelManager');
+          await handleBetweenLevels(gameState, gameInterface, completedLevelNumber);
+          
+          await gameInterface.log(`\n=== Level ${gameState.currentLevel.levelNumber} Starting ===`);
+          await gameInterface.log(`Threshold: ${gameState.currentLevel.levelThreshold} points`);
+          await gameInterface.log(`Rerolls: ${gameState.currentLevel.rerollsRemaining}, Lives: ${gameState.currentLevel.livesRemaining}\n`);
+        } else {
+          await gameInterface.log(`\n=== LEVEL ${gameState.currentLevel.levelNumber} COMPLETE! ===`);
+          await gameInterface.log(`You won the game!\n`);
+        }
       }
       
-      updateGameStateAfterRound(gameState, roundState, bankResult);
-      return 'banked';
+      return { result: 'banked', levelCompleted: updateResult.levelCompleted || false };
     } else {
-      // Reroll the current hand (all dice if hot dice, remaining dice otherwise)
-      rollManager.rollDice(roundState.core.diceHand);
+      rollManager.rollDice(roundState.diceHand);
       
-      // Display roll number when dice are rerolled
-      const newRollNumber = roundState.history.rollHistory.length + 1;
-      await this.displayRollNumber(newRollNumber, gameInterface);
-      await this.diceAnimation.animateDiceRoll(roundState.core.diceHand, newRollNumber);
-      // Reroll, display and flop check
-      const flopResult = await this.displayRollAndCheckFlop(roundState, gameState, gameInterface, newRollNumber, charmManager);
-      if (flopResult === true) return 'end';
-      if (flopResult === 'flopPrevented') {
-        // Flop was prevented, prompt for bank or reroll again
-        return await this.promptBankOrReroll(gameInterface, gameState, roundState, charmManager, rollManager, useConsumable);
+      let lastScoringEntry = null;
+      for (let i = roundState.rollHistory.length - 1; i >= 0; i--) {
+        const entry = roundState.rollHistory[i];
+        if (entry.scoringSelection) {
+          lastScoringEntry = entry;
+          break;
+        }
       }
-      return 'reroll';
+      
+      let currentRollNumber = 1;
+      if (lastScoringEntry) {
+        currentRollNumber = lastScoringEntry.rollNumber + 1;
+        debugActionWithContext('diceRolls', `Calculating roll number after scoring`, 'Rolling dice', {
+          lastEntryRollNumber: lastScoringEntry.rollNumber,
+          newRollNumber: currentRollNumber,
+          wasScoring: true
+        });
+      } else if (roundState.rollHistory.length > 0) {
+        const lastEntry = roundState.rollHistory[roundState.rollHistory.length - 1];
+        currentRollNumber = lastEntry.rollNumber + 1;
+        debugActionWithContext('diceRolls', `Calculating roll number (no scoring found)`, 'Rolling dice', {
+          lastEntryRollNumber: lastEntry.rollNumber,
+          newRollNumber: currentRollNumber
+        });
+      } else {
+        debugActionWithContext('diceRolls', `No previous rolls, starting at roll #1`, 'Rolling dice', {
+          firstRoll: true
+        });
+      }
+      
+      const isReroll = false;
+      roundState.rollHistory.push({
+        rollNumber: currentRollNumber,
+        isReroll: isReroll,
+        diceHand: [...roundState.diceHand], // Snapshot of rolled dice
+        selectedDice: [],
+        rollPoints: 0, // Will be calculated when scored
+        isFlop: isFlop(roundState.diceHand),
+      });
+      
+      debugActionWithContext('diceRolls', `Roll #${currentRollNumber} completed`, 'Checking for flop', {
+        rollNumber: currentRollNumber,
+        isReroll: isReroll,
+        diceValues: roundState.diceHand.map((d: Die) => d.rolledValue),
+        totalHistoryEntries: roundState.rollHistory.length
+      });
+      
+      await this.displayRollNumber(currentRollNumber, gameInterface);
+      await this.diceAnimation.animateDiceRoll(roundState.diceHand, currentRollNumber);
+      
+      await this.handleRerollPrompt(gameInterface, gameState, roundState, rollManager, currentRollNumber);
+      
+      const flopResult = await this.displayRollAndCheckFlop(roundState, gameState, gameInterface, currentRollNumber, charmManager);
+      if (flopResult === true) return { result: 'end', levelCompleted: false };
+      if (flopResult === 'flopPrevented') {
+        const roundResult = await this.promptBankOrReroll(gameInterface, gameState, roundState, charmManager, rollManager, useConsumable);
+        return roundResult;
+      }
+      
+      return { result: 'reroll', levelCompleted: false };
     }
+  }
+
+  /*
+   * handleRerollPrompt
+   * ------------------
+   * Handles reroll prompts after a roll, before flop check or scoring.
+   * Prompts for rerolls if available, validates selection, and rerolls selected dice.
+   */
+  private async handleRerollPrompt(
+    gameInterface: GameInterface,
+    gameState: any,
+    roundState: any,
+    rollManager: RollManager,
+    currentRollNumber: number
+  ): Promise<void> {
+    // Keep prompting while rerolls are available
+    while (gameState.currentLevel.rerollsRemaining !== undefined && gameState.currentLevel.rerollsRemaining > 0) {
+      debugLog(`[REROLL] Prompting for reroll. Rerolls remaining: ${gameState.currentLevel.rerollsRemaining}`);
+      // Prompt for reroll selection
+      const input = await (gameInterface as any).askForReroll(roundState.diceHand, gameState.currentLevel.rerollsRemaining);
+      
+      // If empty input, skip reroll
+      if (!input || input.trim() === '') {
+        debugLog(`[REROLL] User skipped reroll. Exiting reroll loop.`);
+        break;
+      }
+      
+      const diceIndices = input.trim().split(/[\s,]+/).map((s: string) => parseInt(s.trim(), 10) - 1).filter((n: number) => !isNaN(n));
+      
+      // Validate selection 
+      const validation = validateRerollSelection(diceIndices, roundState.diceHand);
+      if (!validation.valid) {
+        await gameInterface.log(validation.error || 'Invalid reroll selection. Please try again.');
+        continue;
+      }
+      
+      if (diceIndices.length === 0) {
+        debugLog(`[REROLL] User skipped reroll (no dice selected). Exiting reroll loop.`);
+        break;
+      }
+      
+      // Reroll selected dice
+      const diceToReroll = diceIndices.map((idx: number) => roundState.diceHand[idx]);
+      rollManager.rollDice(diceToReroll);
+      
+      // Update diceHand with rerolled values (diceToReroll now has new rolledValue)
+      for (let i = 0; i < diceIndices.length; i++) {
+        const idx = diceIndices[i];
+        roundState.diceHand[idx] = diceToReroll[i];
+      }
+      
+      roundState.rollHistory.push({
+        rollNumber: currentRollNumber,
+        isReroll: true,
+        diceHand: [...roundState.diceHand],
+        selectedDice: diceIndices,
+        rollPoints: 0,
+        isFlop: isFlop(roundState.diceHand),
+      });
+      
+      // Decrement rerolls remaining
+      gameState.currentLevel.rerollsRemaining--;
+      
+      debugLog(`[REROLL] Rerolled ${diceIndices.length} dice (1 reroll used). Rerolls remaining: ${gameState.currentLevel.rerollsRemaining}`);
+      
+      // Animate reroll: show all dice, but only animate the selected ones
+      await this.diceAnimation.animateDiceRoll(roundState.diceHand, currentRollNumber, diceIndices);
+      
+      // Display updated dice
+      await gameInterface.log(`Rerolled ${diceIndices.length} dice: ${diceIndices.map((idx: number) => roundState.diceHand[idx].rolledValue).join(', ')}`);
+      
+      // Continue the loop to prompt again if rerolls are still available
+      // The loop will exit only if:
+      // 1. User skips reroll (empty input)
+      // 2. User selects 0 dice
+      // 3. rerollsRemaining becomes 0
+      debugLog(`[REROLL] Loop continuing. Rerolls remaining: ${gameState.currentLevel.rerollsRemaining}`);
+    }
+    debugLog(`[REROLL] handleRerollPrompt exiting. Final rerolls remaining: ${gameState.currentLevel.rerollsRemaining}`);
   }
 
   /*
@@ -372,40 +573,57 @@ export class RoundManager {
    * Helper: Display a roll and check for flop. Returns true if flop (round should end), false otherwise.
    */
   private async displayRollAndCheckFlop(roundState: any, gameState: any, gameInterface: GameInterface, rollNumber: number, charmManager: CharmManager): Promise<boolean | 'flopPrevented'> {
-    const isFlopResult = isFlop(roundState.core.diceHand);
+    const isFlopResult = isFlop(roundState.diceHand);
     if (isFlopResult) {
       // Try to prevent flop with charms
-      const flopResult = charmManager.tryPreventFlop({ gameState, roundState });
-      if (flopResult.prevented) {
-        const usesLeft = gameState.core.charms?.find((c: any) => c.name === 'Flop Shield')?.uses ?? '∞';
-        const shieldMsg = flopResult.log || `🛡️ Flop Shield activated! Flop prevented (${usesLeft} uses left)`;
+      const flopPreventionResult = charmManager.tryPreventFlop({ gameState, roundState });
+      if (flopPreventionResult.prevented) {
+        const usesLeft = gameState.charms?.find((c: any) => c.name === 'Flop Shield')?.uses ?? '∞';
+        const shieldMsg = flopPreventionResult.log || `🛡️ Flop Shield activated! Flop prevented (${usesLeft} uses left)`;
         await gameInterface.log(shieldMsg);
-        return 'flopPrevented';
+        return 'flopPrevented'; 
       }
       
-      // Display flop message using proper formatting
+      // Flop was NOT prevented - now process the flop
+      const levelBankedPoints = gameState.currentLevel.pointsBanked || 0;
+      const flopActionResult = processFlop(roundState.roundPoints, levelBankedPoints, gameState);
+      
+      // Check if game should end (lives exhausted)
+      if (gameState.currentLevel.livesRemaining !== undefined && gameState.currentLevel.livesRemaining <= 0) {
+        gameState.isActive = false;
+        gameState.endReason = 'lost';
+        await gameInterface.log('\n=== GAME OVER ===');
+        await gameInterface.log('You ran out of lives!');
+        await gameInterface.displayGameEnd(gameState);
+        return true; // Return true to indicate round should end
+      }
+      
+      // Display flop message 
+      const consecutiveFlops = gameState.currentLevel.consecutiveFlops;
       await gameInterface.displayFlopMessage(
-        roundState.core.roundPoints,
-        gameState.core.consecutiveFlops,
-        gameState.core.gameScore,
+        roundState.roundPoints,
+        consecutiveFlops,
+        levelBankedPoints,
         (gameState.config?.penalties?.consecutiveFlopPenalty ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty),
         (gameState.config?.penalties?.consecutiveFlopLimit ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit)
       );
       
-      // Process flop and update game state
-      const flopResult2 = processFlop(roundState.core.roundPoints, gameState.core.consecutiveFlops, gameState.core.gameScore);
-      updateGameStateAfterRound(gameState, roundState, flopResult2);
+      updateGameStateAfterRound(gameState, roundState, flopActionResult);
       
       // Display end-of-round summary
-      const flopPenalty = (gameState.core.consecutiveFlops >= (gameState.config?.penalties?.consecutiveFlopLimit ?? 3) && !gameState.meta?.charmPreventingFlop) 
-        ? (gameState.config?.penalties?.consecutiveFlopPenalty ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty) 
+      // Calculate penalty based on consecutive flops 
+      const consecutiveFlopLimit = gameState.config?.penalties?.consecutiveFlopLimit ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit;
+      const consecutiveFlopPenalty = gameState.config?.penalties?.consecutiveFlopPenalty ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty;
+      const charmPreventingFlop = (gameState.charms || []).some((charm: any) => charm.flopPreventing);
+      const flopPenalty = consecutiveFlops >= consecutiveFlopLimit && !charmPreventingFlop
+        ? consecutiveFlopPenalty 
         : 0;
       const endOfRoundLines = CLIDisplayFormatter.formatEndOfRoundSummary(
-        roundState.core.roundPoints, // forfeited points
-        0, // points added (always 0 for flop)
-        gameState.core.consecutiveFlops,
-        gameState.core.roundNumber,
-        flopPenalty
+        roundState.roundPoints, // round points
+        roundState.roundNumber,
+        true, // isFlop
+        gameState.currentLevel.consecutiveFlops,
+        gameState.currentLevel.livesRemaining
       );
       for (const line of endOfRoundLines) {
         await gameInterface.log(line);
