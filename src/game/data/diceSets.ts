@@ -14,6 +14,8 @@ export const BASIC_DICE_SET: DiceSetConfig = {
   startingMoney: 10,
   charmSlots: 4,
   consumableSlots: 2,
+  rerollValue: 3,
+  livesValue: 3,
   setType: 'beginner',
 };
 
@@ -30,6 +32,8 @@ export const HIGH_ROLLER_SET: DiceSetConfig = {
     startingMoney: 5,
     charmSlots: 3,
     consumableSlots: 2,
+    rerollValue: 3,
+    livesValue: 3,
     setType: 'beginner',
 };
 
@@ -46,6 +50,8 @@ export const LOW_BALLER_SET: DiceSetConfig = {
   startingMoney: 15,
   charmSlots: 3,
   consumableSlots: 2,
+  rerollValue: 3,
+  livesValue: 3,
   setType: 'beginner',
 };
 
@@ -64,6 +70,8 @@ export const COLLECTOR_SET: DiceSetConfig = {
     startingMoney: 5,
     charmSlots: 2,
     consumableSlots: 1,
+    rerollValue: 3,
+    livesValue: 3,
     setType: 'beginner',
 };
 
@@ -80,6 +88,8 @@ export const LUXURY_SET: DiceSetConfig = {
     startingMoney: 15,
     charmSlots: 3,
     consumableSlots: 2,
+    rerollValue: 3,
+    livesValue: 3,
     setType: 'advanced',
 };
 
@@ -105,6 +115,8 @@ export function RANDOM_SET(): DiceSetConfig {
     startingMoney: Math.floor(Math.random() * 20) + 1, // $1-$20
     charmSlots: Math.floor(Math.random() * 5) + 1, // 1-5
     consumableSlots: Math.floor(Math.random() * 4), // 0-3
+    rerollValue: 3,
+    livesValue: 3,
     setType: 'mayhem',
   };
 }
@@ -123,6 +135,8 @@ export const CHACHING_SET: DiceSetConfig = {
     startingMoney: 20,
     charmSlots: 3,
     consumableSlots: 2,
+    rerollValue: 3,
+    livesValue: 3,
     setType: 'advanced',
 };
 
@@ -139,6 +153,8 @@ export const WOODEN_SET: DiceSetConfig = {
     startingMoney: 12,
     charmSlots: 3,
     consumableSlots: 2,
+    rerollValue: 3,
+    livesValue: 3,
     setType: 'advanced',
 };
 
@@ -155,6 +171,8 @@ export const VOLCANO_SET: DiceSetConfig = {
     startingMoney: 10,
     charmSlots: 3,
     consumableSlots: 2,
+    rerollValue: 3,
+    livesValue: 3,
     setType: 'advanced',
 };
 
@@ -171,6 +189,8 @@ export const MIRROR_SET: DiceSetConfig = {
     startingMoney: 10,
     charmSlots: 3,
     consumableSlots: 2,
+    rerollValue: 3,
+    livesValue: 3,
     setType: 'advanced',
 };
 
@@ -187,6 +207,8 @@ export const RAINBOW_SET: DiceSetConfig = {
     startingMoney: 10,
     charmSlots: 3,
     consumableSlots: 2,
+    rerollValue: 3,
+    livesValue: 3,
     setType: 'advanced',
 };
 

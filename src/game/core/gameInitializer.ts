@@ -1,5 +1,4 @@
-import { GameState, RoundState, DiceSetConfig, Die, CombinationCounters } from './types';
-import { BASIC_DICE_SET } from '../content/diceSets';
+import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState } from './types';
 import { ScoringCombinationType } from '../logic/scoring';
 
 // Define all possible scoring combination types (for use in other modules)
@@ -10,10 +9,10 @@ const ALL_SCORING_TYPES: ScoringCombinationType[] = [
 ];
 import { getRandomInt } from '../utils/effectUtils';
 import { validateDiceSetConfig } from '../validation/diceSetValidation';
+import { getLevelConfig } from '../data/levels';
 
 // Default game configuration
 export const DEFAULT_GAME_CONFIG = {
-  winCondition: 10000,
   penalties: {
     consecutiveFlopPenalty: 1000,
     consecutiveFlopLimit: 3,
@@ -29,11 +28,11 @@ export const DEFAULT_GAME_SETTINGS = {
 };
 
 // Default shop state
-export const DEFAULT_SHOP_STATE = {
+export const DEFAULT_SHOP_STATE: ShopState = {
   isOpen: false,
   availableCharms: [],
   availableConsumables: [],
-  playerMoney: 0,
+  availableBlessings: [],
 };
 
 function createInitialCombinationCounters(): CombinationCounters {
@@ -52,52 +51,63 @@ function createDiceFromConfig(diceConfig: Omit<Die, 'scored' | 'rolledValue'>[])
 export function createInitialGameState(diceSetConfig: DiceSetConfig): GameState {
   validateDiceSetConfig(diceSetConfig);
   
+  // Get level configuration (Level 1)
+  const levelConfig = getLevelConfig(1);
+  
+  // Create initial level state (Level 1)
+  // Lives and rerolls are calculated from base values + modifiers at level start
+  // For initial state, we'll set them to base values (proper calculation will be implemented later)
+  const initialLevel: LevelState = {
+    levelNumber: 1,
+    levelThreshold: levelConfig.pointThreshold,
+    rerollsRemaining: diceSetConfig.rerollValue,
+    livesRemaining: diceSetConfig.livesValue,
+    consecutiveFlops: 0,  // Reset at start of each level
+    pointsBanked: 0,  // Initialize to 0 at level start
+    shop: DEFAULT_SHOP_STATE,
+    currentRound: undefined, // Will be created when first round starts
+  };
+  
   return {
-    meta: {
-      isActive: true,
-    },
-    core: {
-      gameScore: 0,
-      money: diceSetConfig.startingMoney,
-      roundNumber: 0,
-      consecutiveFlops: 0,
-      diceSet: createDiceFromConfig(diceSetConfig.dice),
-      charms: [],
-      consumables: [],
-      currentRound: createInitialRoundState(1),
-      settings: DEFAULT_GAME_SETTINGS,
-      shop: DEFAULT_SHOP_STATE,
-    },
+    // Game-wide state (flattened - no meta/core split)
+    isActive: true,
+    money: diceSetConfig.startingMoney,
+    diceSet: createDiceFromConfig(diceSetConfig.dice),
+    charms: [],
+    consumables: [],
+    blessings: [],
+    rerollValue: diceSetConfig.rerollValue,
+    livesValue: diceSetConfig.livesValue,
+    charmSlots: diceSetConfig.charmSlots,
+    consumableSlots: diceSetConfig.consumableSlots,
+    settings: DEFAULT_GAME_SETTINGS,
     config: {
       diceSetConfig,
-      winCondition: DEFAULT_GAME_CONFIG.winCondition,
       penalties: DEFAULT_GAME_CONFIG.penalties,
     },
-    history: {
-      rollCount: 0,
-      hotDiceCounterGlobal: 0,
-      forfeitedPointsTotal: 0,
-      combinationCounters: createInitialCombinationCounters(),
-      roundHistory: [],
-    },
+    
+    // Current level state (nested for hierarchy)
+    currentLevel: initialLevel,
+    
+    // History (consolidated here - all history in one place)
+            history: {
+              totalScore: 0, // Renamed from gameScore - cumulative banked points
+              combinationCounters: createInitialCombinationCounters(),
+              levelHistory: [],
+            },
   };
 }
 
 export function createInitialRoundState(roundNumber: number = 1): RoundState {
   return {
-    meta: {
-      isActive: true,
-    },
-    core: {
-      rollNumber: 0,
-      roundPoints: 0,
-      diceHand: [],
-      hotDiceCounterRound: 0,
-      forfeitedPoints: 0,
-    },
-    history: {
-      rollHistory: [],
-    },
+    roundNumber: roundNumber,
+    roundPoints: 0,
+    diceHand: [],
+    hotDiceCounter: 0,
+    forfeitedPoints: 0,
+    crystalsScoredThisRound: 0,
+    isActive: true,
+    rollHistory: [],
   };
 }
 

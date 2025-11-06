@@ -1,11 +1,11 @@
 import { GameInterface } from '../interfaces';
 import { CharmManager } from '../logic/charmSystem';
 import { DEFAULT_GAME_CONFIG } from '../core/gameInitializer';
-import { ALL_DICE_SETS } from '../content/diceSets';
-import { CHARMS } from '../content/charms';
-import { CONSUMABLES } from '../content/consumables';
-import { MATERIALS } from '../content/materials';
-import { createInitialGameState } from '../core/gameState';
+import { ALL_DICE_SETS } from '../data/diceSets';
+import { CHARMS } from '../data/charms';
+import { CONSUMABLES } from '../data/consumables';
+import { MATERIALS } from '../data/materials';
+import { createInitialGameState } from '../core/gameInitializer';
 import { DiceMaterialType } from '../core/types';
 
 /*
@@ -37,9 +37,8 @@ export class SetupManager {
     await gameInterface.log(`Selected Dice Set: ${diceSetConfig.name}`);
     // No custom materials, no charms, no consumables, no custom rules
     let gameState = createInitialGameState(diceSetConfig);
-    gameState.core.charms = [];
-    gameState.core.consumables = [];
-    gameState.config.winCondition = DEFAULT_GAME_CONFIG.winCondition;
+    gameState.charms = [];
+    gameState.consumables = [];
     gameState.config.penalties.consecutiveFlopLimit = DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit;
     gameState.config.penalties.consecutiveFlopPenalty = DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty;
     gameState.config.penalties.flopPenaltyEnabled = true;
@@ -53,8 +52,8 @@ export class SetupManager {
    * charms, consumables, etc. Used for debug and advanced play.
    */
   async setupCustomGame(gameInterface: GameInterface, charmManager: CharmManager): Promise<{ gameState: any, diceSetConfig: any }> {
-    // Prompt for game rules using interface method
-    const { winCondition, penaltyEnabled, consecutiveFlopLimit, consecutiveFlopPenalty } = await gameInterface.askForGameRules();
+    // Prompt for game rules using interface method (removed winCondition)
+    const { penaltyEnabled, consecutiveFlopLimit, consecutiveFlopPenalty } = await (gameInterface as any).askForGameRules();
     // Prompt for dice set selection
     const diceSetNames = ALL_DICE_SETS.map(ds => typeof ds === 'function' ? 'Chaos' : ds.name);
     const diceSetIdx = await (gameInterface as any).askForDiceSetSelection(diceSetNames);
@@ -74,18 +73,17 @@ export class SetupManager {
     const selectedConsumableIndices = await gameInterface.askForConsumableSelection(availableConsumables, consumableSlots);
     // Create game state with selected charms, materials, and consumables
     let gameState = createInitialGameState(diceSetConfig);
-    gameState.config.winCondition = winCondition;
     gameState.config.penalties.consecutiveFlopLimit = consecutiveFlopLimit;
     gameState.config.penalties.consecutiveFlopPenalty = penaltyEnabled ? consecutiveFlopPenalty : 0;
     gameState.config.penalties.flopPenaltyEnabled = penaltyEnabled;
     // Assign materials to dice
-    gameState.core.diceSet = gameState.core.diceSet.map((die: any, index: number) => ({
+    gameState.diceSet = gameState.diceSet.map((die: any, index: number) => ({
       ...die,
       material: MATERIALS[assignedMaterialIndices[index]].id as DiceMaterialType,
       abbreviation: MATERIALS[assignedMaterialIndices[index]].abbreviation
     }));
     // Add selected charms to game state and charm manager
-    gameState.core.charms = selectedCharmIndices
+    gameState.charms = selectedCharmIndices
       .filter(index => index < CHARMS.length) // Filter out "Empty" selections
       .map(index => {
         const charm = CHARMS[index];
@@ -97,7 +95,7 @@ export class SetupManager {
         return runtimeCharm;
       });
     // Add selected consumables to game state
-    gameState.core.consumables = selectedConsumableIndices
+    gameState.consumables = selectedConsumableIndices
       .filter(index => index < CONSUMABLES.length) // Filter out "Empty" selections
       .map((index: number) => ({ ...CONSUMABLES[index] }));
     return { gameState, diceSetConfig };

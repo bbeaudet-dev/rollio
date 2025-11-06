@@ -21,9 +21,9 @@ export const DiceSetSelector: React.FC<DiceSetSelectorProps> = ({ onDiceSetSelec
   useEffect(() => {
     // Load dice sets dynamically
     const loadDiceSets = async () => {
-      const { ALL_DICE_SETS } = await import('../../../game/content/diceSets');
+      const { ALL_DICE_SETS } = await import('../../../game/data/diceSets');
       
-      const diceSetInfo: DiceSetInfo[] = ALL_DICE_SETS.map((set, index) => {
+      const diceSetInfo: DiceSetInfo[] = ALL_DICE_SETS.map((set: any, index: number) => {
         const config = typeof set === 'function' ? set() : set;
         return {
           name: config.name,

@@ -1,6 +1,6 @@
 import { Die, ScoringCombination } from '../../game/core/types';
 import { formatDiceValues, formatCombinations, formatGameStats } from '../../game/utils/effectUtils';
-import { MATERIALS } from '../../game/content/materials';
+import { MATERIALS } from '../../game/data/materials';
 
 /**
  * Pure display functions that format text for output
@@ -44,26 +44,19 @@ export class DisplayFormatter {
     return `  Game score: ${Math.ceil(score)}`;
   }
 
-  static formatGameEnd(gameState: any, isWin: boolean): string[] {
+  static formatGameEnd(gameState: any): string[] {
     const lines: string[] = [];
     
-    if (isWin) {
-      lines.push(`\n🎉 CONGRATULATIONS! 🎉`);
-      lines.push(`You won with ${gameState.core.gameScore} points!`);
-    }
-    
-    lines.push(`\n=== ${isWin ? 'FINAL GAME STATISTICS' : 'GAME SUMMARY'} ===`);
+    lines.push(`\n=== GAME SUMMARY ===`);
     
     const stats = formatGameStats({
-      rounds: gameState.core.roundNumber - 1,
-      totalRolls: gameState.history.rollCount || 0,
-      gameScore: gameState.core.gameScore,
-      money: gameState.core.money || 0,
-      hotDiceCounterRound: gameState.history.hotDiceCounterGlobal || 0,
+      rounds: (gameState.currentLevel.currentRound?.roundNumber || 1) - 1,
+      totalScore: gameState.history.totalScore,
+      money: gameState.money || 0,
     });
     
     lines.push(...stats);
-    lines.push(`\n${isWin ? 'Thanks for playing Rollio!' : 'Thanks for playing!'}`);
+    lines.push(`\nThanks for playing Rollio!`);
     
     return lines;
   }

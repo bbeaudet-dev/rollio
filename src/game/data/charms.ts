@@ -18,7 +18,7 @@ export type CharmType =
   | 'lowHangingFruit';
 
 // Rarity price mapping
-const CHARM_PRICES: Record<string, { buy: number; sell: number }> = {
+export const CHARM_PRICES: Record<string, { buy: number; sell: number }> = {
   legendary: { buy: 10, sell: 5 },
   rare: { buy: 8, sell: 4 },
   uncommon: { buy: 6, sell: 3 },
