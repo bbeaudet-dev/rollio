@@ -1,5 +1,5 @@
-import { GameState, RoundState } from '../../game/core/types';
-import { createInitialGameState, createInitialRoundState } from '../../game/core/gameInitializer';
+import { GameState, RoundState } from '../../game/types';
+import { createInitialGameState, createInitialRoundState, DEFAULT_GAME_CONFIG } from '../../game/utils/factories';
 import { CharmManager } from '../../game/logic/charmSystem';
 import { registerCharms } from '../../game/logic/charms/index';
 import { RollManager } from '../../game/engine/RollManager';
@@ -8,7 +8,6 @@ import { processCompleteScoring, calculatePreviewScoring } from '../../game/logi
 import { getScoringCombinations } from '../../game/logic/scoring';
 import { isFlop } from '../../game/logic/gameLogic';
 import { formatDiceAsPips } from '../utils/diceUtils';
-import { DEFAULT_GAME_CONFIG } from '../../game/core/gameInitializer';
 
 export interface WebGameState {
   gameState: GameState | null;

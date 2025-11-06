@@ -1,4 +1,4 @@
-import { DiceSetConfig } from '../core/types';
+import { DiceSetConfig } from '../types';
 
 /**
  * Validates dice set configuration

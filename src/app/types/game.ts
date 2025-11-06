@@ -1,4 +1,4 @@
-import { Die, GameState } from '../../game/core/types';
+import { Die, GameState } from '../../game/types';
 
 // Just extend existing types where needed for UI-specific props
 export interface DiceDisplayProps {

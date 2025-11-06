@@ -1,5 +1,5 @@
 import { BaseCharm, CharmScoringContext } from '../../logic/charmSystem';
-import { Die } from '../../core/types';
+import { Die } from '../../types';
 
 export class VolcanoAmplifierCharm extends BaseCharm {
   logs: string[] = [];

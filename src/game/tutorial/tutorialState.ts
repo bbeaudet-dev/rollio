@@ -1,4 +1,4 @@
-import { Die, GameState, RoundState, DiceSetConfig, DiceMaterialType } from '../core/types';
+import { Die, GameState, RoundState, DiceSetConfig, DiceMaterialType } from '../types';
 import { CharmManager } from '../logic/charmSystem';
 import { RollManager } from '../engine/RollManager';
 

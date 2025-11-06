@@ -1,4 +1,4 @@
-import { DEFAULT_GAME_CONFIG } from '../core/gameInitializer';
+import { DEFAULT_GAME_CONFIG } from '../utils/factories';
 
 /**
  * ConfigManager

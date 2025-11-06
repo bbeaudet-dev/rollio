@@ -1,4 +1,4 @@
-import { GameState } from '../core/types';
+import { GameState } from '../types';
 import { debugLog } from '../utils/debug';
 
 /**

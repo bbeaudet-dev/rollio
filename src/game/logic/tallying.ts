@@ -3,7 +3,7 @@
  * Calculates money earned at the end of a level
  */
 
-import { GameState, LevelState, Blessing } from '../core/types';
+import { GameState, LevelState, Blessing } from '../types';
 import { getLevelConfig } from '../data/levels';
 import { debugLog } from '../utils/debug';
 

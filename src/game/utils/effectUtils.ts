@@ -1,5 +1,5 @@
-import { DEFAULT_GAME_CONFIG } from '../core/gameInitializer';
-import { DieValue } from '../core/types';
+import { DEFAULT_GAME_CONFIG } from '../utils/factories';
+import { DieValue } from '../types';
 
 /**
  * Formats dice values for display (no brackets, no indices)

@@ -1,4 +1,4 @@
-import { CharmRarity } from '../../core/types';
+import { CharmRarity } from '../../types';
 import { BaseCharm, CharmScoringContext, CharmFlopContext } from '../../logic/charmSystem';
 
 export class FlopCollectorCharm extends BaseCharm {

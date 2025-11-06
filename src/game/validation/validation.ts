@@ -5,7 +5,7 @@
 
 import { setDebugMode, debugLog, debugTime, debugTimeEnd, debugValidate, debugInspect } from '../utils/debug';
 import { getScoringCombinations, getAllPartitionings } from '../logic/scoring';
-import { Die } from '../core/types';
+import { Die } from '../types';
 
 export interface ValidationResult {
   isValid: boolean;

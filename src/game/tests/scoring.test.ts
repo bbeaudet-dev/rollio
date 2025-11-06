@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getScoringCombinations, hasAnyScoringCombination, countDice } from '../logic/scoring';
 import { validateDiceSelection } from '../utils/effectUtils';
 import { validateDiceSelectionAndScore } from '../logic/gameLogic';
-import { Die } from '../core/types';
+import { Die } from '../types';
 
 // Helper function to create test dice
 function createTestDice(values: number[]): Die[] {
