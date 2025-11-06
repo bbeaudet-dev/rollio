@@ -26,6 +26,14 @@ export function validateDiceSetConfig(config: DiceSetConfig): void {
     throw new Error('Consumable slots cannot be negative');
   }
   
+  if (config.rerollValue < 0) {
+    throw new Error('Reroll value cannot be negative');
+  }
+  
+  if (config.livesValue < 0) {
+    throw new Error('Lives value cannot be negative');
+  }
+  
   // Validate each die
   const dieIds = new Set<string>();
   config.dice.forEach((die, index) => {
