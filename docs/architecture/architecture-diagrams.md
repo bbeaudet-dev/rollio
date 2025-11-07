@@ -338,34 +338,38 @@ graph TD
 
 ```mermaid
 flowchart TD
-    A[GameState] --> B[GameMeta]
-    A --> C[GameCore]
+    A[GameState] --> B[Game-Wide State]
+    A --> C[LevelState]
     A --> D[GameConfig]
     A --> E[GameHistory]
 
     B --> B1[isActive, endReason]
+    B --> B2[money, diceSet]
+    B --> B3[charms, consumables, blessings]
+    B --> B4[rerollValue, livesValue]
+    B --> B5[charmSlots, consumableSlots]
+    B --> B6[settings: GameSettings]
 
-    C --> C1[gameScore, money, roundNumber]
-    C --> C2[consecutiveFlops]
-    C --> C3[diceSet: Die[], currentRound: RoundState]
-    C --> C4[charms: Charm[], consumables: Consumable[]]
-    C --> C5[settings: GameSettings, shop: ShopState]
+    C --> C1[levelNumber, pointsBanked]
+    C --> C2[levelThreshold]
+    C --> C3[rerollsRemaining, livesRemaining]
+    C --> C4[consecutiveFlops]
+    C --> C5[currentRound: RoundState]
 
     D --> D1[diceSetConfig: DiceSetConfig]
-    D --> D2[winCondition, penalties]
+    D --> D2[penalties]
 
-    E --> E1[rollCount, hotDiceCounterGlobal]
-    E --> E2[forfeitedPointsTotal]
-    E --> E3[combinationCounters: CombinationCounters]
-    E --> E4[roundHistory: RoundState[]]
+    E --> E1[totalScore]
+    E --> E2[combinationCounters]
+    E --> E3[levelHistory: LevelState array]
 
-    F[Access Patterns] --> G[gameState.meta.isActive]
-    F --> H[gameState.core.gameScore]
-    F --> I[gameState.core.diceSet]
-    F --> J[gameState.core.charms]
-    F --> K[gameState.core.settings.sortDice]
-    F --> L[gameState.core.settings.gameSpeed]
-    F --> M[gameState.core.shop.isOpen]
+    F[Access Patterns] --> G[gameState.isActive]
+    F --> H[gameState.money]
+    F --> I[gameState.charms]
+    F --> J[gameState.currentLevel.pointsBanked]
+    F --> K[gameState.currentLevel.currentRound]
+    F --> L[gameState.settings.sortDice]
+    F --> M[gameState.history.totalScore]
 ```
 
 ## Component Data Flow
@@ -373,18 +377,19 @@ flowchart TD
 ```mermaid
 flowchart LR
     A[useGameState Hook] --> B[Organized Data Groups]
-    B --> C[board: {dice, canRoll, canBank, ...}]
-    B --> D[status: {gameScore, money, roundNumber, ...}]
-    B --> E[charms: Charm[], consumables: Consumable[]]
-    B --> F[history: {rollCount, hotDiceCounter, roundHistory, ...}]
-    B --> G[rollActions: {handleRollDice, handleDiceSelect, ...}]
-    B --> H[gameActions: {handleBank, startNewGame, ...}]
-    B --> I[inventoryActions: {handleConsumableUse, ...}]
+    B --> C[board: dice, canRoll, canBank]
+    B --> D[gameState: full game state]
+    B --> E[roundState: current round state]
+    B --> F[inventory: charms, consumables, blessings]
+    B --> G[rollActions: handleRollDice, handleDiceSelect]
+    B --> H[gameActions: handleBank, startNewGame]
+    B --> I[inventoryActions: handleConsumableUse]
+    B --> J[shopActions: handlePurchaseCharm, etc]
 
-    J[GameBoard Component] --> K[Receives Logical Groups]
-    K --> L[rollActions, gameActions, inventoryActions]
-    K --> M[board, status, charms, consumables, history]
-    K --> N[canPlay: boolean]
+    K[GameBoard Component] --> L[Receives Logical Groups]
+    L --> M[rollActions, gameActions, inventoryActions]
+    L --> N[board, gameState, roundState, inventory]
+    L --> O[isInShop, shopActions]
 ```
 
 ## Data Flow Summary
