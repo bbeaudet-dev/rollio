@@ -7,28 +7,21 @@
 ```mermaid
 classDiagram
     class GameState {
-        +meta: GameMeta
-        +core: GameCore
-        +config: GameConfig
-        +history: GameHistory
-    }
-
-    class GameMeta {
         +isActive: boolean
         +endReason: GameEndReason
-    }
-
-    class GameCore {
-        +gameScore: number
         +money: number
-        +roundNumber: number
-        +consecutiveFlops: number
         +diceSet: Die[]
         +charms: Charm[]
         +consumables: Consumable[]
-        +currentRound: RoundState
+        +blessings: Blessing[]
+        +rerollValue: number
+        +livesValue: number
+        +charmSlots: number
+        +consumableSlots: number
         +settings: GameSettings
-        +shop: ShopState
+        +config: GameConfig
+        +currentLevel: LevelState
+        +history: GameHistory
     }
 
     class GameSettings {
@@ -39,83 +32,90 @@ classDiagram
 
     class GameConfig {
         +diceSetConfig: DiceSetConfig
-        +winCondition: number
         +penalties: object
     }
 
-    class ShopState {
-        +isOpen: boolean
-        +availableCharms: Charm[]
-        +availableConsumables: Consumable[]
-        +playerMoney: number
-    }
-
-    class GameHistory {
-        +rollCount: number
-        +hotDiceCounterGlobal: number
-        +forfeitedPointsTotal: number
-        +combinationCounters: CombinationCounters
-        +roundHistory: RoundState[]
+    class LevelState {
+        +levelNumber: number
+        +pointsBanked: number
+        +levelThreshold: number
+        +rerollsRemaining: number
+        +livesRemaining: number
+        +consecutiveFlops: number
+        +currentRound: RoundState
     }
 
     class RoundState {
-        +meta: RoundMeta
-        +core: RoundCore
-        +history: RoundHistory
-    }
-
-    class RoundMeta {
+        +roundNumber: number
         +isActive: boolean
-        +endReason: RoundEndReason
-    }
-
-    class RoundCore {
-        +rollNumber: number
+        +flopped: boolean
         +roundPoints: number
         +diceHand: Die[]
-        +hotDiceCounterRound: number
+        +hotDiceCounter: number
         +forfeitedPoints: number
-    }
-
-    class RoundHistory {
         +rollHistory: RollState[]
-        +crystalsScoredThisRound: number
     }
 
     class RollState {
-        +data: RollData
-        +core: RollCore
-        +meta: RollMeta
-    }
-
-    class RollCore {
+        +rollNumber: number
         +diceHand: Die[]
-        +selectedDice: Die[]
-        +maxRollPoints: number
         +rollPoints: number
-        +scoringSelection: number[]
         +combinations: ScoringCombination[]
     }
 
-    class RollMeta {
-        +isActive: boolean
-        +isHotDice: boolean
-        +endReason: RollEndReason
+    class ShopState {
+        +availableCharms: Charm[]
+        +availableConsumables: Consumable[]
+        +availableBlessings: Blessing[]
     }
 
-    GameState --> GameMeta : contains
-    GameState --> GameCore : contains
+    class GameHistory {
+        +totalScore: number
+        +combinationCounters: CombinationCounters
+        +levelHistory: LevelState[]
+    }
+
+    class Charm {
+        +id: string
+        +name: string
+        +description: string
+        +active: boolean
+        +rarity: CharmRarity
+    }
+
+    class Consumable {
+        +id: string
+        +name: string
+        +description: string
+        +uses: number
+        +rarity: string
+    }
+
+    class Blessing {
+        +id: string
+        +tier: 1|2|3
+        +effect: BlessingEffect
+    }
+
+    class Die {
+        +id: string
+        +sides: number
+        +allowedValues: number[]
+        +material: DiceMaterialType
+        +rolledValue: number
+    }
+
+    GameState --> GameSettings : contains
     GameState --> GameConfig : contains
+    GameState --> LevelState : contains
     GameState --> GameHistory : contains
-    GameCore --> GameSettings : contains
-    GameCore --> ShopState : contains
-    GameCore --> RoundState : contains
-    RoundState --> RoundMeta : contains
-    RoundState --> RoundCore : contains
-    RoundState --> RoundHistory : contains
-    RoundHistory --> RollState : contains
-    RollState --> RollCore : contains
-    RollState --> RollMeta : contains
+    GameState --> Charm : has many
+    GameState --> Consumable : has many
+    GameState --> Blessing : has many
+    GameState --> Die : has many
+    LevelState --> RoundState : contains
+    RoundState --> RollState : has many
+    GameConfig --> ShopState : generates
 ```
 
 ## CLI Interaction Flow
