@@ -178,6 +178,25 @@ export class CharmManager {
   }
 
   /**
+   * Check if a flop shield is available (without using it)
+   * Returns { available: boolean, log: string | null }
+   */
+  checkFlopShieldAvailable(context: CharmFlopContext): { available: boolean, log: string | null } {
+    for (const charm of this.getActiveCharms()) {
+      if (charm.onFlop && charm.canUse()) {
+        // Check if this is a flop shield charm (has onFlop and can use)
+        // We can't actually call onFlop because it uses the charm, so we check canUse()
+        const usesLeft = (charm as any).uses ?? '∞';
+        return {
+          available: true,
+          log: `🛡️ Flop Shield available (${usesLeft} uses left)`
+        };
+      }
+    }
+    return { available: false, log: null };
+  }
+
+  /**
    * Call onFlop on all active charms. If any return a log, the flop is prevented.
    * Returns { prevented: boolean, log: string | null }
    */

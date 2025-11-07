@@ -5,31 +5,69 @@ interface GameControlsProps {
   // Regular controls
   onRoll: () => void;
   onBank: () => void;
+  onContinue?: () => void; // For continuing after flop
   canRoll: boolean;
   canBank: boolean;
-  canReroll: boolean;
+  canReroll: boolean; // After scoring - can roll remaining dice
+  isWaitingForReroll?: boolean; // Before scoring - can reroll any dice
+  canRerollSelected?: boolean; // Before scoring - can reroll selected dice
+  canContinueFlop?: boolean; // After flop - can continue
   diceToReroll: number;
+  selectedDiceCount?: number; // Number of dice selected for reroll
+  hasRoundState?: boolean; // Whether a round state exists (to differentiate "Start New Round" vs "Roll")
 }
 
 export const GameControls: React.FC<GameControlsProps> = ({
   onRoll,
   onBank,
+  onContinue,
   canRoll,
   canBank,
   canReroll,
-  diceToReroll
+  isWaitingForReroll = false,
+  canRerollSelected = false,
+  canContinueFlop = false,
+  diceToReroll,
+  selectedDiceCount = 0,
+  hasRoundState = false
 }) => {
   // Determine roll button text based on context
   const getRollButtonText = () => {
-    if (canRoll) {
-      // Starting a new round (including after flop)
-      return 'Start New Round';
+    if (canContinueFlop) {
+      return '-1 Life';
     } else if (canReroll) {
-      // For hot dice, show the dice count
-      return `Reroll (${diceToReroll} dice)`;
+      // After scoring - rolling remaining dice (or hot dice full set)
+      return `Roll (${diceToReroll} dice)`;
+    } else if (isWaitingForReroll) {
+      // Before scoring - can reroll any dice (including 0 dice)
+      if (selectedDiceCount > 0) {
+        return `Reroll (${selectedDiceCount} dice)`;
+      }
+      return 'Reroll (0 dice)';
+    } else if (canRoll) {
+      // Starting a new round OR first roll of a round
+      if (hasRoundState) {
+        // Round exists but no dice rolled - show "Roll X dice" where X is the dice set size
+        return `Roll (${diceToReroll} dice)`;
+      } else {
+        // No round state - show "Start New Round"
+        return 'Start New Round';
+      }
     }
     // Fallback
     return 'Roll Dice';
+  };
+
+  // Determine if roll button should be enabled
+  const isRollButtonEnabled = canRoll || canReroll || canRerollSelected || canContinueFlop;
+  
+  // Determine which handler to use
+  const handleRollClick = () => {
+    if (canContinueFlop && onContinue) {
+      onContinue();
+    } else {
+      onRoll();
+    }
   };
 
   return (
@@ -37,7 +75,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
       
       {/* Regular Game Controls */}
       <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-        <Button onClick={onRoll} disabled={!canRoll && !canReroll}>
+        <Button onClick={handleRollClick} disabled={!isRollButtonEnabled}>
           {getRollButtonText()}
         </Button>
         

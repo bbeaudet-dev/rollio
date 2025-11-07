@@ -34,10 +34,10 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div>
-          <strong>{title}</strong>
+        <div style={{ fontSize: '12px' }}>
+          <strong style={{ fontSize: '12px', fontWeight: 'bold' }}>{title}</strong>
           {uses !== undefined && (
-            <span> ({uses} uses)</span>
+            <span style={{ fontSize: '12px' }}> ({uses} uses)</span>
           )}
         </div>
         
@@ -71,10 +71,10 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({
           zIndex: 1000,
           marginTop: '4px'
         }}>
-          <div><strong>{title}</strong></div>
-          <div>{description}</div>
+          <div style={{ fontSize: '12px' }}><strong style={{ fontSize: '12px' }}>{title}</strong></div>
+          <div style={{ fontSize: '11px' }}>{description}</div>
           {rarity && (
-            <div style={{ color: '#ccc', marginTop: '4px' }}>
+            <div style={{ color: '#ccc', marginTop: '4px', fontSize: '11px' }}>
               Rarity: {rarity}
             </div>
           )}

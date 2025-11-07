@@ -52,10 +52,14 @@ export const SinglePlayerGame: React.FC<SinglePlayerGameProps> = ({ onBackToMenu
         rollActions={game.rollActions}
         gameActions={game.gameActions}
         inventoryActions={game.inventoryActions}
+        shopActions={game.shopActions}
         board={game.board}
         gameState={game.gameState}
         roundState={game.roundState}
         inventory={game.inventory}
+        isInShop={game.isInShop}
+        shopState={game.shopState}
+        levelRewards={game.levelRewards}
       />
       
       <GameLog messages={game.messages} />
