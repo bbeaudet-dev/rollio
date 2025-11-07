@@ -7,28 +7,21 @@
 ```mermaid
 classDiagram
     class GameState {
-        +meta: GameMeta
-        +core: GameCore
-        +config: GameConfig
-        +history: GameHistory
-    }
-
-    class GameMeta {
         +isActive: boolean
         +endReason: GameEndReason
-    }
-
-    class GameCore {
-        +gameScore: number
         +money: number
-        +roundNumber: number
-        +consecutiveFlops: number
         +diceSet: Die[]
         +charms: Charm[]
         +consumables: Consumable[]
-        +currentRound: RoundState
+        +blessings: Blessing[]
+        +rerollValue: number
+        +livesValue: number
+        +charmSlots: number
+        +consumableSlots: number
         +settings: GameSettings
-        +shop: ShopState
+        +config: GameConfig
+        +currentLevel: LevelState
+        +history: GameHistory
     }
 
     class GameSettings {
@@ -39,83 +32,90 @@ classDiagram
 
     class GameConfig {
         +diceSetConfig: DiceSetConfig
-        +winCondition: number
         +penalties: object
     }
 
-    class ShopState {
-        +isOpen: boolean
-        +availableCharms: Charm[]
-        +availableConsumables: Consumable[]
-        +playerMoney: number
-    }
-
-    class GameHistory {
-        +rollCount: number
-        +hotDiceCounterGlobal: number
-        +forfeitedPointsTotal: number
-        +combinationCounters: CombinationCounters
-        +roundHistory: RoundState[]
+    class LevelState {
+        +levelNumber: number
+        +pointsBanked: number
+        +levelThreshold: number
+        +rerollsRemaining: number
+        +livesRemaining: number
+        +consecutiveFlops: number
+        +currentRound: RoundState
     }
 
     class RoundState {
-        +meta: RoundMeta
-        +core: RoundCore
-        +history: RoundHistory
-    }
-
-    class RoundMeta {
+        +roundNumber: number
         +isActive: boolean
-        +endReason: RoundEndReason
-    }
-
-    class RoundCore {
-        +rollNumber: number
+        +flopped: boolean
         +roundPoints: number
         +diceHand: Die[]
-        +hotDiceCounterRound: number
+        +hotDiceCounter: number
         +forfeitedPoints: number
-    }
-
-    class RoundHistory {
         +rollHistory: RollState[]
-        +crystalsScoredThisRound: number
     }
 
     class RollState {
-        +data: RollData
-        +core: RollCore
-        +meta: RollMeta
-    }
-
-    class RollCore {
+        +rollNumber: number
         +diceHand: Die[]
-        +selectedDice: Die[]
-        +maxRollPoints: number
         +rollPoints: number
-        +scoringSelection: number[]
         +combinations: ScoringCombination[]
     }
 
-    class RollMeta {
-        +isActive: boolean
-        +isHotDice: boolean
-        +endReason: RollEndReason
+    class ShopState {
+        +availableCharms: Charm[]
+        +availableConsumables: Consumable[]
+        +availableBlessings: Blessing[]
     }
 
-    GameState --> GameMeta : contains
-    GameState --> GameCore : contains
+    class GameHistory {
+        +totalScore: number
+        +combinationCounters: CombinationCounters
+        +levelHistory: LevelState[]
+    }
+
+    class Charm {
+        +id: string
+        +name: string
+        +description: string
+        +active: boolean
+        +rarity: CharmRarity
+    }
+
+    class Consumable {
+        +id: string
+        +name: string
+        +description: string
+        +uses: number
+        +rarity: string
+    }
+
+    class Blessing {
+        +id: string
+        +tier: 1|2|3
+        +effect: BlessingEffect
+    }
+
+    class Die {
+        +id: string
+        +sides: number
+        +allowedValues: number[]
+        +material: DiceMaterialType
+        +rolledValue: number
+    }
+
+    GameState --> GameSettings : contains
     GameState --> GameConfig : contains
+    GameState --> LevelState : contains
     GameState --> GameHistory : contains
-    GameCore --> GameSettings : contains
-    GameCore --> ShopState : contains
-    GameCore --> RoundState : contains
-    RoundState --> RoundMeta : contains
-    RoundState --> RoundCore : contains
-    RoundState --> RoundHistory : contains
-    RoundHistory --> RollState : contains
-    RollState --> RollCore : contains
-    RollState --> RollMeta : contains
+    GameState --> Charm : has many
+    GameState --> Consumable : has many
+    GameState --> Blessing : has many
+    GameState --> Die : has many
+    LevelState --> RoundState : contains
+    RoundState --> RollState : has many
+    GameConfig --> ShopState : generates
 ```
 
 ## CLI Interaction Flow
@@ -338,34 +338,38 @@ graph TD
 
 ```mermaid
 flowchart TD
-    A[GameState] --> B[GameMeta]
-    A --> C[GameCore]
+    A[GameState] --> B[Game-Wide State]
+    A --> C[LevelState]
     A --> D[GameConfig]
     A --> E[GameHistory]
 
     B --> B1[isActive, endReason]
+    B --> B2[money, diceSet]
+    B --> B3[charms, consumables, blessings]
+    B --> B4[rerollValue, livesValue]
+    B --> B5[charmSlots, consumableSlots]
+    B --> B6[settings: GameSettings]
 
-    C --> C1[gameScore, money, roundNumber]
-    C --> C2[consecutiveFlops]
-    C --> C3[diceSet: Die[], currentRound: RoundState]
-    C --> C4[charms: Charm[], consumables: Consumable[]]
-    C --> C5[settings: GameSettings, shop: ShopState]
+    C --> C1[levelNumber, pointsBanked]
+    C --> C2[levelThreshold]
+    C --> C3[rerollsRemaining, livesRemaining]
+    C --> C4[consecutiveFlops]
+    C --> C5[currentRound: RoundState]
 
     D --> D1[diceSetConfig: DiceSetConfig]
-    D --> D2[winCondition, penalties]
+    D --> D2[penalties]
 
-    E --> E1[rollCount, hotDiceCounterGlobal]
-    E --> E2[forfeitedPointsTotal]
-    E --> E3[combinationCounters: CombinationCounters]
-    E --> E4[roundHistory: RoundState[]]
+    E --> E1[totalScore]
+    E --> E2[combinationCounters]
+    E --> E3[levelHistory: LevelState array]
 
-    F[Access Patterns] --> G[gameState.meta.isActive]
-    F --> H[gameState.core.gameScore]
-    F --> I[gameState.core.diceSet]
-    F --> J[gameState.core.charms]
-    F --> K[gameState.core.settings.sortDice]
-    F --> L[gameState.core.settings.gameSpeed]
-    F --> M[gameState.core.shop.isOpen]
+    F[Access Patterns] --> G[gameState.isActive]
+    F --> H[gameState.money]
+    F --> I[gameState.charms]
+    F --> J[gameState.currentLevel.pointsBanked]
+    F --> K[gameState.currentLevel.currentRound]
+    F --> L[gameState.settings.sortDice]
+    F --> M[gameState.history.totalScore]
 ```
 
 ## Component Data Flow
@@ -373,18 +377,19 @@ flowchart TD
 ```mermaid
 flowchart LR
     A[useGameState Hook] --> B[Organized Data Groups]
-    B --> C[board: {dice, canRoll, canBank, ...}]
-    B --> D[status: {gameScore, money, roundNumber, ...}]
-    B --> E[charms: Charm[], consumables: Consumable[]]
-    B --> F[history: {rollCount, hotDiceCounter, roundHistory, ...}]
-    B --> G[rollActions: {handleRollDice, handleDiceSelect, ...}]
-    B --> H[gameActions: {handleBank, startNewGame, ...}]
-    B --> I[inventoryActions: {handleConsumableUse, ...}]
+    B --> C[board: dice, canRoll, canBank]
+    B --> D[gameState: full game state]
+    B --> E[roundState: current round state]
+    B --> F[inventory: charms, consumables, blessings]
+    B --> G[rollActions: handleRollDice, handleDiceSelect]
+    B --> H[gameActions: handleBank, startNewGame]
+    B --> I[inventoryActions: handleConsumableUse]
+    B --> J[shopActions: handlePurchaseCharm, etc]
 
-    J[GameBoard Component] --> K[Receives Logical Groups]
-    K --> L[rollActions, gameActions, inventoryActions]
-    K --> M[board, status, charms, consumables, history]
-    K --> N[canPlay: boolean]
+    K[GameBoard Component] --> L[Receives Logical Groups]
+    L --> M[rollActions, gameActions, inventoryActions]
+    L --> N[board, gameState, roundState, inventory]
+    L --> O[isInShop, shopActions]
 ```
 
 ## Data Flow Summary

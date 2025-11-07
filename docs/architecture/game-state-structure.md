@@ -2,28 +2,60 @@
 
 ## Overview
 
-The `GameState` has been reorganized into three logical groups to improve code organization, maintainability, and component prop interfaces.
+The `GameState` uses a flattened structure with nested level state for hierarchy. This provides a clean, intuitive structure while maintaining logical organization.
 
 ## Structure
 
 ```typescript
 interface GameState {
-  meta: GameMeta; // Game metadata and status
-  core: GameCore; // Core game data and state
-  config: GameConfig; // Game configuration and setup
-  history: GameHistory; // Game history and counters
+  // Game-wide state (flattened)
+  isActive: boolean;
+  endReason?: GameEndReason;
+  money: number;
+  diceSet: Die[];
+  charms: Charm[];
+  consumables: Consumable[];
+  blessings: Blessing[];
+  rerollValue: number;
+  livesValue: number;
+  charmSlots: number;
+  consumableSlots: number;
+  settings: GameSettings;
+  config: GameConfig;
+
+  // Current level state (nested for hierarchy)
+  currentLevel: LevelState;
+
+  // History (consolidated)
+  history: GameHistory;
 }
 ```
 
-### GameMeta
+### Game-Wide State
 
-Contains game metadata and status:
+Contains game-wide properties that persist across levels:
 
 ```typescript
-interface GameMeta {
-  isActive: boolean;
-  endReason?: GameEndReason;
-}
+// Game status
+isActive: boolean;
+endReason?: GameEndReason;
+
+// Resources
+money: number;
+rerollValue: number;
+livesValue: number;
+
+// Items
+charms: Charm[];
+consumables: Consumable[];
+blessings: Blessing[];
+
+// Configuration
+diceSet: Die[];
+charmSlots: number;
+consumableSlots: number;
+settings: GameSettings;
+config: GameConfig;
 ```
 
 ### GameSettings
@@ -32,37 +64,25 @@ Contains game settings that can change during gameplay:
 
 ```typescript
 interface GameSettings {
-  sortDice: "unsorted" | "ascending" | "descending" | "material"; // How to sort dice for display
-  gameSpeed: "none" | "low" | "medium" | "default" | "high" | number; // Game animation speed
-  optimizeRollScore: boolean; // Auto-select best scoring combination vs manual selection
+  sortDice: "unsorted" | "ascending" | "descending" | "material";
+  gameSpeed: "none" | "low" | "medium" | "default" | "high" | number;
+  optimizeRollScore: boolean;
 }
 ```
 
-### GameCore
+### LevelState
 
-Contains the essential game state that changes frequently during gameplay:
+Contains level-specific state that resets or changes between levels:
 
 ```typescript
-interface GameCore {
-  // Scoring and progress
-  gameScore: number;
-  money: number;
-  roundNumber: number;
-
-  // Game mechanics
+interface LevelState {
+  levelNumber: number;
+  pointsBanked: number;
+  levelThreshold: number;
+  rerollsRemaining: number;
+  livesRemaining: number;
   consecutiveFlops: number;
-
-  // Core game elements
-  diceSet: Die[]; // Current dice configuration
-  currentRound: RoundState; // Current round state
-
-  // Player items
-  charms: Charm[];
-  consumables: Consumable[];
-
-  // Game settings and shop
-  settings: GameSettings;
-  shop: ShopState;
+  currentRound: RoundState | undefined;
 }
 ```
 
@@ -101,169 +121,141 @@ Contains game tracking, history, and counter data:
 
 ```typescript
 interface GameHistory {
-  rollCount: number; // Total rolls across all rounds
-  hotDiceCounterGlobal: number; // Total hot dice events
-  forfeitedPointsTotal: number; // Total points lost to flops
+  totalScore: number; // Cumulative banked points
   combinationCounters: CombinationCounters; // Scoring combination tracking
-  roundHistory: RoundState[]; // Completed rounds (excluding current)
+  levelHistory: LevelState[]; // Completed levels
 }
 ```
 
 ## Benefits
 
-1. **Logical Grouping**: Related data is grouped together
-2. **Clear Access Patterns**: `gameState.core.gameScore` vs `gameState.inventory.charms`
-3. **Component-Friendly**: Components can receive specific groups of data
-4. **Maintainability**: Easier to find and modify related properties
-5. **Type Safety**: Better TypeScript inference and error detection
+1. **Flattened Structure**: Game-wide state is flat for easy access
+2. **Nested Hierarchy**: Level state is nested for logical organization
+3. **Clear Access Patterns**: `gameState.money` vs `gameState.currentLevel.pointsBanked`
+4. **Component-Friendly**: Components can receive specific data groups
+5. **Maintainability**: Easy to find and modify related properties
+6. **Type Safety**: Strong TypeScript typing throughout
 
 ## Access Patterns
 
-### Before (Flat Structure)
+### Current Structure
 
 ```typescript
-// Scattered properties
-gameState.gameScore;
+// Game-wide state (flat)
+gameState.isActive;
 gameState.money;
 gameState.charms;
 gameState.consumables;
+gameState.blessings;
 gameState.diceSet;
-gameState.winCondition;
-```
+gameState.settings.sortDice;
+gameState.config.diceSetConfig;
 
-### After (Organized Structure)
+// Level state (nested)
+gameState.currentLevel.levelNumber;
+gameState.currentLevel.pointsBanked;
+gameState.currentLevel.livesRemaining;
+gameState.currentLevel.currentRound;
 
-```typescript
-// Logical groupings
-gameState.core.gameScore;
-gameState.core.money;
-gameState.core.diceSet;
-gameState.core.currentRound;
-gameState.core.charms;
-gameState.core.consumables;
-gameState.core.settings.sortDice;
-gameState.core.settings.gameSpeed;
-gameState.core.settings.optimizeRollScore;
-gameState.core.shop.isOpen;
-gameState.config.winCondition;
-gameState.history.rollCount;
+// History (nested)
+gameState.history.totalScore;
+gameState.history.combinationCounters;
+gameState.history.levelHistory;
 ```
 
 ## Component Usage
 
-Components now receive organized data groups:
+Components receive organized data groups from `useGameState`:
 
 ```typescript
-// Instead of 20+ individual props
-<GameBoard
-  gameScore={gameState.core.gameScore}
-  money={gameState.core.money}
-  charms={gameState.core.charms}
-  // ... 17 more props
-/>
+// useGameState organizes data into logical groups
+const game = useGameState();
 
-// Clean, logical groups
+// Components receive organized groups
 <GameBoard
-  board={game.board}
-  status={game.status}
-  charms={game.charms}
-  consumables={game.consumables}
-  counters={game.counters}
-  rollActions={game.rollActions}
-  gameActions={game.gameActions}
-  inventoryActions={game.inventoryActions}
-/>
+  board={game.board} // Dice and selection state
+  gameState={game.gameState} // Full game state
+  roundState={game.roundState} // Current round state
+  inventory={game.inventory} // Charms, consumables, blessings
+  rollActions={game.rollActions} // Dice-related actions
+  gameActions={game.gameActions} // Game flow actions
+  inventoryActions={game.inventoryActions} // Item usage actions
+  shopActions={game.shopActions} // Shop actions
+  isInShop={game.isInShop} // Shop phase flag
+/>;
 ```
 
-## RoundState and RollState Organization
+## RoundState Structure
 
-Similar to GameState, RoundState and RollState have been reorganized for better structure:
-
-### RoundState Structure
+RoundState uses a flat structure with nested roll history:
 
 ```typescript
 interface RoundState {
-  meta: RoundMeta; // Round metadata and status
-  core: RoundCore; // Current round state
-  history: RoundHistory; // Round history and tracking
-}
-
-interface RoundMeta {
+  roundNumber: number;
   isActive: boolean;
-  endReason?: RoundEndReason; // 'flopped' | 'banked'
-}
-
-interface RoundCore {
-  rollNumber: number;
+  flopped: boolean;
   roundPoints: number;
   diceHand: Die[];
-  hotDiceCounterRound: number;
+  hotDiceCounter: number;
   forfeitedPoints: number;
-}
-
-interface RoundHistory {
   rollHistory: RollState[];
-  crystalsScoredThisRound?: number;
 }
 ```
 
-### RollState Structure
+## RollState Structure
+
+RollState contains individual roll data:
 
 ```typescript
 interface RollState {
-  core: RollCore; // Roll core state
-  meta: RollMeta; // Roll metadata and status
-}
-
-interface RollCore {
+  rollNumber: number;
   diceHand: Die[];
-  selectedDice: Die[];
-  maxRollPoints?: number;
-  rollPoints?: number;
-  scoringSelection?: number[];
-  combinations?: ScoringCombination[];
-}
-
-interface RollMeta {
-  isActive: boolean;
-  isHotDice?: boolean;
-  endReason?: RollEndReason; // 'flopped' | 'scored'
+  rollPoints: number;
+  combinations: ScoringCombination[];
 }
 ```
 
-## Access Patterns for Round/Roll State
+## Access Patterns
 
-### Before (Flat Structure)
+### Game State Access
 
 ```typescript
+// Game-wide state
+gameState.isActive;
+gameState.money;
+gameState.charms;
+gameState.consumables;
+gameState.blessings;
+
+// Level state
+gameState.currentLevel.levelNumber;
+gameState.currentLevel.pointsBanked;
+gameState.currentLevel.livesRemaining;
+gameState.currentLevel.currentRound;
+
+// Round state (from currentLevel)
+gameState.currentLevel.currentRound?.roundNumber;
+gameState.currentLevel.currentRound?.diceHand;
+gameState.currentLevel.currentRound?.rollHistory;
+```
+
+### Round State Access
+
+```typescript
+// Round properties
 roundState.roundNumber;
 roundState.isActive;
 roundState.diceHand;
+roundState.roundPoints;
 roundState.rollHistory;
-
-rollState.diceHand;
-rollState.rollPoints;
-rollState.isHotDice;
 ```
 
-### After (Organized Structure)
+### Roll State Access
 
 ```typescript
-roundState.meta.isActive;
-roundState.meta.endReason;
-roundState.core.diceHand;
-roundState.history.rollHistory;
-
-rollState.core.diceHand;
-rollState.core.rollPoints;
-rollState.meta.isHotDice;
-rollState.meta.isActive;
+// Roll properties
+rollState.rollNumber;
+rollState.diceHand;
+rollState.rollPoints;
+rollState.combinations;
 ```
-
-## Migration Notes
-
-- All existing code needs to be updated to use the new structure
-- The `useGameState` hook returns organized data groups
-- Components should receive logical groups rather than individual properties
-- This structure supports both single-player and multiplayer modes
-- RoundState and RollState now follow the same organizational pattern as GameState
