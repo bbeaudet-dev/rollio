@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DiceFace } from './DiceFace';
+import { getLevelColor } from '../../../utils/levelColors';
 
 interface CasinoDiceAreaProps {
   dice: any[];
@@ -10,6 +11,12 @@ interface CasinoDiceAreaProps {
   rollNumber?: number;
   hotDiceCount?: number;
   consecutiveFlops?: number;
+  levelNumber?: number;
+  previewScoring?: {
+    isValid: boolean;
+    points: number;
+    combinations: string[];
+  } | null;
 }
 
 interface DicePosition {
@@ -25,8 +32,12 @@ export const CasinoDiceArea: React.FC<CasinoDiceAreaProps> = ({
   roundNumber = 0,
   rollNumber = 0,
   hotDiceCount = 0,
-  consecutiveFlops = 0
+  consecutiveFlops = 0,
+  levelNumber = 1,
+  previewScoring = null
 }) => {
+  // Get level color (memoized to avoid recalculating on every render)
+  const levelColor = useMemo(() => getLevelColor(levelNumber), [levelNumber]);
   const [dicePositions, setDicePositions] = useState<DicePosition[]>([]);
   const [lastRollNumber, setLastRollNumber] = useState<number>(0);
   const [lastDiceCount, setLastDiceCount] = useState<number>(0);
@@ -35,7 +46,7 @@ export const CasinoDiceArea: React.FC<CasinoDiceAreaProps> = ({
   const generateRandomPositions = (diceCount: number) => {
     const positions: DicePosition[] = [];
     const diceSize = 70; // 10% bigger dice (was 64)
-    const padding = 20; // Padding from edges
+    const padding = 30; // Padding from edges
     const minDistance = diceSize + 10; // Minimum distance between dice centers
     
     for (let i = 0; i < diceCount; i++) {
@@ -86,13 +97,20 @@ export const CasinoDiceArea: React.FC<CasinoDiceAreaProps> = ({
 
   return (
     <div style={{ 
-      backgroundColor: '#2d5a2d', // Casino green
-      border: '3px solid #1a3d1a',
-      borderRadius: '12px',
+      backgroundColor: levelColor.backgroundColor,
+      border: `3px solid ${levelColor.borderColor}`,
+      borderTop: 'none',
+      borderTopLeftRadius: '0',
+      borderTopRightRadius: '0',
+      borderBottomLeftRadius: '0',
+      borderBottomRightRadius: '0',
       padding: '20px',
-      height: '350px', // Bigger area with more vertical space
+      minHeight: '400px', 
+      height: '500px', 
+      width: '100%', // Ensure full width
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      boxSizing: 'border-box' // Include padding in width/height calculations
     }}>
       {/* Round and Roll numbers overlay */}
       <div style={{
@@ -135,21 +153,37 @@ export const CasinoDiceArea: React.FC<CasinoDiceAreaProps> = ({
         </div>
       )}
 
-      {/* Hot Dice counter - bottom right */}
-      {hotDiceCount > 0 && (
+      {/* Selected Dice Preview - bottom right */}
+      {previewScoring && (
         <div style={{
           position: 'absolute',
-          bottom: '15px', // More margin from bottom
-          right: '15px', // More margin from right
+          bottom: '15px',
+          right: '15px',
           zIndex: 20,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          color: 'white',
-          padding: '8px 16px',
-          borderRadius: '6px',
+          backgroundColor: previewScoring.isValid ? 'rgba(227, 242, 253, 0.9)' : 'rgba(255, 235, 238, 0.9)',
+          border: `2px solid ${previewScoring.isValid ? '#007bff' : '#f44336'}`,
+          borderRadius: '8px',
+          padding: '12px',
           fontSize: '14px',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          maxWidth: '200px',
+          minWidth: '150px'
         }}>
-          {'🔥'.repeat(Math.min(hotDiceCount, 3))} Hot dice! x{hotDiceCount}
+          <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+            Combos:
+          </div>
+          {previewScoring.isValid ? (
+            <div style={{ fontSize: '13px', fontWeight: 'normal' }}>
+              <div style={{ marginBottom: '4px' }}>{previewScoring.combinations.join(', ')}</div>
+              <div style={{ fontWeight: 'bold', color: '#007bff' }}>
+                {previewScoring.points} points
+              </div>
+            </div>
+          ) : (
+            <div style={{ color: '#f44336', fontSize: '13px', fontWeight: 'normal' }}>
+              Invalid selection
+            </div>
+          )}
         </div>
       )}
 

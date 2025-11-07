@@ -91,4 +91,7 @@ jspm_packages/
 .dynamodb/
 
 # TernJS port file
-.tern-port 
+.tern-port
+
+# Chat history exports
+chat_history_export/ 

@@ -18,7 +18,9 @@ export const GameLog: React.FC<GameLogProps> = ({ messages }) => {
       <div style={{ 
         maxHeight: '200px', 
         overflowY: 'auto',
-        fontSize: '14px'
+        fontSize: '14px',
+        display: 'flex',
+        flexDirection: 'column-reverse'
       }}>
         {messages.map((message, index) => (
           <div key={index}>{message}</div>

@@ -219,18 +219,18 @@ export const DiceFace: React.FC<DiceFaceProps> = ({ value, size = 40, material =
         break;
         
       default:
-        // Show question mark for invalid values
+        // Show number for values > 6
         return (
           <div style={{
             position: 'absolute',
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: `${size * 0.5}px`,
+            fontSize: `${size * 0.4}px`,
             fontWeight: 'bold',
             color: colors.pip
           }}>
-            ?
+            {value}
           </div>
         );
     }

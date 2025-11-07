@@ -597,13 +597,27 @@ export class RoundManager {
   private async checkAndHandleFlop(roundState: any, gameState: any, gameInterface: GameInterface, charmManager: CharmManager): Promise<boolean | 'flopPrevented'> {
     const isFlopResult = isFlop(roundState.diceHand);
     if (isFlopResult) {
-      // Try to prevent flop with charms
-      const flopPreventionResult = charmManager.tryPreventFlop({ gameState, roundState });
-      if (flopPreventionResult.prevented) {
-        const usesLeft = gameState.charms?.find((c: any) => c.name === 'Flop Shield')?.uses ?? '∞';
-        const shieldMsg = flopPreventionResult.log || `🛡️ Flop Shield activated! Flop prevented (${usesLeft} uses left)`;
-        await gameInterface.log(shieldMsg);
-        return 'flopPrevented'; 
+      // Check if flop shield is available (without using it)
+      const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState, roundState });
+      
+      if (shieldCheck.available) {
+        // Prompt user to choose whether to use flop shield
+        await gameInterface.log(shieldCheck.log || '🛡️ Flop Shield available!');
+        const useShield = await gameInterface.ask('Would you like to use your Flop Shield? (y/n): ');
+        
+        if (useShield.toLowerCase().trim() === 'y' || useShield.toLowerCase().trim() === 'yes') {
+          // User chose to use shield - now actually use it
+          const flopPreventionResult = charmManager.tryPreventFlop({ gameState, roundState });
+          if (flopPreventionResult.prevented) {
+            const usesLeft = gameState.charms?.find((c: any) => c.name === 'Flop Shield')?.uses ?? '∞';
+            const shieldMsg = flopPreventionResult.log || `🛡️ Flop Shield activated! Flop prevented (${usesLeft} uses left)`;
+            await gameInterface.log(shieldMsg);
+            
+            // Return 'flopPrevented' to break out of flop handling
+            return 'flopPrevented'; 
+          }
+        }
+        // User chose not to use shield, or shield failed - proceed with flop
       }
       
       // Flop was NOT prevented - process the flop

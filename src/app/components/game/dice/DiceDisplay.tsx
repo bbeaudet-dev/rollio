@@ -24,18 +24,7 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
 }) => {
   return (
     <div>
-      {/* Round and Roll Display */}
-      <div style={{ 
-        textAlign: 'center', 
-        marginBottom: '15px',
-        fontSize: '16px',
-        fontWeight: 'bold'
-      }}>
-        <div>Round {roundNumber}</div>
-        <div style={{ fontSize: '14px', fontWeight: 'normal', color: '#666' }}>
-          Roll {rollNumber}
-        </div>
-      </div>
+      {/* Round and Roll Display removed - now shown in CasinoDiceArea */}
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {dice.map((die, index) => {

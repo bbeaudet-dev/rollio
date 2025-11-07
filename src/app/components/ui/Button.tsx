@@ -5,7 +5,8 @@ export const Button: React.FC<ButtonProps> = ({
   onClick, 
   disabled = false, 
   children, 
-  variant = 'primary' 
+  variant = 'primary',
+  style
 }) => {
   return (
     <button 
@@ -16,7 +17,8 @@ export const Button: React.FC<ButtonProps> = ({
         border: '1px solid #ccc',
         backgroundColor: disabled ? '#f0f0f0' : '#fff',
         cursor: disabled ? 'not-allowed' : 'pointer',
-        margin: '4px'
+        margin: '4px',
+        ...style
       }}
     >
       {children}

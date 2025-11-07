@@ -3,6 +3,7 @@ export interface ButtonProps {
   disabled?: boolean;
   children: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'danger';
+  style?: React.CSSProperties;
 }
 
 export interface InputProps {
