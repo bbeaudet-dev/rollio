@@ -43,7 +43,7 @@ export function useGameState() {
   }, [webState]);
 
   // Unified roll/reroll action
-  const handleRollDice = useCallback(() => {
+  const handleRollDice = useCallback(async () => {
     if (!webState || !gameManagerRef.current) return;
     
     // Check if this is the first roll of a round
@@ -51,11 +51,11 @@ export function useGameState() {
     
     if (!hasRolledDice && webState.roundState) {
       // Roll dice 
-      const newState = gameManagerRef.current.rollDice(webState);
+      const newState = await gameManagerRef.current.rollDice(webState);
       setWebState(newState);
     } else if (webState.canRoll && !webState.roundState) {
       // Starting a new round (no round state exists)
-      const newState = gameManagerRef.current.startRound(webState);
+      const newState = await gameManagerRef.current.startRound(webState);
       setWebState(newState);
     } else if (webState.canReroll) {
       // After scoring - rolling remaining dice
@@ -64,43 +64,42 @@ export function useGameState() {
       setWebState(resolvedState);
       // Then trigger roll 
       if (gameManagerRef.current) {
-        const rollState = gameManagerRef.current.rollDice(resolvedState);
+        const rollState = await gameManagerRef.current.rollDice(resolvedState);
         setWebState(rollState);
       }
     }
   }, [webState]);
 
   // Handle reroll selection (BEFORE scoring - selecting dice to reroll)
-  const handleRerollSelection = useCallback((selectedIndices: number[]) => {
+  const handleRerollSelection = useCallback(async (selectedIndices: number[]) => {
     if (!webState || !gameManagerRef.current) return;
     
     if (webState.pendingAction.type === 'reroll') {
-      const newState = gameManagerRef.current.handleRerollSelection(webState, selectedIndices);
+      const newState = await gameManagerRef.current.handleRerollSelection(webState, selectedIndices);
       setWebState(newState);
     }
   }, [webState]);
 
-  const scoreSelectedDice = useCallback(() => {
+  const scoreSelectedDice = useCallback(async () => {
     if (!webState || !gameManagerRef.current) return;
     
     // If there's a pending diceSelection action, resolve it first
     if (webState.pendingAction.type === 'diceSelection') {
       // Convert selected dice indices to string format (e.g., "123" for dice 1, 2, 3)
-      const diceSelection = webState.selectedDice.map(i => i + 1).join('');
-      const resolvedState = gameManagerRef.current.resolvePendingAction(webState, diceSelection);
+      const resolvedState = gameManagerRef.current.resolvePendingAction(webState, webState.selectedDice.map(i => i + 1).join(''));
       setWebState(resolvedState);
       // Then score
       if (gameManagerRef.current) {
-        const scoredState = gameManagerRef.current.scoreSelectedDice(resolvedState);
+        const scoredState = await gameManagerRef.current.scoreSelectedDice(resolvedState);
         setWebState(scoredState);
       }
     } else {
-      const newState = gameManagerRef.current.scoreSelectedDice(webState);
+      const newState = await gameManagerRef.current.scoreSelectedDice(webState);
       setWebState(newState);
     }
   }, [webState]);
 
-  const handleBank = useCallback(() => {
+  const handleBank = useCallback(async () => {
     if (!webState || !gameManagerRef.current) return;
     
     // If there's a pending bankOrReroll action, resolve it first
@@ -109,11 +108,11 @@ export function useGameState() {
       setWebState(resolvedState);
       // Then bank
       if (gameManagerRef.current) {
-        const bankedState = gameManagerRef.current.bankPoints(resolvedState);
+        const bankedState = await gameManagerRef.current.bankPoints(resolvedState);
         setWebState(bankedState);
       }
     } else {
-      const newState = gameManagerRef.current.bankPoints(webState);
+      const newState = await gameManagerRef.current.bankPoints(webState);
       setWebState(newState);
     }
   }, [webState]);
@@ -125,10 +124,10 @@ export function useGameState() {
     setWebState(newState);
   }, [webState]);
 
-  const handleFlopContinue = useCallback(() => {
+  const handleFlopContinue = useCallback(async () => {
     if (!webState || !gameManagerRef.current) return;
     
-    const newState = gameManagerRef.current.handleFlopContinue(webState);
+    const newState = await gameManagerRef.current.handleFlopContinue(webState);
     setWebState(newState);
   }, [webState]);
 
@@ -169,27 +168,27 @@ export function useGameState() {
     
     // Shop actions
     shopActions: {
-      handlePurchaseCharm: useCallback((index: number) => {
+      handlePurchaseCharm: useCallback(async (index: number) => {
         if (!webState || !gameManagerRef.current) return;
-        const newState = gameManagerRef.current.purchaseCharm(webState, index);
+        const newState = await gameManagerRef.current.purchaseCharm(webState, index);
         setWebState(newState);
       }, [webState]),
       
-      handlePurchaseConsumable: useCallback((index: number) => {
+      handlePurchaseConsumable: useCallback(async (index: number) => {
         if (!webState || !gameManagerRef.current) return;
-        const newState = gameManagerRef.current.purchaseConsumable(webState, index);
+        const newState = await gameManagerRef.current.purchaseConsumable(webState, index);
         setWebState(newState);
       }, [webState]),
       
-      handlePurchaseBlessing: useCallback((index: number) => {
+      handlePurchaseBlessing: useCallback(async (index: number) => {
         if (!webState || !gameManagerRef.current) return;
-        const newState = gameManagerRef.current.purchaseBlessing(webState, index);
+        const newState = await gameManagerRef.current.purchaseBlessing(webState, index);
         setWebState(newState);
       }, [webState]),
       
-      handleExitShop: useCallback(() => {
+      handleExitShop: useCallback(async () => {
         if (!webState || !gameManagerRef.current) return;
-        const newState = gameManagerRef.current.exitShop(webState);
+        const newState = await gameManagerRef.current.exitShop(webState);
         setWebState(newState);
       }, [webState]),
     },

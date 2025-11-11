@@ -23,7 +23,7 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
   shopActions,
   inventoryActions
 }) => {
-  const completedLevelNumber = gameState.currentLevel?.levelNumber ? gameState.currentLevel.levelNumber - 1 : 1;
+  const completedLevelNumber = gameState.history?.levelHistory?.[gameState.history.levelHistory.length - 1]?.levelNumber || gameState.currentLevel?.levelNumber || 1;
   const livesRemaining = gameState.history?.levelHistory?.[gameState.history.levelHistory.length - 1]?.livesRemaining || 0;
 
   return (

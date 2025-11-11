@@ -298,7 +298,7 @@ export function advanceToNextLevel(gameState: GameState): void {
   const newLevelNumber = oldLevelNumber + 1;
   const levelConfig = getLevelConfig(newLevelNumber);
   
-  // Move completed level to history
+  // Move completed level to history 
   const completedLevel: LevelState = {
     ...gameState.currentLevel,
     completed: true,
@@ -308,10 +308,8 @@ export function advanceToNextLevel(gameState: GameState): void {
   };
   gameState.history.levelHistory.push(completedLevel);
   
-  // Create new level state using factory function
-  const newLevel = createInitialLevelState(newLevelNumber, gameState);
-  
-  gameState.currentLevel = newLevel;
+  // Create new level state (includes first round)
+  gameState.currentLevel = createInitialLevelState(newLevelNumber, gameState);
   
   debugActionWithContext(
     'gameFlow',
@@ -322,8 +320,8 @@ export function advanceToNextLevel(gameState: GameState): void {
       newLevel: newLevelNumber,
       newThreshold: levelConfig.pointThreshold,
       boss: levelConfig.boss?.name || null,
-      rerollsRemaining: newLevel.rerollsRemaining,
-      livesRemaining: newLevel.livesRemaining,
+      rerollsRemaining: gameState.currentLevel.rerollsRemaining,
+      livesRemaining: gameState.currentLevel.livesRemaining,
     }
   );
 }
