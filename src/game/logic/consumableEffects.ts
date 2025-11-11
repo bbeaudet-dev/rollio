@@ -1,35 +1,68 @@
 import { CHARMS } from '../data/charms';
-import { getNextDieSize, getPreviousDieSize, getDieSizeDescription, DIE_SIZE_SEQUENCE } from '../utils/dieSizeUtils';
+import { MATERIALS } from '../data/materials';
+import { getNextDieSize, getPreviousDieSize, DIE_SIZE_SEQUENCE } from '../utils/dieSizeUtils';
+import { GameState, RoundState, DiceMaterialType } from '../types';
 
-export async function applyConsumableEffect(idx: number, gameState: any, roundState: any, gameInterface: any, charmManager: any): Promise<void> {
+export interface ConsumableEffectResult {
+  success: boolean;
+  shouldRemove: boolean;
+  requiresInput?: {
+    type: 'dieSelection';
+    consumableId: 'chisel' | 'potteryWheel';
+    diceSet: any[];
+  };
+  gameState: GameState;
+  roundState?: RoundState;
+}
+
+/**
+ * Apply consumable effect - pure function
+ * Returns only state changes - no messages, no I/O
+ */
+export function applyConsumableEffect(
+  idx: number,
+  gameState: GameState,
+  roundState: RoundState | null,
+  charmManager: any
+): ConsumableEffectResult {
   const consumable = gameState.consumables[idx];
-  if (!consumable) return;
+  if (!consumable) {
+    return {
+      success: false,
+      shouldRemove: false,
+      gameState
+    };
+  }
+
+  const newGameState = { ...gameState };
+  const newRoundState = roundState ? { ...roundState } : undefined;
   let shouldRemove = true;
+
   switch (consumable.id) {
     case 'moneyDoubler':
-      gameState.money *= 2;
-      await gameInterface.log(`💰 Money Doubler used! You now have $${gameState.money}.`);
+      newGameState.money = (newGameState.money || 0) * 2;
       break;
+
     case 'extraDie': {
       // Add a new default die to the dice set
-      const newDieId = `d${gameState.diceSet.length + 1}`;
+      const newDieId = `d${newGameState.diceSet.length + 1}`;
       const newDie = {
         id: newDieId,
         sides: 6,
         allowedValues: [1, 2, 3, 4, 5, 6],
-        material: 'plastic'
+        material: 'plastic' as DiceMaterialType
       };
-      gameState.diceSet.push(newDie);
-      await gameInterface.log('🎲 Extra Die added! You will have an extra die next round.');
+      newGameState.diceSet = [...newGameState.diceSet, newDie];
       break;
     }
+
     case 'materialEnchanter': {
       // Find all plastic dice
-      const plasticDice = gameState.diceSet
+      const plasticDice = newGameState.diceSet
         .map((die: any, idx: number) => ({ die, idx }))
         .filter(({ die }: { die: any }) => die.material === 'plastic');
+      
       if (plasticDice.length === 0) {
-        await gameInterface.log('🔮 Material Enchanter: No plastic dice available to enchant!');
         shouldRemove = false;
         break;
       }
@@ -42,7 +75,6 @@ export async function applyConsumableEffect(idx: number, gameState: any, roundSt
       
       // Check if enchantment succeeds
       if (Math.random() >= baseProbability) {
-        await gameInterface.log('🔮 Material Enchanter: The enchantment failed!');
         shouldRemove = false;
         break;
       }
@@ -50,97 +82,91 @@ export async function applyConsumableEffect(idx: number, gameState: any, roundSt
       // Pick a random plastic die
       const chosen = plasticDice[Math.floor(Math.random() * plasticDice.length)];
       // Pick a random non-plastic material
-      const { MATERIALS } = await import('../data/materials');
       const nonPlasticMaterials = MATERIALS.filter((m: any) => m.id !== 'plastic');
       const newMaterial = nonPlasticMaterials[Math.floor(Math.random() * nonPlasticMaterials.length)];
-      chosen.die.material = newMaterial.id;
-      chosen.die.abbreviation = newMaterial.abbreviation;
-      await gameInterface.log(`🔮 Material Enchanter: Die ${chosen.idx + 1} is now ${newMaterial.name}!`);
+      
+      newGameState.diceSet = newGameState.diceSet.map((die, i) => 
+        i === chosen.idx 
+          ? { ...die, material: newMaterial.id as DiceMaterialType, abbreviation: newMaterial.abbreviation }
+          : die
+      );
       break;
     }
+
     case 'charmGiver': {
-      const maxCharms = gameState.charmSlots || 3;
-      if (gameState.charms.length >= maxCharms) {
-        await gameInterface.log('🎁 Charm Giver: No open charm slots!');
+      const maxCharms = newGameState.charmSlots || 3;
+      if (newGameState.charms.length >= maxCharms) {
         shouldRemove = false;
         break;
       }
       // Find available charms not already owned
-      const ownedIds = new Set(gameState.charms.map((c: any) => c.id));
+      const ownedIds = new Set(newGameState.charms.map((c: any) => c.id));
       const available = CHARMS.filter((c: any) => !ownedIds.has(c.id));
       if (available.length === 0) {
-        await gameInterface.log('🎁 Charm Giver: No new charms available!');
         shouldRemove = false;
         break;
       }
       const randomIdx = Math.floor(Math.random() * available.length);
       const newCharm = { ...available[randomIdx], active: true };
-      gameState.charms.push(newCharm);
+      newGameState.charms = [...newGameState.charms, newCharm];
       charmManager.addCharm(newCharm);
-      await gameInterface.log(`🎁 Charm Giver: You gained a new charm: ${newCharm.name}!`);
       break;
     }
+
     case 'slotExpander':
-      gameState.charmSlots = (gameState.charmSlots || 3) + 1;
-      await gameInterface.log('🧳 Slot Expander used! You now have an extra charm slot.');
+      newGameState.charmSlots = (newGameState.charmSlots || 3) + 1;
       break;
+
     case 'chisel': {
-      // Let user select a die to reduce
-      const selectedDieIndex = await gameInterface.askForDieSelection(
-        gameState.diceSet,
-        `🪓 Chisel: Select a die to reduce (Die sequence: ${DIE_SIZE_SEQUENCE.join(', ')}):`
-      );
-      const selectedDie = gameState.diceSet[selectedDieIndex];
-      const newSize = getPreviousDieSize(selectedDie.sides);
-      
-      if (newSize === null) {
-        await gameInterface.log(`🪓 Chisel: Cannot reduce die ${selectedDieIndex + 1} - it's already at minimum size (${selectedDie.sides}-sided).`);
-        shouldRemove = false;
-        break;
-      }
-      
-      const oldSize = selectedDie.sides;
-      selectedDie.sides = newSize;
-      selectedDie.allowedValues = [1, 2, 3, 4, 5, 6]; // Keep same values for simplicity
-      
-      await gameInterface.log(`🪓 Chisel: Die ${selectedDieIndex + 1} ${getDieSizeDescription(oldSize, newSize)}!`);
-      break;
+      // Requires user input - return request
+      return {
+        success: true,
+        shouldRemove: false, // Will be set after user input
+        requiresInput: {
+          type: 'dieSelection',
+          consumableId: 'chisel',
+          diceSet: newGameState.diceSet
+        },
+        gameState: newGameState,
+        roundState: newRoundState
+      };
     }
+
     case 'potteryWheel': {
-      // Let user select a die to enlarge
-      const selectedDieIndex = await gameInterface.askForDieSelection(
-        gameState.diceSet,
-        `🧱 Pottery Wheel: Select a die to enlarge (Die sequence: ${DIE_SIZE_SEQUENCE.join(', ')}):`
-      );
-      const selectedDie = gameState.diceSet[selectedDieIndex];
-      const newSize = getNextDieSize(selectedDie.sides);
-      
-      if (newSize === null) {
-        await gameInterface.log(`🧱 Pottery Wheel: Cannot enlarge die ${selectedDieIndex + 1} - it's already at maximum size (${selectedDie.sides}-sided).`);
+      // Requires user input - return request
+      return {
+        success: true,
+        shouldRemove: false, // Will be set after user input
+        requiresInput: {
+          type: 'dieSelection',
+          consumableId: 'potteryWheel',
+          diceSet: newGameState.diceSet
+        },
+        gameState: newGameState,
+        roundState: newRoundState
+      };
+    }
+
+    case 'forfeitRecovery': {
+      if (!newRoundState) {
         shouldRemove = false;
         break;
       }
-      
-      const oldSize = selectedDie.sides;
-      selectedDie.sides = newSize;
-      selectedDie.allowedValues = [1, 2, 3, 4, 5, 6]; // Keep same values for simplicity
-      
-      await gameInterface.log(`🧱 Pottery Wheel: Die ${selectedDieIndex + 1} ${getDieSizeDescription(oldSize, newSize)}!`);
-      break;
-    }
-    case 'forfeitRecovery': {
-      const lastForfeit = gameState.history.lastForfeitedPoints || 0;
+      const lastForfeit = newRoundState.forfeitedPoints || 0;
       const recovered = Math.floor(lastForfeit * 1.25);
       if (recovered > 0) {
-        roundState.roundPoints += recovered;
-        await gameInterface.log(`🩹 Flop Recovery used! Recovered ${recovered} points and added to round score.`);
+        newRoundState.roundPoints += recovered;
       } else {
-        await gameInterface.log('🩹 Flop Recovery used, but there were no forfeited points to recover.');
         shouldRemove = false;
       }
       break;
     }
+
     case 'luckyToken': {
+      if (!newRoundState) {
+        shouldRemove = false;
+        break;
+      }
       // Check for Weighted Dice charm
       let weighted = false;
       if (charmManager && typeof charmManager.hasCharm === 'function') {
@@ -168,22 +194,80 @@ export async function applyConsumableEffect(idx: number, gameState: any, roundSt
         }
       }
       if (chosenEffect === 'doublePoints') {
-        roundState.roundPoints *= 2;
-        await gameInterface.log('🍀 Lucky Token: Your round points have been doubled!');
+        newRoundState.roundPoints *= 2;
       } else if (chosenEffect === 'extraReroll') {
-        roundState.extraRerolls = (roundState.extraRerolls || 0) + 1;
-        await gameInterface.log('🍀 Lucky Token: You gained an extra reroll this round!');
+        // Add extra reroll to level state (not round state)
+        newGameState.currentLevel.rerollsRemaining = (newGameState.currentLevel.rerollsRemaining || 0) + 1;
       } else if (chosenEffect === 'instantBank') {
-        roundState.instantBank = true;
-        await gameInterface.log('🍀 Lucky Token: Your points will be instantly banked!');
+        // Store instant bank flag in round state
+        (newRoundState as any).instantBank = true;
       }
       break;
     }
+
     default:
-      await gameInterface.log('Unknown consumable effect.');
+      shouldRemove = false;
   }
-  // Remove the used consumable only if it was actually used
-  if (shouldRemove) {
-    gameState.consumables.splice(idx, 1);
+
+  return {
+    success: true,
+    shouldRemove,
+    gameState: newGameState,
+    roundState: newRoundState
+  };
+}
+
+/**
+ * Apply die selection for chisel/potteryWheel consumables
+ * Pure function - processes the user's die selection
+ */
+export function applyDieSelectionConsumable(
+  consumableId: 'chisel' | 'potteryWheel',
+  selectedDieIndex: number,
+  gameState: GameState,
+  roundState: RoundState | null
+): ConsumableEffectResult {
+  const newGameState = { ...gameState };
+  const newRoundState = roundState ? { ...roundState } : undefined;
+  let shouldRemove = true;
+
+  const selectedDie = newGameState.diceSet[selectedDieIndex];
+  if (!selectedDie) {
+    return {
+      success: false,
+      shouldRemove: false,
+      gameState: newGameState
+    };
   }
-} 
+
+  if (consumableId === 'chisel') {
+    const newSize = getPreviousDieSize(selectedDie.sides);
+    if (newSize === null) {
+      shouldRemove = false;
+    } else {
+      newGameState.diceSet = newGameState.diceSet.map((die, i) =>
+        i === selectedDieIndex
+          ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
+          : die
+      );
+    }
+  } else if (consumableId === 'potteryWheel') {
+    const newSize = getNextDieSize(selectedDie.sides);
+    if (newSize === null) {
+      shouldRemove = false;
+    } else {
+      newGameState.diceSet = newGameState.diceSet.map((die, i) =>
+        i === selectedDieIndex
+          ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
+          : die
+      );
+    }
+  }
+
+  return {
+    success: true,
+    shouldRemove,
+    gameState: newGameState,
+    roundState: newRoundState
+  };
+}

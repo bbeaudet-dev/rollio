@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 
 import { CLIInterface } from './cliInterface';
-import { GameEngine } from '../game/engine/GameEngine';
+import { CLIGameEngine } from './CLIGameEngine';
 
 /**
  * CLI entry point for Rollio game
@@ -9,7 +9,7 @@ import { GameEngine } from '../game/engine/GameEngine';
 async function main(): Promise<void> {
   const debugMode = process.argv.includes('--debug');
   const cliInterface = new CLIInterface();
-  const gameEngine = new GameEngine(cliInterface, debugMode);
+  const gameEngine = new CLIGameEngine(cliInterface, debugMode);
   
   try {
     await gameEngine.run();

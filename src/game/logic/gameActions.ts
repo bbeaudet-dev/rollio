@@ -109,6 +109,13 @@ export function processCompleteScoring(
   
   newRoundState.diceHand = scoringActionResult.newHand;
   
+  // Check for hot dice (all dice scored)
+  const hotDice = scoringActionResult.hotDice;
+  if (hotDice) {
+    newRoundState.hotDiceCounter++;
+    // Note: diceHand is empty at this point - it will be reset when player chooses to roll
+  }
+  
   // Add entry to roll history
   // Find the last roll entry to get the current roll number
   const lastRollEntry = newRoundState.rollHistory.length > 0 
@@ -119,21 +126,17 @@ export function processCompleteScoring(
   newRoundState.rollHistory.push({
     rollNumber: currentRollNumber, 
     isReroll: false,
-    diceHand: [...newRoundState.diceHand], // Store remaining dice after scoring
+    diceHand: [...newRoundState.diceHand], // Store remaining dice after scoring (empty if hot dice)
     selectedDice: [],
     rollPoints: materialResult.score,
     maxRollPoints: materialResult.score, // TODO: calculate actual max possible
     scoringSelection: selectedIndices,
     combinations: selectedPartitioning.map((c: any) => c.type),
-    isHotDice: scoringActionResult.hotDice,
+    isHotDice: hotDice,
     isFlop: false,
   });
   
   let newGameState = { ...gameState };
-  const hotDice = scoringActionResult.hotDice;
-  if (hotDice) {
-    newRoundState.hotDiceCounter++;
-  }
 
   return {
     success: true,
@@ -207,32 +210,82 @@ export function calculatePreviewScoring(
   }
 }
 
-export function processReroll(
-  gameState: GameState,
+/**
+ * Roll all dice in a hand
+ * Pure function - just rolls the dice, nothing else
+ */
+export function rollDice(diceHand: any[]): void {
+  for (const die of diceHand) {
+    die.rolledValue = die.allowedValues[Math.floor(Math.random() * die.allowedValues.length)];
+  }
+}
+
+/**
+ * Reroll specific dice 
+ * Pure function - just rerolls the specified dice
+ */
+export function rerollDice(diceHand: any[], diceIndices: number[]): void {
+  diceIndices.forEach(idx => {
+    if (diceHand[idx]) {
+      const die = diceHand[idx];
+      die.rolledValue = die.allowedValues[Math.floor(Math.random() * die.allowedValues.length)];
+    }
+  });
+}
+
+/**
+ * Reset dice hand to full dice set (for hot dice)
+ * Pure function - repopulates diceHand from diceSet
+ */
+export function resetDiceHandToFullSet(diceHand: any[], diceSet: any[]): void {
+  diceHand.length = 0;
+  diceHand.push(...diceSet.map((die: any) => ({ ...die, scored: false })));
+}
+
+/**
+ * Process rolling dice
+ * Handles all rolls - whether it's the first roll, remaining dice, or full set (hot dice)
+ */
+export function processRoll(
   roundState: RoundState,
-  rollManager: any
+  diceSet?: any[] // Optional: if diceHand is empty, populate from diceSet
 ): {
   newRoundState: RoundState;
   isFlop: boolean;
-  isHotDice: boolean;
 } {
   const newRoundState = { ...roundState };
   
-  // Increment roll number
-  newRoundState.roundNumber++;
-  
-  const isHotDice = newRoundState.diceHand.length === 0;
-  if (isHotDice) {
-    newRoundState.diceHand = gameState.diceSet.map((die: any) => ({ ...die, scored: false }));
+  // If diceHand is empty, populate it
+  if (newRoundState.diceHand.length === 0 && diceSet) {
+    resetDiceHandToFullSet(newRoundState.diceHand, diceSet);
   }
-
-  rollManager.rollDice(newRoundState.diceHand);
   
+  // Simple roll number: just count entries in history + 1
+  const currentRollNumber = (newRoundState.rollHistory?.length || 0) + 1;
+  
+  // Roll the dice
+  rollDice(newRoundState.diceHand);
+  
+  // Check for flop
   const flopResult = isFlop(newRoundState.diceHand);
+  
+  // Add roll to history
+  newRoundState.rollHistory = newRoundState.rollHistory || [];
+  newRoundState.rollHistory.push({
+    rollNumber: currentRollNumber,
+    isReroll: false,
+    diceHand: newRoundState.diceHand.map(d => ({ ...d })),
+    selectedDice: [],
+    rollPoints: 0, // Will be calculated when scored
+    maxRollPoints: 0,
+    scoringSelection: [],
+    combinations: [],
+    isHotDice: false,
+    isFlop: flopResult,
+  });
   
   return {
     newRoundState,
-    isFlop: flopResult,
-    isHotDice
+    isFlop: flopResult
   };
-} 
+}

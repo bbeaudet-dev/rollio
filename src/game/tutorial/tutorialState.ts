@@ -1,6 +1,5 @@
 import { Die, GameState, RoundState, DiceSetConfig, DiceMaterialType } from '../types';
 import { CharmManager } from '../logic/charmSystem';
-import { RollManager } from '../engine/RollManager';
 
 export interface TutorialState {
   currentLesson: string;
@@ -8,7 +7,6 @@ export interface TutorialState {
   gameState: GameState;
   roundState: RoundState;
   charmManager: CharmManager;
-  rollManager: RollManager;
   completedLessons: Set<string>;
   isActive: boolean;
 }
@@ -126,7 +124,6 @@ export class TutorialStateManager {
       gameState,
       roundState,
       charmManager: new CharmManager(),
-      rollManager: new RollManager(),
       completedLessons: new Set(),
       isActive: true
     };

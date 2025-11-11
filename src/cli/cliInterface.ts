@@ -2,11 +2,11 @@ import readline from 'readline';
 import { DEFAULT_GAME_CONFIG } from '../game/utils/factories';
 import { DieValue, ScoringCombination, GameState, Die } from '../game/types';
 import { DisplayInterface, InputInterface, GameInterface } from '../game/interfaces';
-import { DisplayFormatter } from '../app/utils/display';
+import { DisplayFormatter } from '../web/utils/display';
 import { CLIDisplayFormatter } from './display/cliDisplay';
 import { SimpleDiceAnimation } from './display/simpleDiceAnimation';
-import { CommandHandler } from '../game/engine/CommandHandler';
-import { ConfigManager } from '../game/engine/ConfigManager';
+import { CommandHandler } from './CommandHandler';
+import { ConfigManager } from './ConfigManager';
 
 /**
  * CLI implementation of the game interface
