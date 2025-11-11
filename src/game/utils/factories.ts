@@ -44,7 +44,7 @@ export function createDiceFromConfig(diceConfig: Omit<Die, 'scored' | 'rolledVal
 }
 
 /**
- * Creates an initial level state for a given level number
+ * Creates an initial level state
  * Handles level configuration, rerolls/lives calculation, and level effects
  */
 export function createInitialLevelState(levelNumber: number, gameState: GameState): LevelState {
@@ -57,6 +57,9 @@ export function createInitialLevelState(levelNumber: number, gameState: GameStat
   // Apply level effects (boss effects, modifiers)
   const { rerolls, lives } = applyLevelEffects(baseRerolls, baseLives, levelConfig);
   
+  // Create first round of the level
+  const firstRound = createInitialRoundState(1);
+  
   return {
     levelNumber,
     levelThreshold: levelConfig.pointThreshold,
@@ -65,17 +68,15 @@ export function createInitialLevelState(levelNumber: number, gameState: GameStat
     consecutiveFlops: 0,  // Reset at start of each level
     pointsBanked: 0,  // Initialize to 0 at level start
     shop: DEFAULT_SHOP_STATE,
-    currentRound: undefined, // Will be created when first round starts
+    currentRound: firstRound,
   };
 }
 
 export function createInitialGameState(diceSetConfig: DiceSetConfig): GameState {
   validateDiceSetConfig(diceSetConfig);
   
-  // Create initial level state (Level 1)
-  // For initial state, we create a minimal game state first, then use createInitialLevelState
+  // Create game state - level will be initialized separately
   const initialGameState: GameState = {
-    // Game-wide state (flattened - no meta/core split)
     isActive: true,
     money: diceSetConfig.startingMoney,
     diceSet: createDiceFromConfig(diceSetConfig.dice),
@@ -92,7 +93,7 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig): GameState 
       penalties: DEFAULT_GAME_CONFIG.penalties,
     },
     
-    // Current level state (nested for hierarchy) - will be set below
+    // Current level state (nested for hierarchy) - will be initialized by initializeLevel
     currentLevel: {} as LevelState,
     
     // History (consolidated here - all history in one place)
@@ -103,17 +104,22 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig): GameState 
     },
   };
   
-  // Now create the initial level state using the factory function
-  initialGameState.currentLevel = createInitialLevelState(1, initialGameState);
-  
   return initialGameState;
 }
 
-export function createInitialRoundState(roundNumber: number = 1): RoundState {
+export function createInitialRoundState(roundNumber: number = 1, diceSet?: any[]): RoundState {
+  const diceHand: any[] = [];
+  
+  // If diceSet is provided, populate dice hand with full set
+  if (diceSet) {
+    diceHand.length = 0;
+    diceHand.push(...diceSet.map((die: any) => ({ ...die, scored: false })));
+  }
+  
   return {
     roundNumber: roundNumber,
     roundPoints: 0,
-    diceHand: [],
+    diceHand,
     hotDiceCounter: 0,
     forfeitedPoints: 0,
     crystalsScoredThisRound: 0,

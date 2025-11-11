@@ -9,6 +9,7 @@ import { GameState } from '../types';
 
 export type GameAPIEvent =
   | 'stateChanged'
+  | 'levelStarted'
   | 'roundStarted'
   | 'roundEnded'
   | 'diceRolled'
@@ -16,11 +17,16 @@ export type GameAPIEvent =
   | 'pointsBanked'
   | 'flopOccurred'
   | 'levelCompleted'
+  | 'levelTallied'
   | 'gameEnded'
   | 'error';
 
 export interface GameAPIEventData {
   stateChanged: {
+    gameState: GameState;
+  };
+  levelStarted: {
+    levelNumber: number;
     gameState: GameState;
   };
   roundStarted: {
@@ -52,6 +58,10 @@ export interface GameAPIEventData {
     gameState: GameState;
   };
   levelCompleted: {
+    levelNumber: number;
+    gameState: GameState;
+  };
+  levelTallied: {
     levelNumber: number;
     rewards: any;
     gameState: GameState;

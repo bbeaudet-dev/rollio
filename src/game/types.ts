@@ -173,6 +173,13 @@ export interface LevelState {
   // Completed level only (in history)
   completed?: boolean;
   roundHistory?: RoundState[];
+  rewards?: {
+    baseReward: number;
+    livesBonus: number;
+    charmBonuses: number;
+    blessingBonuses: number;
+    total: number;
+  };
 }
 
 // Game history and tracking data (consolidated here)

@@ -74,3 +74,29 @@ export function applyLevelRewards(gameState: GameState, rewards: LevelRewards): 
   debugLog(`[TALLYING] Added $${rewards.total} to game state. New total: $${gameState.money}`);
 }
 
+/**
+ * Tally level completion (calculate and apply rewards)
+ * This is the "cashing out" phase - applies rewards and prepares for shop
+ * Pure function - returns updated game state with rewards stored
+ */
+export function tallyLevel(gameState: GameState, completedLevelNumber: number): {
+  gameState: GameState;
+  rewards: LevelRewards;
+} {
+  const newGameState = { ...gameState };
+  
+  // Calculate rewards
+  const rewards = calculateLevelRewards(completedLevelNumber, newGameState.currentLevel, newGameState);
+  
+  // Apply rewards (add money)
+  applyLevelRewards(newGameState, rewards);
+  
+  // Store rewards in current level state (will be moved to history when advancing)
+  newGameState.currentLevel.rewards = rewards;
+  
+  return {
+    gameState: newGameState,
+    rewards
+  };
+}
+

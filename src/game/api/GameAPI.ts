@@ -10,7 +10,7 @@ import {
   rerollDice as rerollDiceFunction
 } from '../logic/gameActions';
 import { isFlop, isLevelCompleted, advanceToNextLevel } from '../logic/gameLogic';
-import { calculateLevelRewards, applyLevelRewards } from '../logic/tallying';
+import { tallyLevel as tallyLevelFunction } from '../logic/tallying';
 import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing } from '../logic/shop';
 import { ShopState } from '../types';
 import { GameAPIEvent, GameAPIEventData } from './GameAPIEvents';
@@ -21,7 +21,7 @@ import {
   BankPointsResult,
   FlopResult
 } from './types';
-import { createInitialGameState, createInitialRoundState } from '../utils/factories';
+import { createInitialGameState, createInitialLevelState, createInitialRoundState } from '../utils/factories';
 import { registerCharms } from '../logic/charms/index';
 
 /**
@@ -78,20 +78,42 @@ export class GameAPI {
   async initializeGame(config: GameConfig): Promise<InitializeGameResult> {
     const gameState = createInitialGameState(config.diceSetConfig);
     
-    // Create initial round state
-    const roundState = createInitialRoundState(1);
-    // Reset dice hand to full set (same function used for hot dice)
-    resetDiceHandToFullSet(roundState.diceHand, gameState.diceSet);
-    
-    gameState.currentLevel.currentRound = roundState;
-    
-    // Call charm onRoundStart hooks
-    this.charmManager.callAllOnRoundStart({ gameState, roundState });
+    // Don't create level/round here - that's done by initializeLevel
+    // The game state will have an empty level state that needs to be initialized
     
     this.emit('stateChanged', { gameState });
-    this.emit('roundStarted', { roundNumber: 1, gameState });
     
     return { gameState };
+  }
+
+  /**
+   * Initialize a level (creates level state and first round)
+   */
+  async initializeLevel(gameState: GameState, levelNumber: number): Promise<{ gameState: GameState }> {
+    const newGameState = { ...gameState };
+    
+    // Use pure function to create level state (includes first round)
+    newGameState.currentLevel = createInitialLevelState(levelNumber, newGameState);
+    const roundState = newGameState.currentLevel.currentRound;
+    
+    if (!roundState) {
+      throw new Error('Failed to create round state for level');
+    }
+    
+    // Call charm onRoundStart hooks
+    this.charmManager.callAllOnRoundStart({ gameState: newGameState, roundState });
+    
+    this.emit('levelStarted', {
+      levelNumber,
+      gameState: newGameState
+    });
+    this.emit('roundStarted', {
+      roundNumber: 1,
+      gameState: newGameState
+    });
+    this.emit('stateChanged', { gameState: newGameState });
+    
+    return { gameState: newGameState };
   }
 
   /**
@@ -202,27 +224,18 @@ export class GameAPI {
     const levelCompleted = isLevelCompleted(newGameState);
     
     if (levelCompleted) {
-      // Calculate and apply level rewards
-      const completedLevelNumber = newGameState.currentLevel.levelNumber;
-      const levelHistory = newGameState.history.levelHistory;
-      const completedLevelState = levelHistory[levelHistory.length - 1];
-      const rewards = calculateLevelRewards(completedLevelNumber, completedLevelState, newGameState);
-      applyLevelRewards(newGameState, rewards);
-      
-      // Advance to next level
-      advanceToNextLevel(newGameState);
-      
-      // Create new round state for next level
-      const newRoundState = createInitialRoundState(1);
-      // Reset dice hand to full set (same function used for hot dice)
-      resetDiceHandToFullSet(newRoundState.diceHand, newGameState.diceSet);
-      newGameState.currentLevel.currentRound = newRoundState;
-      
+      // Level is complete 
+      // Don't advance level yet - happens after shop
       this.emit('levelCompleted', {
-        levelNumber: completedLevelNumber,
-        rewards,
+        levelNumber: newGameState.currentLevel.levelNumber,
         gameState: newGameState
       });
+      
+      return {
+        gameState: newGameState,
+        bankedPoints: newRoundState.roundPoints,
+        levelCompleted: true
+      };
     }
     
     this.emit('stateChanged', { gameState: newGameState });
@@ -230,7 +243,28 @@ export class GameAPI {
     return {
       gameState: newGameState,
       bankedPoints: newRoundState.roundPoints,
-      levelCompleted
+      levelCompleted: false
+    };
+  }
+
+  /**
+   * Tally level completion (calculate and apply rewards)
+   * This is the "cashing out" phase - applies rewards and prepares for shop
+   */
+  async tallyLevel(gameState: GameState): Promise<{ gameState: GameState; rewards: any }> {
+    const completedLevelNumber = gameState.currentLevel.levelNumber;
+    const result = tallyLevelFunction(gameState, completedLevelNumber);
+    
+    this.emit('levelTallied', {
+      levelNumber: completedLevelNumber,
+      rewards: result.rewards,
+      gameState: result.gameState
+    });
+    this.emit('stateChanged', { gameState: result.gameState });
+    
+    return {
+      gameState: result.gameState,
+      rewards: result.rewards
     };
   }
 
@@ -312,9 +346,7 @@ export class GameAPI {
     }
     
     // Create new round state
-    const roundState = createInitialRoundState(nextRoundNumber);
-    // Reset dice hand to full set (same function used for hot dice)
-    resetDiceHandToFullSet(roundState.diceHand, newGameState.diceSet);
+    const roundState = createInitialRoundState(nextRoundNumber, newGameState.diceSet);
     
     // Call charm onRoundStart hooks
     this.charmManager.callAllOnRoundStart({ gameState: newGameState, roundState });
