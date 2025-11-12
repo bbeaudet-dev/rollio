@@ -22,7 +22,7 @@ export const HotDiceCounter: React.FC<HotDiceCounterProps> = ({ count }) => {
       fontWeight: 'bold',
       whiteSpace: 'nowrap'
     }}>
-      {'🔥'.repeat(Math.min(count, 3))} Hot dice! x{count}
+      {'🔥'.repeat(count)} Hot dice! x{count}
     </div>
   );
 };

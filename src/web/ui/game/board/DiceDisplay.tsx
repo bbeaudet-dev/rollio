@@ -6,7 +6,7 @@ interface DiceDisplayProps {
   selectedIndices: number[];
   onDiceSelect: (index: number) => void;
   canSelect: boolean;
-  dicePositions: Array<{ x: number; y: number }>;
+  dicePositions: Map<string, { x: number; y: number }>;
 }
 
 export const DiceDisplay: React.FC<DiceDisplayProps> = ({
@@ -16,17 +16,30 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
   canSelect,
   dicePositions
 }) => {
+  // Only show dice that have been rolled (have a rolledValue)
+  const rolledDice = dice.filter((die, index) => die.rolledValue !== undefined && die.rolledValue !== null);
+  
   return (
     <>
-      {dice.map((die, index) => {
-        const isSelected = selectedIndices.includes(index);
+      {rolledDice.map((die, rolledIndex) => {
+        // Find the original index in the full dice array
+        const originalIndex = dice.findIndex((d, idx) => 
+          d === die && d.rolledValue === die.rolledValue
+        );
+        const isSelected = selectedIndices.includes(originalIndex);
         const material = die.material || 'standard';
-        const position = dicePositions[index] || { x: 50, y: 50 }; // Fallback to center
+        const position = dicePositions.get(die.id);
+        
+        // If no position found, don't render this die
+        if (!position) {
+          console.warn(`No position found for die ${die.id}`);
+          return null;
+        }
         
         return (
           <button
-            key={index}
-            onClick={() => canSelect && onDiceSelect(index)}
+            key={`${originalIndex}-${die.rolledValue}`}
+            onClick={() => canSelect && onDiceSelect(originalIndex)}
             disabled={!canSelect}
             style={{
               position: 'absolute',

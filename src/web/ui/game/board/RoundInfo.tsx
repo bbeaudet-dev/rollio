@@ -3,14 +3,12 @@ import React from 'react';
 interface RoundInfoProps {
   roundNumber: number;
   rollNumber: number;
-  hotDiceCount?: number;
   consecutiveFlops?: number;
 }
 
 export const RoundInfo: React.FC<RoundInfoProps> = ({
   roundNumber,
   rollNumber,
-  hotDiceCount = 0,
   consecutiveFlops = 0
 }) => {
   return (
@@ -30,11 +28,6 @@ export const RoundInfo: React.FC<RoundInfoProps> = ({
       }}>
         <div>Round {roundNumber}</div>
         <div style={{ fontSize: '12px', fontWeight: 'normal' }}>Roll {rollNumber}</div>
-        {hotDiceCount > 0 && (
-          <div style={{ fontSize: '12px', fontWeight: 'normal', color: '#ffd700' }}>
-            🔥 Hot Dice: {hotDiceCount}
-          </div>
-        )}
       </div>
 
       {/* Consecutive Flops warning - bottom left */}

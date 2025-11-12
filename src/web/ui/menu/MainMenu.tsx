@@ -1,14 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { SettingsModal } from './SettingsModal';
 
-interface MainMenuProps {
-  onStartSinglePlayer: () => void;
-  isLoading: boolean;
-}
-
-export const MainMenu: React.FC<MainMenuProps> = ({
-  onStartSinglePlayer,
-  isLoading
-}) => {
+export const MainMenu: React.FC = () => {
+  const navigate = useNavigate();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   return (
     <div style={{
       fontFamily: 'Arial, sans-serif',
@@ -47,8 +43,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         marginTop: '40px'
       }}>
         <button 
-          onClick={onStartSinglePlayer} 
-          disabled={isLoading}
+          onClick={() => navigate('/game')}
           style={{
             backgroundColor: '#007bff',
             color: '#fff',
@@ -56,16 +51,13 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             padding: '16px 32px',
             borderRadius: '6px',
             fontSize: '16px',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            opacity: isLoading ? 0.6 : 1,
+            cursor: 'pointer',
             fontWeight: '500',
             transition: 'background-color 0.2s ease',
             fontFamily: 'Arial, sans-serif'
           }}
           onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.backgroundColor = '#0056b3';
-            }
+            e.currentTarget.style.backgroundColor = '#0056b3';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = '#007bff';
@@ -75,7 +67,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         </button>
         
         <button 
-          onClick={() => {}} 
+          onClick={() => navigate('/collection')} 
           style={{
             backgroundColor: '#6c757d',
             color: '#fff',
@@ -99,7 +91,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         </button>
         
         <button 
-          onClick={() => {}} 
+          onClick={() => setIsSettingsOpen(true)} 
           style={{
             backgroundColor: '#6c757d',
             color: '#fff',
@@ -121,6 +113,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         >
           Settings
         </button>
+
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
       </div>
     </div>
   );
