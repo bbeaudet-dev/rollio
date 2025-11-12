@@ -3,6 +3,7 @@ import { CharmSelector } from './CharmSelector';
 import { ConsumableSelector } from './ConsumableSelector';
 import { DiceSetSelector } from './DiceSetSelector';
 import { StartGameButton } from './StartGameButton';
+import { MenuButton } from '../components';
 
 interface GameConfigSelectorProps {
   onConfigComplete: (config: {
@@ -102,8 +103,11 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
       padding: '20px',
       backgroundColor: '#f8f9fa',
       borderRadius: '12px',
-      border: '1px solid #dee2e6'
+      border: '1px solid #dee2e6',
+      position: 'relative'
     }}>
+      <MenuButton />
+      
       <h1 style={{
         fontFamily: 'Arial, sans-serif',
         fontSize: '32px',

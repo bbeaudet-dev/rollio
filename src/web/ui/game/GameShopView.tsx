@@ -1,15 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShopDisplay } from './shop/ShopDisplay';
-import { LevelRewards } from './board/score/LevelRewards';
 import { LevelSummary } from './LevelSummary';
 import { Inventory } from './Inventory';
+import { SettingsButton } from '../components';
+import { SettingsModal } from '../menu';
 
 interface GameShopViewProps {
   gameState: any;
   roundState: any;
   inventory: any;
   shopState: any;
-  levelRewards: any;
   shopActions: any;
   inventoryActions: any;
 }
@@ -19,12 +19,15 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
   roundState,
   inventory,
   shopState,
-  levelRewards,
   shopActions,
   inventoryActions
 }) => {
-  const completedLevelNumber = gameState.history?.levelHistory?.[gameState.history.levelHistory.length - 1]?.levelNumber || gameState.currentLevel?.levelNumber || 1;
-  const livesRemaining = gameState.history?.levelHistory?.[gameState.history.levelHistory.length - 1]?.livesRemaining || 0;
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  if (!gameState?.currentLevel) {
+    console.error('GameShopView: gameState.currentLevel is required');
+    return null;
+  }
 
   return (
     <div style={{ 
@@ -33,15 +36,14 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
       padding: '20px',
       display: 'flex',
       flexDirection: 'column',
-      gap: '10px'
+      gap: '10px',
+      position: 'relative'
     }}>
-      {levelRewards && (
-        <LevelRewards
-          levelNumber={completedLevelNumber}
-          rewards={levelRewards}
-          livesRemaining={livesRemaining}
-        />
-      )}
+      <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
       
       <LevelSummary gameState={gameState} roundState={roundState} />
       <Inventory 

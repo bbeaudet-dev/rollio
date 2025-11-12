@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Game, GameLog } from '../game';
 import { GameConfigSelector } from '../setup';
 import { useGameState } from '../../hooks/useGameState';
 
-interface SinglePlayerGameProps {
-  onBackToMenu: () => void;
-}
-
-export const SinglePlayerGame: React.FC<SinglePlayerGameProps> = ({ onBackToMenu }) => {
+export const SinglePlayerGame: React.FC = () => {
+  const navigate = useNavigate();
   const [showConfigSelector, setShowConfigSelector] = useState(true);
   const [selectedDiceSetIndex, setSelectedDiceSetIndex] = useState(0);
   const [selectedCharms, setSelectedCharms] = useState<number[]>([]);
@@ -61,6 +59,8 @@ export const SinglePlayerGame: React.FC<SinglePlayerGameProps> = ({ onBackToMenu
         isInShop={game.isInShop}
         shopState={game.shopState}
         levelRewards={game.levelRewards}
+        showTallyModal={game.showTallyModal}
+        pendingRewards={game.pendingRewards}
       />
       
       <GameLog messages={game.messages} />

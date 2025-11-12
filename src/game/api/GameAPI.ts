@@ -345,7 +345,7 @@ export class GameAPI {
       nextRoundNumber = existingRound.roundNumber + 1;
     }
     
-    // Create new round state
+    // Create new round state with full dice set 
     const roundState = createInitialRoundState(nextRoundNumber, newGameState.diceSet);
     
     // Call charm onRoundStart hooks

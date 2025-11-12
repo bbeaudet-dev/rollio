@@ -38,6 +38,9 @@ export interface WebGameState {
   isInShop: boolean;
   shopState: ShopState | null;
   levelRewards: LevelRewards | null;
+  // Tally modal state
+  showTallyModal: boolean;
+  pendingRewards: LevelRewards | null;
 }
 
 export class WebGameManager {
@@ -109,6 +112,8 @@ export class WebGameManager {
       isInShop: false,
       shopState: null,
       levelRewards: null,
+      showTallyModal: false,
+      pendingRewards: null,
     };
   }
 
@@ -218,27 +223,30 @@ export class WebGameManager {
       const completedLevelNumber = gameState.currentLevel.levelNumber;
       this.addMessage(`Level ${completedLevelNumber} complete!`);
       
-      // Tally level (calculate and apply rewards)
-      const tallyResult = await this.gameAPI.tallyLevel(gameState);
-      const talliedGameState = tallyResult.gameState;
+      // Calculate rewards (but don't apply yet - wait for tally modal confirmation)
+      const { calculateLevelRewards } = await import('../../game/logic/tallying');
+      const rewards = calculateLevelRewards(completedLevelNumber, gameState.currentLevel, gameState);
       
-      // Generate shop
-      const shopState = this.gameAPI.generateShop(talliedGameState);
-      
-      const webState = this.createWebGameState(talliedGameState, null, [], null, [], [], false, false, false);
+      const webState = this.createWebGameState(gameState, null, [], null, [], [], false, false, false);
       return {
         ...webState,
-        isInShop: true,
-        shopState,
-        levelRewards: tallyResult.rewards,
+        showTallyModal: true,
+        pendingRewards: rewards,
       };
     }
 
-    const roundState = gameState.currentLevel.currentRound;
-    this.addMessage(`=== ROUND ${roundState?.roundNumber || 1} ===`);
+    // Start a new round (creates new round with full dice hand, but doesn't roll yet)
+    const roundResult = await this.gameAPI.startNewRound(gameState);
+    const newGameState = roundResult.gameState;
+    const newRoundState = newGameState.currentLevel.currentRound;
+    
+    if (!newRoundState) return state;
+    
+    this.addMessage(`=== ROUND ${newRoundState.roundNumber} ===`);
     this.addMessage('Click "Roll" to start the round.');
     
-    return this.createWebGameState(gameState, roundState || null, [], null, [], [], false, false, false);
+    // Set justBanked to true so dice are hidden until first roll
+    return this.createWebGameState(newGameState, newRoundState, [], null, [], [], true, false, false);
   }
 
   async rollDice(state: WebGameState): Promise<WebGameState> {
@@ -298,13 +306,14 @@ export class WebGameManager {
       return state;
     }
 
+    // If 0 dice selected, skip reroll (don't consume reroll) and go straight to flop check
     if (selectedIndices.length === 0) {
-      this.addMessage('Skipping reroll.');
+      this.addMessage('Skipped reroll (0 dice selected). Rerolls remaining: ' + (state.gameState.currentLevel.rerollsRemaining || 0));
       this.gameInterface.resolvePendingAction('');
       return this.checkForFlopAfterReroll(state.gameState, state.roundState);
     }
 
-    // Use GameAPI for reroll
+    // Use GameAPI for reroll (this consumes a reroll)
     const result = await this.gameAPI.rerollDice(state.gameState, selectedIndices);
     const gameState = result.gameState;
     const roundState = gameState.currentLevel.currentRound;
@@ -528,6 +537,29 @@ export class WebGameManager {
     }
     
     return state;
+  }
+
+  async confirmTally(state: WebGameState): Promise<WebGameState> {
+    if (!state.gameState || !state.pendingRewards) return state;
+    
+    const completedLevelNumber = state.gameState.currentLevel.levelNumber;
+    
+    // Apply rewards and tally level
+    const tallyResult = await this.gameAPI.tallyLevel(state.gameState);
+    const talliedGameState = tallyResult.gameState;
+    
+    // Generate shop
+    const shopState = this.gameAPI.generateShop(talliedGameState);
+    
+    const webState = this.createWebGameState(talliedGameState, null, [], null, [], [], false, false, false);
+    return {
+      ...webState,
+      isInShop: true,
+      shopState,
+      levelRewards: state.pendingRewards,
+      showTallyModal: false,
+      pendingRewards: null,
+    };
   }
 
   async exitShop(state: WebGameState): Promise<WebGameState> {

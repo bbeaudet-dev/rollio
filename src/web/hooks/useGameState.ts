@@ -160,6 +160,11 @@ export function useGameState() {
       startNewGame,
       handleFlopContinue,
       handleFlopShieldChoice,
+      handleConfirmTally: useCallback(async () => {
+        if (!webState || !gameManagerRef.current) return;
+        const newState = await gameManagerRef.current.confirmTally(webState);
+        setWebState(newState);
+      }, [webState]),
     },
     
     inventoryActions: {
@@ -228,5 +233,9 @@ export function useGameState() {
     isInShop: webState?.isInShop || false,
     shopState: webState?.shopState || null,
     levelRewards: webState?.levelRewards || null,
+    
+    // Tally modal state
+    showTallyModal: webState?.showTallyModal || false,
+    pendingRewards: webState?.pendingRewards || null,
   };
 } 

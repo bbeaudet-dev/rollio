@@ -1,0 +1,2 @@
+export { CollectionPage } from './CollectionPage';
+

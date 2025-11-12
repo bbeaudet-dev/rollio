@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Board } from './board/Board';
 import { GameControls } from './GameControls';
 import { LevelSummary } from './LevelSummary';
@@ -6,6 +6,9 @@ import { Inventory } from './Inventory';
 import { HotDiceCounter } from './board/HotDiceCounter';
 import { GameShopView } from './GameShopView';
 import { GameEmptyBoardView } from './GameEmptyBoardView';
+import { SettingsButton, MenuButton } from '../components';
+import { SettingsModal } from '../menu';
+import { TallyModal } from './TallyModal';
 
 // Intermediary interfaces for logical groups
 interface RollActions {
@@ -20,6 +23,7 @@ interface GameActions {
   startNewGame: (diceSetIndex: number, selectedCharms: number[], selectedConsumables: number[]) => void;
   handleFlopContinue: () => void;
   handleFlopShieldChoice: (useShield: boolean) => void;
+  handleConfirmTally: () => void;
 }
 
 interface InventoryActions {
@@ -62,7 +66,8 @@ interface GameProps {
   shopState?: any;
   levelRewards?: any;
   canPlay?: boolean;
-  isMultiplayer?: boolean;
+  showTallyModal?: boolean;
+  pendingRewards?: any;
 }
 
 export const Game: React.FC<GameProps> = ({ 
@@ -78,8 +83,11 @@ export const Game: React.FC<GameProps> = ({
   shopState = null,
   levelRewards = null,
   canPlay = true,
-  isMultiplayer = false
+  showTallyModal = false,
+  pendingRewards = null
 }) => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
   // Handle shop phase
   if (isInShop && shopState && gameState && shopActions) {
     return (
@@ -87,17 +95,87 @@ export const Game: React.FC<GameProps> = ({
         gameState={gameState}
         roundState={roundState}
         inventory={inventory}
-        shopState={shopState}
-        levelRewards={levelRewards}
+          shopState={shopState}
         shopActions={shopActions}
         inventoryActions={inventoryActions}
       />
     );
   }
   
+  // Handle tally modal FIRST (before checking roundState, since level completion sets roundState to null)
+  if (showTallyModal && pendingRewards && gameState?.currentLevel) {
+    // Show the game board in the background with tally modal overlay
+    return (
+      <>
+        <MenuButton />
+        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
+        {gameState && (
+          <div style={{ 
+            maxWidth: '1200px', 
+            margin: '0 auto', 
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0'
+          }}>
+            <LevelSummary gameState={gameState} roundState={roundState} />
+            {roundState && (
+              <div style={{ position: 'relative', marginTop: '0' }}>
+                <Board
+                  dice={board.dice}
+                  selectedIndices={board.selectedDice}
+                  onDiceSelect={() => {}}
+                  canSelect={false}
+                  roundNumber={gameState.currentLevel.currentRound?.roundNumber || 1}
+                  rollNumber={roundState?.rollHistory?.length || 0}
+                  consecutiveFlops={gameState.currentLevel.consecutiveFlops}
+                  levelNumber={gameState.currentLevel?.levelNumber || 1}
+                  previewScoring={null}
+                  canChooseFlopShield={false}
+                  onFlopShieldChoice={() => {}}
+                  gameOver={false}
+                  onScoreSelectedDice={() => {}}
+                  lastRollPoints={0}
+                  roundPoints={roundState?.roundPoints || 0}
+                  gameScore={gameState.history?.totalScore || 0}
+                  justBanked={false}
+                  canContinueFlop={false}
+                />
+              </div>
+            )}
+            <Inventory 
+              charms={inventory.charms}
+              consumables={inventory.consumables}
+              blessings={gameState.blessings || []}
+              onConsumableUse={() => {}}
+            />
+          </div>
+        )}
+        <TallyModal
+          isOpen={true}
+          levelNumber={gameState.currentLevel.levelNumber}
+          rewards={pendingRewards}
+          livesRemaining={gameState.currentLevel.livesRemaining || 0}
+          onContinue={gameActions.handleConfirmTally}
+        />
+      </>
+    );
+  }
+  
   // Handle null game state
   if (!gameState) {
     return (
+      <>
+        <MenuButton />
+        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
       <div style={{ 
         maxWidth: '1200px', 
         margin: '0 auto', 
@@ -106,49 +184,55 @@ export const Game: React.FC<GameProps> = ({
       }}>
         <div>Loading game...</div>
       </div>
-    );
-  }
-
-  // Handle case where game is initialized but no round has started yet
-  if (!roundState) {
-    return (
-      <div style={{ 
-        maxWidth: '1200px', 
-        margin: '0 auto', 
-        padding: '20px',
-        textAlign: 'center'
-      }}>
-        <div style={{ marginBottom: '20px' }}>
-          <h2>Game Ready!</h2>
-          <p>Click "Start New Round" to begin playing.</p>
-        </div>
-        <GameControls 
-          onRoll={rollActions.handleRollDice}
-          onBank={gameActions.handleBank}
-          canRoll={board.canRoll && canPlay}
-          canBank={false}
-          diceToReroll={0}
-          canReroll={false}
-          hasRoundState={false}
-        />
-      </div>
+      </>
     );
   }
 
   // Handle case where round exists but no dice have been rolled yet
+  // If roundState is null, we should have already handled it (tally modal or error state)
+  if (!roundState) {
+    // This shouldn't happen - if we get here, something went wrong
+    return (
+      <>
+        <MenuButton />
+        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto', 
+          padding: '20px',
+          textAlign: 'center'
+        }}>
+          <div>No active round. Please start a new game.</div>
+        </div>
+      </>
+    );
+  }
+  
   const hasRolledDice = !!(roundState.rollHistory && roundState.rollHistory.length > 0);
   if (!hasRolledDice && roundState.diceHand.length === 0) {
     return (
-      <GameEmptyBoardView
-        gameState={gameState}
-        roundState={roundState}
-        inventory={inventory}
-        board={board}
-        rollActions={rollActions}
-        gameActions={gameActions}
-        inventoryActions={inventoryActions}
-        canPlay={canPlay}
-      />
+      <>
+        <MenuButton />
+        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
+        <GameEmptyBoardView
+          gameState={gameState}
+          roundState={roundState}
+          inventory={inventory}
+          board={board}
+          rollActions={rollActions}
+          gameActions={gameActions}
+          inventoryActions={inventoryActions}
+          canPlay={canPlay}
+        />
+      </>
     );
   }
 
@@ -157,6 +241,13 @@ export const Game: React.FC<GameProps> = ({
     roundState.rollHistory[roundState.rollHistory.length - 1]?.rollPoints || 0 : 0;
 
   return (
+    <>
+      <MenuButton />
+      <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
     <div style={{ 
       maxWidth: '1200px', 
       margin: '0 auto', 
@@ -165,7 +256,7 @@ export const Game: React.FC<GameProps> = ({
       flexDirection: 'column',
       gap: '0' // No gap between sections
     }}>
-      <LevelSummary gameState={gameState} roundState={roundState} />
+        <LevelSummary gameState={gameState} roundState={roundState} />
 
       {/* Dice-Rolling Area */}
       <div style={{ position: 'relative', marginTop: '0' }}>
@@ -175,15 +266,7 @@ export const Game: React.FC<GameProps> = ({
           onDiceSelect={rollActions.handleDiceSelect}
           canSelect={board.canSelectDice && canPlay}
           roundNumber={gameState.currentLevel.currentRound?.roundNumber || 1}
-          rollNumber={(() => {
-            // If dice are rolled but not in history yet, show 1
-            if (roundState.diceHand.length > 0 && (!roundState.rollHistory || roundState.rollHistory.length === 0)) {
-              return 1;
-            }
-            // Otherwise use history length
-            return roundState.rollHistory?.length || 0;
-          })()}
-          hotDiceCount={roundState.hotDiceCounter}
+          rollNumber={roundState?.rollHistory?.length || 0}
           consecutiveFlops={gameState.currentLevel.consecutiveFlops}
           levelNumber={gameState.currentLevel?.levelNumber || 1}
           previewScoring={board.previewScoring}
@@ -245,12 +328,14 @@ export const Game: React.FC<GameProps> = ({
         </div>
       </div>
 
-      <Inventory 
-        charms={inventory.charms}
-        consumables={inventory.consumables}
-        blessings={gameState.blessings || []}
-        onConsumableUse={inventoryActions.handleConsumableUse}
-      />
-    </div>
+        <Inventory 
+            charms={inventory.charms}
+            consumables={inventory.consumables}
+          blessings={gameState.blessings || []}
+            onConsumableUse={inventoryActions.handleConsumableUse}
+          />
+      </div>
+      
+    </>
   );
 }; 

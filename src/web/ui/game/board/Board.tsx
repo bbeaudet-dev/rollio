@@ -12,7 +12,6 @@ interface BoardProps {
   canSelect: boolean;
   roundNumber?: number;
   rollNumber?: number;
-  hotDiceCount?: number;
   consecutiveFlops?: number;
   levelNumber?: number;
   previewScoring?: {
@@ -43,7 +42,6 @@ export const Board: React.FC<BoardProps> = ({
   canSelect,
   roundNumber = 0,
   rollNumber = 0,
-  hotDiceCount = 0,
   consecutiveFlops = 0,
   levelNumber = 1,
   previewScoring = null,
@@ -59,12 +57,12 @@ export const Board: React.FC<BoardProps> = ({
 }) => {
   // Get level color (memoized to avoid recalculating on every render)
   const levelColor = useMemo(() => getLevelColor(levelNumber), [levelNumber]);
-  const [dicePositions, setDicePositions] = useState<DicePosition[]>([]);
+  const [dicePositions, setDicePositions] = useState<Map<string, DicePosition>>(new Map());
   const [lastRollNumber, setLastRollNumber] = useState<number>(0);
-  const [lastDiceCount, setLastDiceCount] = useState<number>(0);
+  const [lastRoundNumber, setLastRoundNumber] = useState<number>(0);
 
   // Generate random positions for dice, ensuring no overlap
-  const generateRandomPositions = (diceCount: number) => {
+  const generateRandomPositions = (diceCount: number): DicePosition[] => {
     const positions: DicePosition[] = [];
     const diceSize = 70;
     const padding = 30;
@@ -97,21 +95,71 @@ export const Board: React.FC<BoardProps> = ({
     return positions;
   };
 
-  // Regenerate positions when roll number increases OR dice count changes significantly
+  // Filter dice to only show rolled dice (have rolledValue)
+  const rolledDice = dice.filter(die => die.rolledValue !== undefined && die.rolledValue !== null);
+  
+  // Track previous rolled dice to detect scoring
+  const [lastRolledDiceIds, setLastRolledDiceIds] = useState<Set<string>>(new Set());
+  
+  // Track dice IDs as a string for comparison
+  const currentDiceIdsString = useMemo(() => {
+    return Array.from(new Set(rolledDice.map(die => die.id))).sort().join(',');
+  }, [rolledDice]);
+  
+  const lastDiceIdsString = useMemo(() => {
+    return Array.from(lastRolledDiceIds).sort().join(',');
+  }, [lastRolledDiceIds]);
+  
+  // Regenerate positions when roll number increases or round changes
   useEffect(() => {
-    const shouldRegenerate = 
-      rollNumber > lastRollNumber ||
-      (dice.length > 0 && dicePositions.length === 0);
+    const currentDiceIds = new Set(rolledDice.map(die => die.id));
     
-    if (shouldRegenerate) {
-      setDicePositions(generateRandomPositions(dice.length));
+    // If round number changed, reset everything (new round after banking)
+    if (roundNumber !== lastRoundNumber) {
+      if (rolledDice.length > 0) {
+        // Generate fresh positions for all dice in new round
+        const newPositions = generateRandomPositions(rolledDice.length);
+        const newPositionMap = new Map<string, DicePosition>();
+        rolledDice.forEach((die, idx) => {
+          newPositionMap.set(die.id, newPositions[idx]);
+        });
+        setDicePositions(newPositionMap);
+      } else {
+        // No dice yet, clear positions
+        setDicePositions(new Map());
+      }
+      setLastRoundNumber(roundNumber);
       setLastRollNumber(rollNumber);
-      setLastDiceCount(dice.length);
-    } else if (dice.length < lastDiceCount) {
-      setDicePositions(prev => prev.slice(0, dice.length));
-      setLastDiceCount(dice.length);
+      setLastRolledDiceIds(currentDiceIds);
+      return;
     }
-  }, [rollNumber, lastRollNumber, dice.length, lastDiceCount]);
+    
+    // If roll number increased, generate fresh positions for all rolled dice
+    if (rollNumber > lastRollNumber) {
+      const newPositions = generateRandomPositions(rolledDice.length);
+      const newPositionMap = new Map<string, DicePosition>();
+      rolledDice.forEach((die, idx) => {
+        newPositionMap.set(die.id, newPositions[idx]);
+      });
+      setDicePositions(newPositionMap);
+      setLastRollNumber(rollNumber);
+      setLastRolledDiceIds(currentDiceIds);
+    } else if (currentDiceIdsString !== lastDiceIdsString && rollNumber === lastRollNumber && currentDiceIds.size < lastRolledDiceIds.size) {
+      // Dice IDs changed and count decreased (scoring happened) - preserve positions for remaining dice
+      const newPositionMap = new Map<string, DicePosition>();
+      rolledDice.forEach((die) => {
+        const existingPosition = dicePositions.get(die.id);
+        if (existingPosition) {
+          newPositionMap.set(die.id, existingPosition);
+        }
+      });
+      setDicePositions(newPositionMap);
+      setLastRolledDiceIds(currentDiceIds);
+    } else if (currentDiceIdsString !== lastDiceIdsString) {
+      // Dice IDs changed for some other reason - update tracking
+      setLastRolledDiceIds(currentDiceIds);
+    }
+  }, [rollNumber, lastRollNumber, roundNumber, lastRoundNumber, rolledDice.length, currentDiceIdsString, lastDiceIdsString, dicePositions, lastRolledDiceIds, rolledDice]);
 
   return (
     <div style={{ 
@@ -133,7 +181,6 @@ export const Board: React.FC<BoardProps> = ({
       <RoundInfo 
         roundNumber={roundNumber}
         rollNumber={rollNumber}
-        hotDiceCount={hotDiceCount}
         consecutiveFlops={consecutiveFlops}
       />
 
@@ -179,13 +226,15 @@ export const Board: React.FC<BoardProps> = ({
         </div>
       )}
 
-      <DiceDisplay
-        dice={dice}
-        selectedIndices={selectedIndices}
-        onDiceSelect={onDiceSelect}
-        canSelect={canSelect}
-        dicePositions={dicePositions}
-      />
+      {!justBanked && (
+        <DiceDisplay
+          dice={dice}
+          selectedIndices={selectedIndices}
+          onDiceSelect={onDiceSelect}
+          canSelect={canSelect}
+          dicePositions={dicePositions}
+        />
+      )}
 
       <GameAlerts
         canChooseFlopShield={canChooseFlopShield}

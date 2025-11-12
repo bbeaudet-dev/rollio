@@ -1,11 +1,12 @@
 import React from 'react';
 import { ModalProps } from '../../types/ui';
 
-export const Modal: React.FC<ModalProps> = ({ 
+export const Modal: React.FC<ModalProps & { showCloseButton?: boolean }> = ({ 
   isOpen, 
   onClose, 
   title, 
-  children 
+  children,
+  showCloseButton = true
 }) => {
   if (!isOpen) return null;
 
@@ -29,22 +30,26 @@ export const Modal: React.FC<ModalProps> = ({
         minWidth: '300px',
         maxWidth: '500px'
       }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px'
-        }}>
-          <h3>{title}</h3>
-          <button onClick={onClose} style={{
-            border: 'none',
-            background: 'none',
-            fontSize: '20px',
-            cursor: 'pointer'
+        {(title || showCloseButton) && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '16px'
           }}>
-            ×
-          </button>
-        </div>
+            {title && <h3>{title}</h3>}
+            {showCloseButton && (
+              <button onClick={onClose} style={{
+                border: 'none',
+                background: 'none',
+                fontSize: '20px',
+                cursor: 'pointer'
+              }}>
+                ×
+              </button>
+            )}
+          </div>
+        )}
         {children}
       </div>
     </div>
