@@ -3,20 +3,20 @@ import { debugLog } from '../utils/debug';
 
 /**
  * Calculates rerolls available for the current level
- * Based on rerollValue + modifiers from charms/blessings
+ * Based on baseLevelRerolls + modifiers from charms/blessings
  * 
  * @param gameState The current game state
  * @returns The number of rerolls available for this level
  */
 export function calculateRerollsForLevel(gameState: GameState): number {
-  let baseRerolls = gameState.rerollValue;
+  let baseRerolls = gameState.baseLevelRerolls;
   
   // Apply multipliers from charms (e.g., "Double Rerolls" charm)
   // TODO: Add charm multipliers when charms are implemented
   // For now, just use base value
   
-  // Apply bonuses from blessings (affects base value, already in rerollValue)
-  // Blessings that modify rerollValue are permanent and already applied to gameState.rerollValue
+  // Apply bonuses from blessings (affects base value, already in baseLevelRerolls)
+  // Blessings that modify baseLevelRerolls are permanent and already applied to gameState.baseLevelRerolls
   
   debugLog(`[REROLL CALC] Base rerolls: ${baseRerolls}, Final: ${baseRerolls}`);
   
@@ -24,25 +24,25 @@ export function calculateRerollsForLevel(gameState: GameState): number {
 }
 
 /**
- * Calculates lives available for the current level
- * Based on livesValue + modifiers from charms/blessings
+ * Calculates banks available for the current level
+ * Based on baseLevelBanks + modifiers from charms/blessings
  * 
  * @param gameState The current game state
- * @returns The number of lives available for this level
+ * @returns The number of banks available for this level
  */
-export function calculateLivesForLevel(gameState: GameState): number {
-  let baseLives = gameState.livesValue;
+export function calculateBanksForLevel(gameState: GameState): number {
+  let baseBanks = gameState.baseLevelBanks || 5;
   
-  // Apply bonuses from charms (e.g., "+2 Lives" charm)
+  // Apply bonuses from charms (e.g., "+2 Banks" charm)
   // TODO: Add charm bonuses when charms are implemented
   // For now, just use base value
   
-  // Apply bonuses from blessings (affects base value, already in livesValue)
-  // Blessings that modify livesValue are permanent and already applied to gameState.livesValue
+  // Apply bonuses from blessings (affects base value, already in baseLevelBanks)
+  // Blessings that modify baseLevelBanks are permanent and already applied to gameState.baseLevelBanks
   
-  debugLog(`[LIVES CALC] Base lives: ${baseLives}, Final: ${baseLives}`);
+  debugLog(`[BANKS CALC] Base banks: ${baseBanks}, Final: ${baseBanks}`);
   
-  return baseLives;
+  return baseBanks;
 }
 
 /**
