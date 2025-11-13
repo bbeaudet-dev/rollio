@@ -5,7 +5,7 @@
  * Instead of blocking on user input, it stores pending actions that React can handle.
  */
 
-import { GameInterface } from '../../game/interfaces';
+import { GameInterface } from '../../cli/interfaces';
 import { Die, ScoringCombination, GameState } from '../../game/types';
 
 export type PendingAction = 
@@ -114,7 +114,7 @@ export class ReactGameInterface implements GameInterface {
     this.messages.push(`${pointsLabel}${roundPoints}`);
     this.messages.push(`Points: ${gameState.currentLevel.pointsBanked} / ${gameState.currentLevel.levelThreshold}`);
     this.messages.push(`Flops: ${gameState.currentLevel.consecutiveFlops}`);
-    this.messages.push(`Lives: ${gameState.currentLevel.livesRemaining}`);
+    this.messages.push(`Lives: ${gameState.currentLevel.banksRemaining}`);
   }
 
   async displayWinCondition(): Promise<void> {

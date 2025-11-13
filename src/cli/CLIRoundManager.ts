@@ -1,10 +1,10 @@
-import { GameInterface } from '../game/interfaces';
+import { GameInterface } from './interfaces';
 import { CharmManager } from '../game/logic/charmSystem';
 import { createInitialRoundState, DEFAULT_GAME_CONFIG } from '../game/utils/factories';
 import { validateDiceSelectionAndScore, processDiceScoring, processBankAction, processFlop, updateGameStateAfterRound, isFlop } from '../game/logic/gameLogic';
 import { applyMaterialEffects } from '../game/logic/materialSystem';
 import { getHighestPointsPartitioning } from '../game/logic/scoring';
-import { calculateRerollsForLevel, calculateLivesForLevel, validateRerollSelection } from '../game/logic/rerollLogic';
+import { calculateRerollsForLevel, calculateBanksForLevel, validateRerollSelection } from '../game/logic/rerollLogic';
 import { Die } from '../game/types';
 import { debugLog, debugAction, debugActionWithContext, debugStateChangeWithContext } from '../game/utils/debug';
 import { DisplayFormatter } from '../web/utils/display';
@@ -254,7 +254,7 @@ export class CLIRoundManager {
       await gameInterface.displayBetweenRounds(gameState);
       
       // Check if game should end (lives exhausted) after showing round summary
-      if (gameState.currentLevel.livesRemaining !== undefined && gameState.currentLevel.livesRemaining <= 0) {
+      if (gameState.currentLevel.banksRemaining !== undefined && gameState.currentLevel.banksRemaining <= 0) {
         gameState.isActive = false;
         gameState.endReason = 'lost';
         await gameInterface.log('\n=== GAME OVER ===');
@@ -429,7 +429,7 @@ export class CLIRoundManager {
           
           await gameInterface.log(`\n=== Level ${gameState.currentLevel.levelNumber} Starting ===`);
           await gameInterface.log(`Threshold: ${gameState.currentLevel.levelThreshold} points`);
-          await gameInterface.log(`Rerolls: ${gameState.currentLevel.rerollsRemaining}, Lives: ${gameState.currentLevel.livesRemaining}\n`);
+          await gameInterface.log(`Rerolls: ${gameState.currentLevel.rerollsRemaining}, Lives: ${gameState.currentLevel.banksRemaining}\n`);
         } else {
           await gameInterface.log(`\n=== LEVEL ${gameState.currentLevel.levelNumber} COMPLETE! ===`);
           await gameInterface.log(`You won the game!\n`);

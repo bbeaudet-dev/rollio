@@ -1,5 +1,5 @@
-import { GameInterface } from '../../game/interfaces';
-import { TutorialStateManager } from '../../game/tutorial/tutorialState';
+import { GameInterface } from '../interfaces';
+import { TutorialStateManager } from './tutorialState';
 import { CLIDisplayFormatter } from '../display/cliDisplay';
 import { validateDiceSelection } from '../../game/utils/effectUtils';
 import { getAllPartitionings } from '../../game/logic/scoring';
@@ -221,7 +221,7 @@ export class InteractiveTutorial {
         1, // round number
         false, // isFlop
         0, // consecutiveFlops
-        3 // livesRemaining
+        3 // banksRemaining
       );
       for (const line of endOfRoundLines) {
         await this.gameInterface.log(line);

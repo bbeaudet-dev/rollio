@@ -5,7 +5,7 @@
  */
 
 import { GameState } from '../game/types';
-import { GameInterface } from '../game/interfaces';
+import { GameInterface } from './interfaces';
 import { calculateLevelRewards, applyLevelRewards, LevelRewards } from '../game/logic/tallying';
 import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, calculateShopDiscount, applyDiscount, getCharmPrice, getConsumablePrice, getBlessingPrice } from '../game/logic/shop';
 import { CLIDisplayFormatter } from './display/cliDisplay';
@@ -24,7 +24,7 @@ function calculateLevelRewardsData(
     debugLog(`[TALLYING] No level history found`);
     return {
       baseReward: 0,
-      livesBonus: 0,
+      banksBonus: 0,
       charmBonuses: 0,
       blessingBonuses: 0,
       total: 0
@@ -119,8 +119,8 @@ export async function handleBetweenLevels(
   const tallyingLines = CLIDisplayFormatter.formatTallyingScreen(
     completedLevelNumber,
     rewards.baseReward,
-    rewards.livesBonus,
-    levelState.livesRemaining || 0,
+    rewards.banksBonus,
+    levelState.banksRemaining || 0,
     rewards.charmBonuses,
     rewards.blessingBonuses,
     rewards.total
