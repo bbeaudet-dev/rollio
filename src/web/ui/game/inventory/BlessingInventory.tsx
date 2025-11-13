@@ -8,7 +8,7 @@ interface BlessingInventoryProps {
 }
 
 export const BlessingInventory: React.FC<BlessingInventoryProps> = ({ blessings }) => {
-  // Group blessings by their effect type (e.g., "rerollValue", "livesValue", "moneyPerLife")
+  // Group blessings by their effect type (e.g., "baseLevelRerolls", "baseLevelBanks", "moneyPerBank")
   const groupedBlessings = React.useMemo(() => {
     const groups = new Map<string, Blessing[]>();
     

@@ -12,7 +12,7 @@ export const LevelSummary: React.FC<LevelSummaryProps> = ({ gameState, roundStat
   const levelThreshold = gameState.currentLevel?.levelThreshold || 0;
   const pointsBanked = gameState.currentLevel?.pointsBanked || 0;
   const rerollsRemaining = gameState.currentLevel?.rerollsRemaining || 0;
-  const livesRemaining = gameState.currentLevel?.livesRemaining || 0;
+  const banksRemaining = gameState.currentLevel?.banksRemaining || 0;
   const money = gameState.money || 0;
 
   return (
@@ -37,7 +37,7 @@ export const LevelSummary: React.FC<LevelSummaryProps> = ({ gameState, roundStat
         <div><strong>Level:</strong> {levelNumber}</div>
         <div><strong>Points:</strong> {pointsBanked} / {levelThreshold}</div>
         <div><strong>Rerolls:</strong> {rerollsRemaining}</div>
-        <div><strong>Lives:</strong> {livesRemaining}</div>
+        <div><strong>Banks:</strong> {banksRemaining}</div>
         <div style={{ marginLeft: 'auto' }}><strong>Money:</strong> ${money}</div>
       </div>
     </div>
