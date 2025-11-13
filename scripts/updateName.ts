@@ -15,7 +15,7 @@ import fs from 'fs';
 import path from 'path';
 
 const rootDir = path.resolve(__dirname, '..');
-const nameConfigPath = path.join(rootDir, 'src/game/nameConfig.ts');
+const nameConfigPath = path.join(rootDir, 'scripts/nameConfig.ts');
 const historyPath = path.join(__dirname, 'updateNameHistory.json');
 
 const defaultTemplates = {
