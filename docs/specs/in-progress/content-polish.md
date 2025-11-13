@@ -1,0 +1,718 @@
+# Content Polish Specification
+
+## Overview
+
+This specification covers updating and polishing existing content (dice sets, materials, charms, blessings, consumables, and scoring).
+
+### Non-Functional Requirement
+
+## User Stories
+
+**As a player**, I want:
+
+- Variety in dice sets to choose from
+- Interesting and balanced charms/consumables
+- All materials to have meaningful effects
+- A complete set of content to explore
+- More scoring combination options
+
+**As a developer**, I want:
+
+- Easy to add new content
+- Clear patterns for content creation
+- Balanced content for testing
+- Complete content set
+
+## Content Sections
+
+### Materials
+
+When considering ideas for materials, ask: "Does this ability correspond mainly to scoring, rolling, held in hand?"
+
+#### Color Palette
+
+**Current Materials:**
+
+- **Plastic**: `#fff` bg, `#333` border, `#333` pips
+- **Crystal**: `#f3e5f5` bg, `#9c27b0` border, `#6a1b9a` pips
+- **Plant**: `#e8f5e9` bg, `#4caf50` border, `#654321` pips
+- **Golden**: `#fffde7` bg, `#ffc107` border, `#f57f17` pips
+- **Volcano**: `#ffebee` bg, `#f44336` border, `#c62828` pips
+- **Mirror**: `#e3f2fd` bg, `#2196f3` border, `#1565c0` pips
+- **Rainbow**: `#ff0000`, `#ffff00`, `#32cd32`, `#4169e1`, `#4b0082`, `#875fff`, `#ff69b4`
+- **Ghost**: `#0a0a0f` bg, `#1a1a2e` border, `#f0fff0` pips (black with slight blue, white with slight green)
+- **Lead**: `#4a4a4a` bg, `#5a5a6a` border (dark gray with blue tint), `#2a2a2a` pips
+
+#### Plastic
+
+✅ Effect: Basic, no special effects
+✅ Code: N/A
+✅ Strategy: N/A
+✅ Synergy: add charm for "bonus if die has no special material"
+✅ Design: standard die, white with black pips
+
+#### Flower / Bloom
+
+✅ Effect: score multiplier based on how many flower dice scored in current level/round
+⚠️ Code: implemented for round, need to update to level and nerf the effect
+✅ Strategy: maximize number of scored dice, and of same type
+❌ Synergy: TBD
+✅ Design: green border with pink/yellow/blue flower base colors
+
+-Essentially the same as volcano if it's per round, look into changing to per level
+
+#### Crystal
+
+✅ Effect: 1.25x score multiplier per crystal die held in hand (not scored) - eq. to steel in Balatro
+❌ Code: not implemented
+✅ Strategy: score minimum number of dice per roll, maximize held in hand
+✅ Synergy: could have a Mime (retrigger held in hand abilities); benefits from Lead dice that stay in hand after scoring
+✅ Design: shining purple/magenta and beveled?, maybe add turquiose
+
+---
+
+#### Golden / Copper / Emerald
+
+✅ Effect: gain money when banking scored golden die
+❌ Code: not implemented
+✅ Strategy: economy generation
+✅ Synergy: charms the increase scoring based on money
+⚠️ Design: gold and shimmering, or copper, or shining green beveled emerald
+
+#### Volcano
+
+✅ Effect: score multiplier based on hot dice counter
+✅ Code: mostly implemented
+✅ Strategy: increasing hot dice counter as quickly as possible
+✅ Synergy: volcano amplifier charm for scoring; ghost die for getting quicker hot dice, but decrease scoring?; charm based on hot dice counter per level or total per game
+⚠️ Design: magma, like an almost black base with deep oranges and reds crackling throughout it, or just stick with mainly red/fire
+
+- more of an "offensive" strategy compared to Lead
+
+#### Rainbow
+
+⚠️ Effect: probability for several unique effects to trigger, e.g. money, score addition, rerolls (eq. lucky in Balatro)
+⚠️ Code: partial?
+✅ Strategy: retrigger played dice, manipulate probabilities, reliance on luck
+⚠️ Synergy: probability charm, retrigger charm, something to do with colors, pips?
+✅ Design: shining rainbow
+
+#### Mirror
+
+✅ Effect: all rolled mirror dice copy a random value of a non-mirror die (or random value)
+❌ Code: will be tough
+✅ Strategy: maximize same values on dice
+⚠️ Synergy: can structure dice set to focus on a specific value, different values work with different charms/strategies
+⚠️ Design: combination of Balatro's steel and glass, could implement some kind of reflection effect of the dice value
+
+- If a mirror die copies another mirror die, move to a new die (don't recursively copy), or else only search for non-mirror dice somehow, and if false, pick random value
+- Can you reroll mirror dice? I mean I guess you could, but you'd have to reroll all of them? What happens if they try to reroll just one? Does it do nothing, or change all of them?
+- Need to handle mirror dice during combination checking
+
+#### Ghost
+
+✅ Effect: Ghost dice don't need to be scored to trigger hot dice / Triggers hot dice counter if only ghost dice (or no dice) remain in hand after scoring / Unscored ghost dice do not prevent hot dice
+❌ Code: will also be tough
+⚠️✅ Strategy: stack hot dice with easier combinations
+⚠️ Synergy: charm bonus if <2 dice scored
+⚠️ Design: negative-themed, maybe just reversed plastic black with white pips? Or slightly green/phantom tint?
+
+- When scoring dice, if after removing scored dice, only ghost dice (or no dice) remain, trigger hot dice
+- Example: Roll 5556 (6 is ghost), score 555 → only ghost die remains → hot dice triggered
+- This creates interesting strategic decisions: do you score everything including ghosts, or leave ghosts for hot dice?
+
+#### Lead
+
+✅ Effect: lead dice remain in hand after being scored
+❌ Code: will be tough
+✅ Strategy: maximize score in current round, nullifies hot dice, harder to flop
+⚠️ Synergy: low hanging fruit (more scoring combos)
+⚠️ Design: dark gray with slight blue tint
+
+- Consider, does there need to be SOME way to remove it or get hot dice? Or are you completely forfeiting hot dice? Is this enough of a benefit?
+- Wait wait wait, it's not impossible to flop... If I have lead dice, and I'm out of rerolls and no scoring dice, I can still flop... It's just harder to flop because you're not removing as many dice as you keep rolling
+- Or you could consider, if I score all of my dice, including lead, should it still give me hot dice and reset my hand? This would make it maybe slightly harder(?) to get hot dice, because imagine I have 5 lead dice, then I need to find a combo that uses all of them. And if I had all lead dice, then the odds of flopping go wayyyyy down, especially if I add in the lower combinations like single pair. Then again, if I institute the limited number of banks, is this strategy still indestructible? Could be. I mean if I got ALL lead dice, which first of all will probably be reasonably difficult, then basically I can continue rolling and racking up my ROUND score basically forever, since the odds that I ever flop are
+- Opposite of volcano (volcano wants hot dice, heavy materials prevent it)
+- Interesting "defensive" mechanic
+- Maybe there is a CHANCE it doesn't get removed instead of 100%? Or a chance to BREAK?
+
+#### Template
+
+❌⚠️✅ Effect:
+❌⚠️✅ Code:
+❌⚠️✅ Strategy:
+❌⚠️✅ Synergy:
+
+#### Fairy Dust / Spectral (Reroll-based)
+
+Material that "leave something behind" when scored - a substance that allows you to change the substance of something else, i.e. rerolls
++1 reroll when scoring spectral die
+Pink, cyan
+
+**Alternatives:** Stardust, Pixie
+
+#### Angel / Healing (Lives/Flop-based)
+
+25% Flop prevention when in dice set (if it's held in hand or scored, it's too much thinking, just give them the buff? Or then they forget about the significance of it?)
+25% for bank to not take a life/bank/hand
+Probability manipulation?
+All of these?
+Orangey/yellow, glowing, halo
+
+**Alternatives:** Light
+
+#### Moonstone / Lunar (Polarity/Value-based)
+
+Scoring bonus if odd/even, single dice or all dice
+Changes requirement each level/round
+very light green, phantom
+
+---
+
+### Charms
+
+When considering ideas for charms, ask: "Does this ability correspond to resource management and engine building?"
+
+add:
+
+- Mime, retrigger held in hand abilities
+- Hanging chad, retrigger scored dice
+- retrigger charms
+
+Maybe build in abilities for lower scoring combos here? Or see difficulties, or blessings
+
+---
+
+### Consumables
+
+When considering ideas for consumables, ask: "Does this ability correspond to a repeatable single-use event?"
+
+- increasing hand size, not so much
+- changing a dice material, yes
+
+Common
+
+- Create a random Charm
+- Create 2 random consumables
+- Create the last consumable used
+- Apply consumable creation pip effect to the face-up side of a selected die
+- Apply hand upgrade pip effect to the face-up side of a selected die
+- Apply money pip effect to the face-up side of a selected die
+- Apply two-faced pip effect to the face-up side of a selected die
+- Apply wild pip effect to the face-up side of a selected die
+- Apply blank pip effect to the face-up side of a selected die
+- Add $$ corresponding to the value of your consumables, charms, and blessings
+- Double money, up to $xx
+- Copy a selected side of a selected die to a selected side of another selected die (copies pips and pip effect)
+  e.g. a consumable 5 on ghost die copied to a side of a lead die will copy the 5 and the consumable effect, not the material. Can choose 2 sides of the same die.
+- Chisel: Increase the values of 2 selected sides by 1 (cannot be same die)
+- Pottery Wheel: Decrease the values of 2 selected sides by 1 (cannot be same die, or same side)
+- Create 2 hand upgrades
+
+Rare
+
+- Copy the material of a selected die to another selected die
+- Chance/guarantee to add a standard die to your set/hand
+- Deletes a random/selected die, adds a charm slot
+- Upgrade all hands by 3
+- Create a Legendary charm
+- Create 2 Rare charms
+- Delete 2 random charms, then copy 1 random remaining charm
+
+---
+
+### Blessings
+
+When considering ideas for blessings, ask: "Does this ability correspond to a one-time non-repeatable action?"
+
+- +1 base rerolls / +2 / +3
+- +1 reroll when flopping / +1 reroll when banking / +$3 for each reroll used
+- +1 base banks/lives / +1 / +1
+- +1 charm slot / +1 consumable slot / +1 charm slot
+- blank / +1 blank die / +1 copied die
+- Reroll boss / x / select boss
+- Flop prevention chance
+- Money: +$1 for unused lives, increased interest
+- Shop discounts
+- Added shop slots
+- Shop rerolling
+- Frequency of charm/consumable/hand upgrade cards in shop
+- Dice purchaseable in shop
+- Go back levels
+
+Avoid
+
+- advanced combinations unlocked, MAYBE tier 1?
+
+---
+
+### Dice Sets
+
+When considering ideas for dice sets, ask: "Does this ability correspond to a game-wide benefit present from the beginning, which can interact with more transient abilities?"
+
+How many dice sets?
+
+- Balatro has 15 decks
+- I think I could aim for like 18? (6x3)
+  - especially if I designate different groups like beginner, intermediate, advanced, chaos?
+  - or maybe I just keep the sets simple and build complexity into the challenge runs
+
+What can we change:
+
+- Starting money
+- Number of dice
+- Rerolls
+- Lives/banks
+- Charm slots
+- Consumable slots
+- Materials of dice
+- Starting blessings / consumables / charms
+- Level thresholds
+- Valid scoring combinations
+- Game rules (Balatro Challenges)
+
+#### Basic (+$5)
+
+Dice: 6 standard plastic dice
+Money: $10
+Charm Slots: 4
+Consumable Slots: 2
+Blessings/Charms/Consumables: N/A
+Rerolls: 3
+Lives/Banks: 4
+Other: N/A
+Unlock: N/A
+
+#### Hoarder / Collector (+2 dice, -1 charm/consumable slots, -1 reroll)
+
+Dice: 8 standard plastic dice(number, materials, sizes)
+Money: $5
+Charm Slots: 3
+Consumable Slots: 1
+Blessings/Charms/Consumables: N/A
+Rerolls: 2
+Lives/Banks: 4
+Other: N/A
+Unlock: Increase hand size to 8
+
+#### Low Baller (dice values 1/2/3, no rerolls)
+
+Dice: 5 plastic dice, values 1,1,2,2,3,3 / OR 4-sided dice?
+Money: $5
+Charm Slots: 4
+Consumable Slots: 2
+Blessings/Charms/Consumables: N/A
+Rerolls: 0
+Lives/Banks: 4
+Other: N/A
+Unlock: Use 0 rerolls for 3 consecutive levels
+
+#### Material Sets
+
+Dice: 6 standard [material] dice
+Money: $5
+Charm Slots: 4
+Consumable Slots: 2
+Blessings/Charms/Consumables: N/A (or material-specific charms)
+Rerolls: 3
+Lives/Banks: 4
+Other: N/A
+Unlock: Have a set of exclusively [material] dice
+
+#### Template
+
+Dice: (number, materials, sizes)
+Money: $5
+Charm Slots: 4
+Consumable Slots: 2
+Blessings/Charms/Consumables: N/A
+Rerolls: 3
+Lives/Banks: 4
+Other: Level Thresholds, Combinations, Game Rules
+Unlock:
+
+---
+
+### Pip Effects
+
+Effects
+
+- Money
+- Create Random Consumable
+- Upgrade Scored Hand(s)
+- Two-Faced
+- Wild
+- Blank (^1.1 score?)
+
+What makes consumables balanced in Balatro is that you have 52 cards, each with a value and a suit, to fix, and you can add enhancements, editions, and seals.
+That's 52 _ (1 suit + 1 value + 1 enhancement + 1 edition + 1 seal) = 260 elements to change
+Whereas right now, all I have is my 6 dice and their materials
+So, if we allowed players to manipulate values, well that's 6 _ (6 + 1) = 42 elements.
+And if each side had a "pip effect", then we would have 6 \* (6 + 6 + 1) = 78 elements.
+
+What could the pip effects be?
+
+- Money - +$1 when scored, icon is a coin with $ in the middle
+- Multiplier - x2 score
+- Playable as single, if I apply to a 4, I can play it as a single (similar to wild, effect might be useless if you apply to a 1 or 5)
+- Like theoretically it could be any of the dice materials, like ghost, steel, mirror, etc., but I don't think it needs to. Like the materials need to be more universal or far-reaching, whereas dice sides are just a chance for some smaller effects to happen sometimes. Like materials are almost more akin to seals, side values are akin to card values, and then pip effects are more like enhancements. But I've already kinda used my enhancement ideas on the materials.
+  I could just reverse it lol, so pip effects when scored are money, create consumable, two-faced, hand upgrade
+  Oof, two-faced would be so fucking hard to implement
+  I'm actually leaning towards adding wild too
+
+See Shop section for applying these consumables
+
+### Customization
+
+I thought of this while working on pips. If we're going to change the color of pips, well maybe we could change the shape of them too, maybe the pips can be coins instead if they are golden pips.
+But then I thought, maybe it would be cooler if we let the player decide which theme they wanted, which would change the pips.
+Ehh, it sounded better in my head, now I'm thinking that actually indicating what the pips are with symbols might be best.
+
+---
+
+### Scoring Combinations
+
+See game difficulty for more
+Categorize combos:
+
+Beginner (available at lower difficulties)
+
+- single1, single5
+- pair, twoPair
+- 3oaK?, smallStraight?, fullHouse?
+
+Intermediate (always available, basically matching Farkle)
+
+- 4oaK, 5oaK
+- mediumStraight(6)
+- threePairs
+- twoTriplets
+- smallPyramid(321)
+
+Advanced (must be unlocked, like 5oaK in Balatro; basically includes combos that involve increasing hand size)
+
+- largeStraight(7+)
+- biggerPyramids(1234, 12345, 123456)
+- biggerHouses() - wait is this just the same as a pyramid but without the 1? Because in order to maintain the 2/3 disparity, we have to rule out triplets, quads, etc. So what are we left with? 234? 2345? I think we can eliminate this.
+- fourPairs+
+- threeTriplets+
+- twoQuadruplets+
+- xYlets where x>1 and Y>single, e.g. "sevenSextuplets" - goal is to write algorithm instead of manually setting a limit on combos
+
+Ability (separate from being unlocked, must have corresponding item)
+
+- single3 - low hanging fruit
+
+**Current Combinations**:
+
+- God's Straight (1-10, requires 10 dice)
+- Straight (any 6 consecutive numbers)
+- Four Pairs (requires 8 dice)
+- Three Pairs (requires 6 dice)
+- Triple Triplets (requires 9 dice)
+- Two Triplets (requires 6 dice)
+- Seven of a Kind
+- Six of a Kind
+- Five of a Kind
+- Four of a Kind
+- Three of a Kind
+- Single One
+- Single Five
+
+**Proposed New Combinations**:
+
+1. **Small Straight** (4-5 consecutive numbers)
+2. **Big Straight** (6 consecutive numbers)
+3. **Two Pair**
+4. **Single Pair**
+5. **Full House / bigger houses** (3 of a kind + pair)
+6. **Pyramid** (444 55 6 pattern - three of one, two of another, one of another)
+7. **Big Pyramid** (larger pyramid pattern)
+
+**Implementation Notes**:
+
+- Need algorithm that checks for X length straight, X pairs, X triplets, X quadruplets, X Y-lets, pyramid patterns
+- Should integrate with existing partitioning system
+- Need to update `findAllPossibleCombinations()` and `hasAnyScoringCombination()`
+
+#### Probabilities
+
+**Total Outcomes:** 6^6 = 46,656
+
+| Combination      | Ways   | Ways/Total    | Probability | Percentage | Proposed Points |
+| ---------------- | ------ | ------------- | ----------- | ---------- | --------------- |
+| One Pair         | 45,936 | 45,936/46,656 | 0.9846      | 98.46%     | 10              |
+| Single Five      | 31,031 | 31,031/46,656 | 0.6651      | 66.51%     | 50              |
+| Single One       | 31,031 | 31,031/46,656 | 0.6651      | 66.51%     | 100             |
+| Two Pairs        | 20,100 | 20,100/46,656 | 0.4308      | 43.08%     | 150             |
+| Three of a Kind  | 17,136 | 17,136/46,656 | 0.3673      | 36.73%     | 400\*           |
+| Four of a Kind   | 3,426  | 3,426/46,656  | 0.0734      | 7.34%      | 1,000\*         |
+| Full House       | 2,100  | 2,100/46,656  | 0.0450      | 4.50%      | 1,000           |
+| Three Pairs      | 1,800  | 1,800/46,656  | 0.0386      | 3.86%      | 1,200           |
+| Straight (1-6)   | 720    | 720/46,656    | 0.0154      | 1.54%      | 2,000           |
+| Two Triplets     | 300    | 300/46,656    | 0.0064      | 0.643%     | 2,500           |
+| Five of a Kind   | 186    | 186/46,656    | 0.0040      | 0.399%     | 2,500\*         |
+| Pyramid (122333) | 60     | 60/46,656     | 0.0013      | 0.129%     | 3,000           |
+| Six of a Kind    | 6      | 6/46,656      | 0.0001      | 0.0129%    | 4,000\*         |
+
+\* Point values vary by face value:
+
+- Three of a Kind: 100 × face value (1s = 1,000)
+- Four of a Kind: 250 × face value
+- Five of a Kind: 500 × face value
+- Six of a Kind: 1,000 × face value
+
+**Note:** These categories are non-exclusive - a single roll can satisfy multiple patterns simultaneously (e.g., 333444 counts as three of a kind, two triplets, two pairs, one pair, and full house).
+
+---
+
+### Combination Upgrades
+
+Per hand, or maybe categorize like in Cryptid?
+
+Fits in with hand upgrade pip effect
+Actually yeah I'm thinking that the pip effect will upgrade the played combination(s), while the ones that show up in the shop will be grouped
+
+---
+
+### Scoring Calculation
+
+Balatro
+
+- Held in hand
+  - Suit, Value, Number/Face, Material
+- Scored
+  - Suit, Value, Number/Face, Material, contains combo, is combo, first/last
+- Discarded
+  - Suit, Value, Number/Face, Material, Poker hand, number of cards, first/last
+    Yeah there's too much to classify it all perfectly
+    Because then there's also like per-card scored vs. per-hand scored, etc.
+
+Rollio
+
+- Game actions:
+  - Played this round
+  - Played this level
+  - Played this game
+  - Rerolled
+  - Rerolls used
+  - Lives left
+  - Lives lost
+  - Unscored / held in hand
+  - Scored
+  - Banked
+  - Contains combo
+  - Is combo
+  - Number of dice scored
+  - Number of dice in set
+  - Number of dice in hand
+- Content
+  - Charms
+  - Consumables
+  - Blessings
+  - Materials
+  - Dice Sets
+  - Combinations
+  - Levels / bosses
+
+This is where game design gets interesting. It's almost like making a circle of points and creating a web between them. If I have dice and materials, what are the links between them? Then if I add charms, how do charms interact with both dice and materials, and how do dice react to the relationship between materials and charms? It becomes exponentially more complex.
+Do I just create a "complete web"? Do I create a line between every possible relationship? E.g. a dice set for every configurable quality? A material for every strategy?
+No, that's not quite what you want. What you want is emergent complexity.
+Design a simple system and let complexity grow out of it. This is the way
+
+---
+
+### Shop
+
+#### Using Consumables
+
+There is a difference between a consumable pack and having it in your inventory.
+Ok so when you open a pack in Balatro, you get a random subset of cards that you can use the tarots on immediately. Or, if you have one in your inventory, you can wait to select the card you want.
+Similarly, opening a pack in Rollio brings up ALL of your dice, but you may only apply the items to the single side shown on each of the dice. OR, if you have the item in your inventory, you can wait to roll the value that you want and then apply the consumable then! This would happen when selecting dice to score, you would just select a die and use the consumable.
+
+---
+
+### Level Design
+
+Every 5 levels is a World
+Levels 1-5 is always the same "Base" world
+The third level of each world is a miniboss, i.e. on every 3 and 8 level
+The final level of each world is the main boss, i.e. on every 5 and 0 level
+
+---
+
+### Challenges
+
+When considering ideas for challenges, ask: "Does this set of constraints/abilities create a unique game scenario? Can this scenario be replicated in the vanilla game with ease?"
+
+I thought this might coincide with dice sets, since if an idea doesn't work perfectly for a dice set, it could always become a Challenge, especially when it comes to starting with charms/consumables/blessings or changing major game rules
+
+Technically Jokerless is just charmSlots = 0
+money earned cannot exceed number of dice, etc.
+
+---
+
+### Game Difficulty
+
+#### Available Scoring Combinations
+
+Honestly I think this might be the best place to handle which scoring combinations are available.
+Like on easy mode, which is where all new players would start, you'd have pair, two pair, small straight, single5/1, etc.
+Then when they move up a difficulty and see "no beginner combos", their brain will understand, "ohhh wow I need to play those higher combos now". But if they start out not understanding why they can't play a two pair, they will just be confused and annoyed.
+See Scoring section for more details
+
+#### Charm Modifiers
+
+Rental, Temporary, Eternal
+
+---
+
+### Banks vs Lives System (Proposed)
+
+**Current Problem**: Players can get infinite points by never flopping. There's no real constraint on how many rounds they can play.
+
+**Proposed Solution**: Replace the Lives system with a limited number of Banks.
+
+**Design**:
+
+- Instead of having 3 lives that get decremented on flops, players have a limited number of banks (e.g., 3-5 banks per level)
+- Each time a player banks points, they consume one bank
+- This incentivizes players to go for higher scoring per bank (since banks are limited)
+- Higher scoring attempts = more risk of flops
+- Players can't just play forever to get the "perfect hand" - they're constrained by needing to score enough points per bank
+
+**Flop Penalty Changes**:
+
+- Instead of "3 flops in a row = -1000 points", change to "3 flops in a row = game over"
+- This creates a strategic tension:
+  - Players can use flops strategically to extend their chances at getting a good hand
+  - But they can't flop forever - only 2 flops before game over
+  - Forces players to balance risk vs reward
+
+**Benefits**:
+
+- Creates meaningful constraints on gameplay
+- Incentivizes higher-risk, higher-reward play
+- Makes flops more strategic (you can flop once or twice to try for better hands, but not infinitely)
+- Prevents infinite point accumulation
+- Makes each bank decision more meaningful
+
+**Implementation Considerations**:
+
+- Need to track banks remaining per level
+- Need to update UI to show banks instead of lives
+- Need to update game over conditions
+- Need to update level completion logic
+- May need to adjust level thresholds if banks are limited
+- Need to update shop/rewards if lives are removed
+
+**Open Questions**:
+
+- How many banks per level? (Suggested: 3-5, maybe varies by difficulty)
+- Should banks reset each level or carry over?
+- Should there be ways to earn extra banks (charms, consumables)?
+- How does this interact with existing charms/consumables that affect lives?
+
+---
+
+### Other Content Ideas
+
+Inspiration from Cryptid mod's Code Cards
+Balatro Seals
+Balatro Editions
+Some equivalent for card suits, pip colors?
+
+---
+
+## Implementation Phases
+
+### Phase 1: Content Audit
+
+**Goal**: Identify what needs polish/implementation
+
+**Deliverables**:
+
+- Status report of all content
+- List of missing implementations
+- List of items needing balance
+- List of new items to add
+
+**Tasks**:
+
+1. Verify all charms are implemented correctly
+2. Verify all consumables are implemented correctly
+3. Check material implementations (especially Mirror)
+4. Verify blessing effects are implemented
+5. Review dice sets for variety
+6. Identify gaps in content
+
+**Integration Testing**:
+
+- Test each charm individually
+- Test each consumable individually
+- Test each material effect
+- Test blessing effects
+
+### Phase 2: Content Implementation
+
+**Goal**: Complete missing implementations and add new content
+
+**Deliverables**:
+
+- Complete Mirror material implementation
+- Verify all blessing effects work
+- New dice sets (2-3 more)
+- New charms (4-5)
+- New consumables (3-4)
+- Balanced existing content
+- New scoring combinations
+
+**Tasks**:
+
+1. Implement Mirror material properly
+2. Verify blessing effects in game logic
+3. Create new dice sets
+4. Create new charms with implementations
+5. Create new consumables with implementations
+6. Balance existing content
+7. Implement new scoring combinations
+
+**Integration Testing**:
+
+- Test Mirror material
+- Test all blessing effects
+- Test new dice sets
+- Test new charms/consumables
+- Test new scoring combinations
+- Balance testing
+
+### Phase 3: Content Polish
+
+**Goal**: Polish all content for testing
+
+**Deliverables**:
+
+- Balanced content
+- Clear descriptions
+- Proper rarity distribution
+- Complete content set
+
+**Tasks**:
+
+1. Balance all charms/consumables
+2. Review descriptions for clarity
+3. Ensure proper rarity distribution
+4. Final testing of all content
+
+**Integration Testing**:
+
+- Full game playthrough with all content
+- Balance testing
+- Edge case testing
+
+## References
+
+- [Web Refactor Spec](./in-progress/web-app-refactor.md)
+- [Enhanced Rules Spec](./completed/enhanced-rules.md)
+- [Material System Spec](./completed/material-system-spec.md)
+- [Materials.ts Notes](../../../src/game/data/materials.ts)
