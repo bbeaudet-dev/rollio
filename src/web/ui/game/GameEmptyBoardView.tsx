@@ -54,7 +54,7 @@ export const GameEmptyBoardView: React.FC<GameEmptyBoardViewProps> = ({
           <div><strong>Level:</strong> {gameState.currentLevel?.levelNumber || 1}</div>
           <div><strong>Points:</strong> {gameState.currentLevel?.pointsBanked || 0} / {gameState.currentLevel?.levelThreshold || 0}</div>
           <div><strong>Rerolls:</strong> {gameState.currentLevel?.rerollsRemaining || 0}</div>
-          <div><strong>Lives:</strong> {gameState.currentLevel?.livesRemaining || 0}</div>
+          <div><strong>Lives:</strong> {gameState.currentLevel?.banksRemaining || 0}</div>
           <div style={{ marginLeft: 'auto' }}><strong>Money:</strong> ${gameState.money || 0}</div>
         </div>
       </div>

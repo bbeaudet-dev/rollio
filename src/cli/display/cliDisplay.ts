@@ -85,14 +85,14 @@ export class CLIDisplayFormatter {
     roundNumber: number,
     isFlop: boolean,
     consecutiveFlops: number,
-    livesRemaining: number
+    banksRemaining: number
   ): string[] {
     const pointsLabel = isFlop ? 'Points Forfeited' : 'Points Scored';
     const lines = [
       `=== Round ${roundNumber} Complete ===`,
       `${pointsLabel}: ${roundPoints}`,
       `Consecutive Flops: ${consecutiveFlops}`,
-      `Lives Remaining: ${livesRemaining}`,
+      `Banks Remaining: ${banksRemaining}`,
       `---`
     ];
     return lines;
@@ -104,8 +104,8 @@ export class CLIDisplayFormatter {
   static formatTallyingScreen(
     levelNumber: number,
     baseReward: number,
-    livesBonus: number,
-    livesRemaining: number,
+    banksBonus: number,
+    banksRemaining: number,
     charmBonuses: number,
     blessingBonuses: number,
     total: number
@@ -115,8 +115,8 @@ export class CLIDisplayFormatter {
     lines.push('');
     lines.push(`Money Earned:`);
     lines.push(`  - Level completion: $${baseReward}`);
-    if (livesRemaining > 0) {
-      lines.push(`  - Unused lives (${livesRemaining}): +$${livesBonus}`);
+    if (banksRemaining > 0) {
+      lines.push(`  - Unused banks (${banksRemaining}): +$${banksBonus}`);
     }
     if (charmBonuses > 0) {
       lines.push(`  - Charm bonuses: +$${charmBonuses}`);
@@ -233,7 +233,7 @@ export class CLIDisplayFormatter {
       lines.push(`Current Level: ${gameState.currentLevel.levelNumber}`);
       lines.push(`Points Banked: ${gameState.currentLevel.pointsBanked || 0} / ${gameState.currentLevel.levelThreshold || 0}`);
       lines.push(`Rerolls Remaining: ${gameState.currentLevel.rerollsRemaining || 0}`);
-      lines.push(`Lives Remaining: ${gameState.currentLevel.livesRemaining || 0}`);
+      lines.push(`Banks Remaining: ${gameState.currentLevel.banksRemaining || 0}`);
       lines.push(`Consecutive Flops: ${gameState.currentLevel.consecutiveFlops || 0}`);
     } else {
       lines.push(`  (No level data)`);
