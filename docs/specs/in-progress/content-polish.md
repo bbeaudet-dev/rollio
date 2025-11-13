@@ -79,15 +79,13 @@ When considering ideas for materials, ask: "Does this ability correspond mainly 
 ✅ Synergy: charms the increase scoring based on money
 ⚠️ Design: gold and shimmering, or copper, or shining green beveled emerald
 
-#### Volcano
+#### Volcano / Magma
 
 ✅ Effect: score multiplier based on hot dice counter
 ✅ Code: mostly implemented
-✅ Strategy: increasing hot dice counter as quickly as possible
+✅ Strategy: increasing hot dice counter as quickly as possible, more "offensive" strategy
 ✅ Synergy: volcano amplifier charm for scoring; ghost die for getting quicker hot dice, but decrease scoring?; charm based on hot dice counter per level or total per game
 ⚠️ Design: magma, like an almost black base with deep oranges and reds crackling throughout it, or just stick with mainly red/fire
-
-- more of an "offensive" strategy compared to Lead
 
 #### Rainbow
 
@@ -125,7 +123,7 @@ When considering ideas for materials, ask: "Does this ability correspond mainly 
 
 ✅ Effect: lead dice remain in hand after being scored
 ❌ Code: will be tough
-✅ Strategy: maximize score in current round, nullifies hot dice, harder to flop
+✅ Strategy: maximize score in current round, nullifies hot dice, harder to flop, more "defensive" strategy
 ⚠️ Synergy: low hanging fruit (more scoring combos)
 ⚠️ Design: dark gray with slight blue tint
 
@@ -133,7 +131,6 @@ When considering ideas for materials, ask: "Does this ability correspond mainly 
 - Wait wait wait, it's not impossible to flop... If I have lead dice, and I'm out of rerolls and no scoring dice, I can still flop... It's just harder to flop because you're not removing as many dice as you keep rolling
 - Or you could consider, if I score all of my dice, including lead, should it still give me hot dice and reset my hand? This would make it maybe slightly harder(?) to get hot dice, because imagine I have 5 lead dice, then I need to find a combo that uses all of them. And if I had all lead dice, then the odds of flopping go wayyyyy down, especially if I add in the lower combinations like single pair. Then again, if I institute the limited number of banks, is this strategy still indestructible? Could be. I mean if I got ALL lead dice, which first of all will probably be reasonably difficult, then basically I can continue rolling and racking up my ROUND score basically forever, since the odds that I ever flop are
 - Opposite of volcano (volcano wants hot dice, heavy materials prevent it)
-- Interesting "defensive" mechanic
 - Maybe there is a CHANCE it doesn't get removed instead of 100%? Or a chance to BREAK?
 
 #### Template
@@ -362,15 +359,16 @@ What could the pip effects be?
 
 See Shop section for applying these consumables
 
-### Customization
+### Customization / Visualization
 
-I thought of this while working on pips. If we're going to change the color of pips, well maybe we could change the shape of them too, maybe the pips can be coins instead if they are golden pips.
-But then I thought, maybe it would be cooler if we let the player decide which theme they wanted, which would change the pips.
-Ehh, it sounded better in my head, now I'm thinking that actually indicating what the pips are with symbols might be best.
+We should have a "View Dice Set" menu/modal like there is a "View Deck" mode in Balatro.
+Opening this allows you to see the dice in your set, their materials, all side values, pip effects, etc.
 
 ---
 
-### Scoring Combinations
+### Scoring
+
+#### Combination Categories & Unlocking
 
 See game difficulty for more
 Categorize combos:
@@ -435,25 +433,29 @@ Ability (separate from being unlocked, must have corresponding item)
 - Should integrate with existing partitioning system
 - Need to update `findAllPossibleCombinations()` and `hasAnyScoringCombination()`
 
-#### Probabilities
+#### Combination Probabilities & Points
+
+**Note**: See `probability-engine.md` for the complete Probability Engine specification.
 
 **Total Outcomes:** 6^6 = 46,656
 
-| Combination      | Ways   | Ways/Total    | Probability | Percentage | Proposed Points |
-| ---------------- | ------ | ------------- | ----------- | ---------- | --------------- |
-| One Pair         | 45,936 | 45,936/46,656 | 0.9846      | 98.46%     | 10              |
-| Single Five      | 31,031 | 31,031/46,656 | 0.6651      | 66.51%     | 50              |
-| Single One       | 31,031 | 31,031/46,656 | 0.6651      | 66.51%     | 100             |
-| Two Pairs        | 20,100 | 20,100/46,656 | 0.4308      | 43.08%     | 150             |
-| Three of a Kind  | 17,136 | 17,136/46,656 | 0.3673      | 36.73%     | 400\*           |
-| Four of a Kind   | 3,426  | 3,426/46,656  | 0.0734      | 7.34%      | 1,000\*         |
-| Full House       | 2,100  | 2,100/46,656  | 0.0450      | 4.50%      | 1,000           |
-| Three Pairs      | 1,800  | 1,800/46,656  | 0.0386      | 3.86%      | 1,200           |
-| Straight (1-6)   | 720    | 720/46,656    | 0.0154      | 1.54%      | 2,000           |
-| Two Triplets     | 300    | 300/46,656    | 0.0064      | 0.643%     | 2,500           |
-| Five of a Kind   | 186    | 186/46,656    | 0.0040      | 0.399%     | 2,500\*         |
-| Pyramid (122333) | 60     | 60/46,656     | 0.0013      | 0.129%     | 3,000           |
-| Six of a Kind    | 6      | 6/46,656      | 0.0001      | 0.0129%    | 4,000\*         |
+| Combination        | Ways   | Ways/Total    | Probability | Percentage | Proposed Points |
+| ------------------ | ------ | ------------- | ----------- | ---------- | --------------- |
+| One Pair           | 45,936 | 45,936/46,656 | 0.9846      | 98.46%     | 10              |
+| Single Five        | 31,031 | 31,031/46,656 | 0.6651      | 66.51%     | 50              |
+| Single One         | 31,031 | 31,031/46,656 | 0.6651      | 66.51%     | 100             |
+| Small Straight (4) | 17,640 | 17,640/46,656 | 0.3781      | 37.81%     | 300             |
+| Two Pairs          | 20,100 | 20,100/46,656 | 0.4308      | 43.08%     | 150             |
+| Three of a Kind    | 17,136 | 17,136/46,656 | 0.3673      | 36.73%     | 400\*           |
+| Small Straight (5) | 5,040  | 5,040/46,656  | 0.1080      | 10.80%     | 500             |
+| Four of a Kind     | 3,426  | 3,426/46,656  | 0.0734      | 7.34%      | 1,000\*         |
+| Full House         | 2,100  | 2,100/46,656  | 0.0450      | 4.50%      | 1,000           |
+| Three Pairs        | 1,800  | 1,800/46,656  | 0.0386      | 3.86%      | 1,200           |
+| Straight (1-6)     | 720    | 720/46,656    | 0.0154      | 1.54%      | 2,000           |
+| Two Triplets       | 300    | 300/46,656    | 0.0064      | 0.643%     | 2,500           |
+| Five of a Kind     | 186    | 186/46,656    | 0.0040      | 0.399%     | 2,500\*         |
+| Pyramid (122333)   | 60     | 60/46,656     | 0.0013      | 0.129%     | 3,000           |
+| Six of a Kind      | 6      | 6/46,656      | 0.0001      | 0.0129%    | 4,000\*         |
 
 \* Point values vary by face value:
 
@@ -464,18 +466,14 @@ Ability (separate from being unlocked, must have corresponding item)
 
 **Note:** These categories are non-exclusive - a single roll can satisfy multiple patterns simultaneously (e.g., 333444 counts as three of a kind, two triplets, two pairs, one pair, and full house).
 
----
-
-### Combination Upgrades
+#### Combination Upgrades
 
 Per hand, or maybe categorize like in Cryptid?
 
 Fits in with hand upgrade pip effect
 Actually yeah I'm thinking that the pip effect will upgrade the played combination(s), while the ones that show up in the shop will be grouped
 
----
-
-### Scoring Calculation
+#### Scoring Calculation & Interaction
 
 Balatro
 
@@ -567,11 +565,9 @@ Rental, Temporary, Eternal
 
 ---
 
-### Banks vs Lives System (Proposed)
+### Banks vs Lives System
 
-**Current Problem**: Players can get infinite points by never flopping. There's no real constraint on how many rounds they can play.
-
-**Proposed Solution**: Replace the Lives system with a limited number of Banks.
+Players can get infinite points by never flopping. There's no real constraint on how many rounds they can play, so we should replace the Lives system with a limited number of Banks. However, if they are only limited by number of banks, then players could continue flopping indefinitely until the "perfect round" comes up, so we should keep some kind of constraint where "3 consecutive flops" ends the game.
 
 **Design**:
 
@@ -579,7 +575,6 @@ Rental, Temporary, Eternal
 - Each time a player banks points, they consume one bank
 - This incentivizes players to go for higher scoring per bank (since banks are limited)
 - Higher scoring attempts = more risk of flops
-- Players can't just play forever to get the "perfect hand" - they're constrained by needing to score enough points per bank
 
 **Flop Penalty Changes**:
 
@@ -601,17 +596,16 @@ Rental, Temporary, Eternal
 
 - Need to track banks remaining per level
 - Need to update UI to show banks instead of lives
-- Need to update game over conditions
+- Need to update game over conditions and warnings
 - Need to update level completion logic
 - May need to adjust level thresholds if banks are limited
 - Need to update shop/rewards if lives are removed
 
 **Open Questions**:
 
-- How many banks per level? (Suggested: 3-5, maybe varies by difficulty)
-- Should banks reset each level or carry over?
-- Should there be ways to earn extra banks (charms, consumables)?
-- How does this interact with existing charms/consumables that affect lives?
+- How many banks per level? (Suggested: 3-5, maybe varies by difficulty) Answer: 5 is good, then difficulties can change this later on
+- Should banks reset each level or carry over? Answer: Banks reset each level
+- Should there be ways to earn extra banks (charms, consumables)? How does this interact with existing charms/consumables that affect lives? Answer: Yes, let's modify the Extra Lives blessing to be extra banks instead, and there can also be charms that increase banks while in inventory
 
 ---
 
@@ -623,96 +617,3 @@ Balatro Editions
 Some equivalent for card suits, pip colors?
 
 ---
-
-## Implementation Phases
-
-### Phase 1: Content Audit
-
-**Goal**: Identify what needs polish/implementation
-
-**Deliverables**:
-
-- Status report of all content
-- List of missing implementations
-- List of items needing balance
-- List of new items to add
-
-**Tasks**:
-
-1. Verify all charms are implemented correctly
-2. Verify all consumables are implemented correctly
-3. Check material implementations (especially Mirror)
-4. Verify blessing effects are implemented
-5. Review dice sets for variety
-6. Identify gaps in content
-
-**Integration Testing**:
-
-- Test each charm individually
-- Test each consumable individually
-- Test each material effect
-- Test blessing effects
-
-### Phase 2: Content Implementation
-
-**Goal**: Complete missing implementations and add new content
-
-**Deliverables**:
-
-- Complete Mirror material implementation
-- Verify all blessing effects work
-- New dice sets (2-3 more)
-- New charms (4-5)
-- New consumables (3-4)
-- Balanced existing content
-- New scoring combinations
-
-**Tasks**:
-
-1. Implement Mirror material properly
-2. Verify blessing effects in game logic
-3. Create new dice sets
-4. Create new charms with implementations
-5. Create new consumables with implementations
-6. Balance existing content
-7. Implement new scoring combinations
-
-**Integration Testing**:
-
-- Test Mirror material
-- Test all blessing effects
-- Test new dice sets
-- Test new charms/consumables
-- Test new scoring combinations
-- Balance testing
-
-### Phase 3: Content Polish
-
-**Goal**: Polish all content for testing
-
-**Deliverables**:
-
-- Balanced content
-- Clear descriptions
-- Proper rarity distribution
-- Complete content set
-
-**Tasks**:
-
-1. Balance all charms/consumables
-2. Review descriptions for clarity
-3. Ensure proper rarity distribution
-4. Final testing of all content
-
-**Integration Testing**:
-
-- Full game playthrough with all content
-- Balance testing
-- Edge case testing
-
-## References
-
-- [Web Refactor Spec](./in-progress/web-app-refactor.md)
-- [Enhanced Rules Spec](./completed/enhanced-rules.md)
-- [Material System Spec](./completed/material-system-spec.md)
-- [Materials.ts Notes](../../../src/game/data/materials.ts)
