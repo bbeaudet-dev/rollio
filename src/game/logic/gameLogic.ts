@@ -170,20 +170,13 @@ export function processFlop(
   // Increment consecutive flops counter
   const consecutiveFlopCount = incrementConsecutiveFlops(gameState);
   
-  // Decrement lives on flop
-  if (gameState.currentLevel.livesRemaining !== undefined) {
-    gameState.currentLevel.livesRemaining--;
-    debugLog(`[LIVES] Flop occurred. Lives remaining: ${gameState.currentLevel.livesRemaining}`);
-  }
-  
   const forfeitedPoints = roundPoints;
   const consecutiveFlopLimit = gameState.config?.penalties?.consecutiveFlopLimit ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit;
-  const consecutiveFlopPenalty = gameState.config?.penalties?.consecutiveFlopPenalty ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty;
 
-  // Apply penalty if consecutive flop limit reached 
-  const penaltyApplied = consecutiveFlopCount >= consecutiveFlopLimit;
-  const penaltyMessage = penaltyApplied 
-    ? `You flopped! Round points forfeited: ${forfeitedPoints}. Penalty applied.` 
+  // Check if game over (3 consecutive flops = game over, handled in updateGameStateAfterRound)
+  const isGameOver = consecutiveFlopCount >= consecutiveFlopLimit;
+  const warningMessage = consecutiveFlopCount === consecutiveFlopLimit - 1
+    ? ` You flopped! Round points forfeited: ${forfeitedPoints}. Warning: One more flop and game over!`
     : `You flopped! Round points forfeited: ${forfeitedPoints}.`;
 
   return {
@@ -193,9 +186,9 @@ export function processFlop(
     flop: true,
     banked: false,
     pointsScored: 0,
-    message: penaltyApplied 
-      ? `${penaltyMessage} Points banked: ${levelBankedPoints - consecutiveFlopPenalty}` 
-      : penaltyMessage
+    message: isGameOver
+      ? `You flopped! Round points forfeited: ${forfeitedPoints}. Game over - ${consecutiveFlopLimit} consecutive flops!`
+      : warningMessage
   };
 }
 
@@ -257,11 +250,11 @@ export function isLevelCompleted(gameState: GameState): boolean {
  */
 export function applyLevelEffects(
   baseRerolls: number,
-  baseLives: number,
+  baseBanks: number,
   levelConfig: ReturnType<typeof getLevelConfig>
-): { rerolls: number; lives: number } {
+): { rerolls: number; banks: number } {
   let rerolls = baseRerolls;
-  let lives = baseLives;
+  let banks = baseBanks;
 
   // Apply effects from boss and level modifiers
   const effects = levelConfig.effects || [];
@@ -270,9 +263,9 @@ export function applyLevelEffects(
   }
 
   for (const effect of effects) {
-    if (effect.livesModifier !== undefined) {
-      lives += effect.livesModifier;
-      debugLog(`[LEVEL EFFECT] Applied ${effect.name}: ${effect.livesModifier > 0 ? '+' : ''}${effect.livesModifier} lives`);
+    if (effect.banksModifier !== undefined) {
+      banks += effect.banksModifier;
+      debugLog(`[LEVEL EFFECT] Applied ${effect.name}: ${effect.banksModifier > 0 ? '+' : ''}${effect.banksModifier} banks`);
     }
     if (effect.rerollsModifier !== undefined) {
       rerolls += effect.rerollsModifier;
@@ -282,14 +275,14 @@ export function applyLevelEffects(
 
   // Ensure values don't go below 0
   rerolls = Math.max(0, rerolls);
-  lives = Math.max(0, lives);
+  banks = Math.max(0, banks);
 
-  return { rerolls, lives };
+  return { rerolls, banks };
 }
 
 /**
  * Advances to the next level
- * Resets level-specific state (rerolls, lives, consecutiveFlops, pointsBanked)
+ * Resets level-specific state (rerolls, banks, consecutiveFlops, pointsBanked)
  * Applies level effects (boss effects, modifiers)
  * Moves completed level to history
  */
@@ -321,7 +314,7 @@ export function advanceToNextLevel(gameState: GameState): void {
       newThreshold: levelConfig.pointThreshold,
       boss: levelConfig.boss?.name || null,
       rerollsRemaining: gameState.currentLevel.rerollsRemaining,
-      livesRemaining: gameState.currentLevel.livesRemaining,
+      banksRemaining: gameState.currentLevel.banksRemaining,
     }
   );
 }
@@ -396,16 +389,15 @@ export function updateGameStateAfterRound(
     // Mark round as flopped for displayBetweenRounds
     roundState.flopped = true;
         
-    // Apply penalty to level's banked points if needed
+    // Check for game over: 3 consecutive flops = game over
     const consecutiveFlopLimit = gameState.config?.penalties?.consecutiveFlopLimit ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit;
-    const consecutiveFlopPenalty = gameState.config?.penalties?.consecutiveFlopPenalty ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty;
     const charmPreventingFlop = (gameState.charms || []).some((charm: any) => charm.flopPreventing);
     
     if (gameState.currentLevel.consecutiveFlops >= consecutiveFlopLimit && !charmPreventingFlop) {
-      // Apply penalty to level's banked points
-      const newPointsBanked = Math.max(0, gameState.currentLevel.pointsBanked - consecutiveFlopPenalty);
-      changes['currentLevel.pointsBanked'] = { old: gameState.currentLevel.pointsBanked, new: newPointsBanked };
-      gameState.currentLevel.pointsBanked = newPointsBanked;
+      // Game over: 3 consecutive flops
+      gameState.isActive = false;
+      gameState.endReason = 'lost';
+      debugLog(`[GAME OVER] ${consecutiveFlopLimit} consecutive flops - game over!`);
     }
     
     debugStateChangeWithContext(

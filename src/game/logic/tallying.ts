@@ -9,7 +9,7 @@ import { debugLog } from '../utils/debug';
 
 export interface LevelRewards {
   baseReward: number;
-  livesBonus: number;
+  banksBonus: number; 
   charmBonuses: number;
   blessingBonuses: number;
   total: number;
@@ -17,7 +17,7 @@ export interface LevelRewards {
 
 /**
  * Calculate money earned at the end of a level
- * Includes base reward, unused lives bonus, charm bonuses, and blessing bonuses
+ * Includes base reward, unused banks bonus, charm bonuses, and blessing bonuses
  */
 export function calculateLevelRewards(
   levelNumber: number,
@@ -29,18 +29,18 @@ export function calculateLevelRewards(
   // Base level completion reward
   const baseReward = levelConfig.baseMoney;
   
-  // Unused lives bonus (default $1 per life, can be modified by blessings)
-  const livesRemaining = levelState.livesRemaining || 0;
-  let moneyPerLife = 1;
+  // Unused banks bonus (default $1 per bank, can be modified by blessings)
+  const banksRemaining = levelState.banksRemaining || 0;
+  let moneyPerBank = 1;
   
-  // Check blessings for money per life modifiers
+  // Check blessings for money per bank modifiers
   for (const blessing of gameState.blessings || []) {
-    if (blessing.effect.type === 'moneyPerLife') {
-      moneyPerLife += blessing.effect.amount;
+    if (blessing.effect.type === 'moneyPerBank') {
+      moneyPerBank += blessing.effect.amount;
     }
   }
   
-  const livesBonus = livesRemaining * moneyPerLife;
+  const banksBonus = banksRemaining * moneyPerBank;
   
   // Charm bonuses (for now, no charms give money at level end - can add onLevelEnd hook later)
   const charmBonuses = 0;
@@ -53,13 +53,13 @@ export function calculateLevelRewards(
     }
   }
   
-  const total = baseReward + livesBonus + charmBonuses + blessingBonuses;
+  const total = baseReward + banksBonus + charmBonuses + blessingBonuses;
   
-  debugLog(`[TALLYING] Level ${levelNumber} rewards: base=${baseReward}, lives=${livesBonus} (${livesRemaining} lives × $${moneyPerLife}), charms=${charmBonuses}, blessings=${blessingBonuses}, total=${total}`);
+  debugLog(`[TALLYING] Level ${levelNumber} rewards: base=${baseReward}, banks=${banksBonus} (${banksRemaining} banks × $${moneyPerBank}), charms=${charmBonuses}, blessings=${blessingBonuses}, total=${total}`);
   
   return {
     baseReward,
-    livesBonus,
+    banksBonus,
     charmBonuses,
     blessingBonuses,
     total

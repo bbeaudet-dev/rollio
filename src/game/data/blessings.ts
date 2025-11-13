@@ -14,34 +14,34 @@ export const ALL_BLESSINGS: Blessing[] = [
   {
     id: 'rerollTier1',
     tier: 1,
-    effect: { type: 'rerollValue', amount: 1 }
+    effect: { type: 'baseLevelRerolls', amount: 1 }
   },
   {
     id: 'rerollTier2',
     tier: 2,
-    effect: { type: 'rerollValue', amount: 1 }
+    effect: { type: 'baseLevelRerolls', amount: 1 }
   },
   {
     id: 'rerollTier3',
     tier: 3,
-    effect: { type: 'rerollValue', amount: 1 }
+    effect: { type: 'baseLevelRerolls', amount: 1 }
   },
 
-  // Lives Blessings
+  // Banks Blessings
   {
-    id: 'livesTier1',
+    id: 'banksTier1',
     tier: 1,
-    effect: { type: 'livesValue', amount: 1 }
+    effect: { type: 'baseLevelBanks', amount: 1 }
   },
   {
-    id: 'livesTier2',
+    id: 'banksTier2',
     tier: 2,
-    effect: { type: 'livesValue', amount: 1 }
+    effect: { type: 'baseLevelBanks', amount: 1 }
   },
   {
-    id: 'livesTier3',
+    id: 'banksTier3',
     tier: 3,
-    effect: { type: 'livesValue', amount: 1 }
+    effect: { type: 'baseLevelBanks', amount: 1 }
   },
 
   // Reroll Ability Blessings
@@ -116,17 +116,17 @@ export const ALL_BLESSINGS: Blessing[] = [
   {
     id: 'moneyTier1',
     tier: 1,
-    effect: { type: 'moneyPerLife', amount: 1 }
+    effect: { type: 'moneyPerBank', amount: 1 }
   },
   {
     id: 'moneyTier2',
     tier: 2,
-    effect: { type: 'moneyPerLife', amount: 2 }
+    effect: { type: 'moneyPerBank', amount: 2 }
   },
   {
     id: 'moneyTier3',
     tier: 3,
-    effect: { type: 'moneyPerLife', amount: 3 }
+    effect: { type: 'moneyPerBank', amount: 3 }
   }
 ];
 
@@ -143,10 +143,10 @@ export const BLESSING_TIERS: Record<string, {
   rerollTier2: { requires: 'rerollTier1', unlocks: ['rerollTier3'] },
   rerollTier3: { requires: 'rerollTier2' },
 
-  // Lives Blessings
-  livesTier1: { unlocks: ['livesTier2'] },
-  livesTier2: { requires: 'livesTier1', unlocks: ['livesTier3'] },
-  livesTier3: { requires: 'livesTier2' },
+  // Banks Blessings (renamed from Lives)
+  banksTier1: { unlocks: ['banksTier2'] },
+  banksTier2: { requires: 'banksTier1', unlocks: ['banksTier3'] },
+  banksTier3: { requires: 'banksTier2' },
 
   // Reroll Ability Blessings
   rerollAbilityTier1: { unlocks: ['rerollAbilityTier2'] },
@@ -179,8 +179,8 @@ export const BLESSING_TIERS: Record<string, {
  */
 export function getBlessingName(blessing: Blessing): string {
   const typeMap: Record<string, string> = {
-    'rerollValue': 'Reroll Blessing',
-    'livesValue': 'Lives Blessing',
+    'baseLevelRerolls': 'Reroll Blessing',
+    'baseLevelBanks': 'Banks Blessing',
     'rerollOnFlop': 'Reroll Ability Blessing',
     'rerollOnBank': 'Reroll Ability Blessing',
     'moneyOnRerollUsed': 'Reroll Ability Blessing',
@@ -188,7 +188,7 @@ export function getBlessingName(blessing: Blessing): string {
     'consumableSlots': 'Slot Blessing',
     'shopDiscount': 'Discount Blessing',
     'flopSubversion': 'Flop Subversion Blessing',
-    'moneyPerLife': 'Money Blessing',
+    'moneyPerBank': 'Money Blessing',
     'moneyOnLevelEnd': 'Money Blessing'
   };
   
@@ -201,10 +201,10 @@ export function getBlessingName(blessing: Blessing): string {
  */
 export function getBlessingDescription(blessing: Blessing): string {
   switch (blessing.effect.type) {
-    case 'rerollValue':
-      return `+${blessing.effect.amount} Rerolls (permanent)`;
-    case 'livesValue':
-      return `+${blessing.effect.amount} Lives (permanent)`;
+    case 'baseLevelRerolls':
+      return `+${blessing.effect.amount} Rerolls per level (permanent)`;
+    case 'baseLevelBanks':
+      return `+${blessing.effect.amount} Banks per level (permanent)`;
     case 'rerollOnFlop':
       return `+${blessing.effect.amount} reroll when flopping`;
     case 'rerollOnBank':
@@ -219,8 +219,8 @@ export function getBlessingDescription(blessing: Blessing): string {
       return `Everything ${blessing.effect.percentage}% cheaper`;
     case 'flopSubversion':
       return `${blessing.effect.percentage}% chance to subvert flops`;
-    case 'moneyPerLife':
-      return `+$${blessing.effect.amount} per unused life at end of level`;
+    case 'moneyPerBank':
+      return `+$${blessing.effect.amount} per unused bank at end of level`;
     case 'moneyOnLevelEnd':
       return `+$${blessing.effect.amount} at end of level`;
     default:
