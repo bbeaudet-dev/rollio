@@ -1,4 +1,4 @@
-import { GameInterface } from '../game/interfaces';
+import { GameInterface } from './interfaces';
 import { setDebugMode, getDebugMode, debugLog, debugAction, debugStateChange } from '../game/utils/debug';
 import { CharmManager } from '../game/logic/charmSystem';
 import { registerCharms } from '../game/logic/charms/index';

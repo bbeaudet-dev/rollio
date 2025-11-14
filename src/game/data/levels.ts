@@ -2,6 +2,7 @@
  * Level configurations and definitions
  * Defines point thresholds, base money rewards, and special effects/boss mechanics for each level
  */
+import { isMinibossLevel, isMainBossLevel } from './worlds';
 
 export interface LevelEffect {
   id: string;
@@ -9,9 +10,8 @@ export interface LevelEffect {
   description: string;
   type: 'boss' | 'modifier';
   // Effect properties (will be applied at level start)
-  livesModifier?: number;  // e.g., -2 lives
+  banksModifier?: number;  // e.g., -2 banks
   rerollsModifier?: number;  // e.g., -1 rerolls
-  noLivesBonuses?: boolean;  // Disable unused lives money bonus
   [key: string]: any;  // Allow other effect properties
 }
 
@@ -38,21 +38,13 @@ export interface LevelConfig {
  * Similar to Balatro's boss system
  */
 export const BOSS_POOL: Boss[] = [
-  // Example bosses (to be expanded later)
+  // Example boss (to be expanded later):
   // {
   //   id: 'greedyBoss',
   //   name: 'Greedy Boss',
-  //   description: '-2 Lives',
-  //   effects: [{ id: 'livesModifier', type: 'modifier', livesModifier: -2 }],
+  //   description: '-2 Banks',
+  //   effects: [{ id: 'banksModifier', type: 'modifier', banksModifier: -2 }],
   //   minLevel: 3,
-  //   weight: 1,
-  // },
-  // {
-  //   id: 'noBonusesBoss',
-  //   name: 'Stingy Boss',
-  //   description: 'No Lives Bonuses',
-  //   effects: [{ id: 'noLivesBonuses', type: 'modifier', noLivesBonuses: true }],
-  //   minLevel: 5,
   //   weight: 1,
   // },
 ];
@@ -153,12 +145,8 @@ export function selectBossForLevel(levelNumber: number): Boss | null {
  * Bosses can appear on certain levels (e.g., every 3 levels, or specific levels)
  */
 export function shouldHaveBoss(levelNumber: number): boolean {
-  // For now: no bosses (will be implemented later)
-  // Examples:
-  // - Bosses every 3 levels (3, 6, 9, 12, ...)
-  // - Bosses on specific levels (5, 10, 15, ...)
-  // - Random chance based on level number
-  return false;
+  // Bosses appear on miniboss levels (3rd level of each world) and main boss levels (5th level of each world)
+  return isMinibossLevel(levelNumber) || isMainBossLevel(levelNumber);
 }
 
 /**

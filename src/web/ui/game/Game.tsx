@@ -159,7 +159,7 @@ export const Game: React.FC<GameProps> = ({
           isOpen={true}
           levelNumber={gameState.currentLevel.levelNumber}
           rewards={pendingRewards}
-          livesRemaining={gameState.currentLevel.livesRemaining || 0}
+          banksRemaining={gameState.currentLevel.banksRemaining || 0}
           onContinue={gameActions.handleConfirmTally}
         />
       </>

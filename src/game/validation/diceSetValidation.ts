@@ -26,12 +26,12 @@ export function validateDiceSetConfig(config: DiceSetConfig): void {
     throw new Error('Consumable slots cannot be negative');
   }
   
-  if (config.rerollValue < 0) {
-    throw new Error('Reroll value cannot be negative');
+  if (config.baseLevelRerolls < 0) {
+    throw new Error('Base rerolls cannot be negative');
   }
   
-  if (config.livesValue < 0) {
-    throw new Error('Lives value cannot be negative');
+  if (config.baseLevelBanks < 0) {
+    throw new Error('Base banks cannot be negative');
   }
   
   // Validate each die

@@ -230,11 +230,11 @@ export function purchaseBlessing(
  */
 export function applyBlessingEffect(gameState: GameState, blessing: Blessing): void {
   switch (blessing.effect.type) {
-    case 'rerollValue':
-      gameState.rerollValue += blessing.effect.amount;
+    case 'baseLevelRerolls':
+      gameState.baseLevelRerolls += blessing.effect.amount;
       break;
-    case 'livesValue':
-      gameState.livesValue += blessing.effect.amount;
+    case 'baseLevelBanks':
+      gameState.baseLevelBanks = (gameState.baseLevelBanks || 5) + blessing.effect.amount;
       break;
     case 'charmSlots':
       gameState.charmSlots += blessing.effect.amount;
@@ -243,7 +243,7 @@ export function applyBlessingEffect(gameState: GameState, blessing: Blessing): v
       gameState.consumableSlots += blessing.effect.amount;
       break;
     // Other effects are applied dynamically during gameplay
-    // (rerollOnBank, rerollOnFlop, shopDiscount, flopSubversion, moneyPerLife, moneyOnLevelEnd, moneyOnRerollUsed)
+    // (rerollOnBank, rerollOnFlop, shopDiscount, flopSubversion, moneyOnLevelEnd, moneyOnRerollUsed)
   }
 }
 

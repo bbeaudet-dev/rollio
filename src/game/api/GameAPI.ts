@@ -1,4 +1,4 @@
-import { GameInterface } from '../interfaces';
+import { GameInterface } from '../../cli/interfaces';
 import { GameState, GameConfig } from '../types';
 import { CharmManager } from '../logic/charmSystem';
 import { 
@@ -195,12 +195,20 @@ export class GameAPI {
       throw new Error('No active round to bank points');
     }
     
+    // Check if player has banks remaining
+    if (!gameState.currentLevel.banksRemaining || gameState.currentLevel.banksRemaining <= 0) {
+      throw new Error('No banks remaining - cannot bank points');
+    }
+    
     const newGameState = { ...gameState };
     const newRoundState = { ...roundState };
     
     // Bank the points
     newGameState.currentLevel.pointsBanked += newRoundState.roundPoints;
     newGameState.history.totalScore += newRoundState.roundPoints;
+    
+    // Consume 1 bank
+    newGameState.currentLevel.banksRemaining = (newGameState.currentLevel.banksRemaining || 0) - 1;
     
     // End the round
     newRoundState.isActive = false;
@@ -283,9 +291,8 @@ export class GameAPI {
     const forfeitedPoints = newRoundState.roundPoints;
     const consecutiveFlops = newGameState.currentLevel.consecutiveFlops + 1;
     
-    // Apply flop penalty
+    // Increment consecutive flops 
     newGameState.currentLevel.consecutiveFlops = consecutiveFlops;
-    newGameState.currentLevel.livesRemaining = (newGameState.currentLevel.livesRemaining || 0) - 1;
     
     // End the round
     newRoundState.isActive = false;
@@ -307,11 +314,8 @@ export class GameAPI {
       gameState: newGameState
     });
     
-    // Check if game is over (lives reached zero)
-    if (newGameState.currentLevel.livesRemaining === 0) {
-      newGameState.isActive = false;
-      newGameState.endReason = 'lost';
-      
+    // Game over check for consecutive flops is handled in updateGameStateAfterRound
+    if (!newGameState.isActive && newGameState.endReason === 'lost') {
       this.emit('gameEnded', {
         reason: 'lost',
         gameState: newGameState

@@ -1,4 +1,4 @@
-import { GameInterface } from '../game/interfaces';
+import { GameInterface } from './interfaces';
 import { CharmManager } from '../game/logic/charmSystem';
 import { DEFAULT_GAME_CONFIG, createInitialGameState } from '../game/utils/factories';
 import { ALL_DICE_SETS } from '../game/data/diceSets';

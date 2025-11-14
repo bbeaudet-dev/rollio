@@ -1,4 +1,4 @@
-import { GameInterface } from '../game/interfaces';
+import { GameInterface } from './interfaces';
 // import { InteractiveTutorial } from './interactiveTutorial';
 
 export class TutorialSystem {

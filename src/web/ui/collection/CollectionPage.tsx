@@ -5,18 +5,7 @@ import { MATERIALS } from '../../../game/data/materials';
 import { CHARMS } from '../../../game/data/charms';
 import { CONSUMABLES } from '../../../game/data/consumables';
 import { ALL_BLESSINGS } from '../../../game/data/blessings';
-import { 
-  BASIC_DICE_SET, 
-  HIGH_ROLLER_SET, 
-  LOW_BALLER_SET,
-  COLLECTOR_SET,
-  LUXURY_SET,
-  CHACHING_SET,
-  WOODEN_SET,
-  VOLCANO_SET,
-  MIRROR_SET,
-  RAINBOW_SET
-} from '../../../game/data/diceSets';
+import { STATIC_DICE_SETS } from '../../../game/data/diceSets';
 
 export const CollectionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -183,19 +172,8 @@ export const CollectionPage: React.FC = () => {
 
       {/* Dice Sets */}
       <div style={sectionStyle}>
-        <h2 style={headerStyle}>Dice Sets (10)</h2>
-        {[
-          BASIC_DICE_SET, 
-          HIGH_ROLLER_SET, 
-          LOW_BALLER_SET,
-          COLLECTOR_SET,
-          LUXURY_SET,
-          CHACHING_SET,
-          WOODEN_SET,
-          VOLCANO_SET,
-          MIRROR_SET,
-          RAINBOW_SET
-        ].map((set) => (
+        <h2 style={headerStyle}>Dice Sets ({STATIC_DICE_SETS.length})</h2>
+        {STATIC_DICE_SETS.map((set) => (
           <div key={set.name} style={itemStyle}>
             <strong>{set.name}</strong>
             <div style={{ fontSize: '14px', color: '#6c757d', marginTop: '4px' }}>

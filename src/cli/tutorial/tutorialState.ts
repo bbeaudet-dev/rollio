@@ -1,5 +1,6 @@
-import { Die, GameState, RoundState, DiceSetConfig, DiceMaterialType } from '../types';
-import { CharmManager } from '../logic/charmSystem';
+import { Die, GameState, RoundState, DiceSetConfig, DiceMaterialType, CombinationCounters } from '../../game/types';
+import { CharmManager } from '../../game/logic/charmSystem';
+import { ALL_SCORING_TYPES } from '../../game/data/combinations';
 
 export interface TutorialState {
   currentLesson: string;
@@ -33,8 +34,8 @@ export class TutorialStateManager {
       startingMoney: 0,
       charmSlots: 0,
       consumableSlots: 0,
-      rerollValue: 0,
-      livesValue: 0,
+      baseLevelRerolls: 0,
+      baseLevelBanks: 0,
       setType: 'beginner'
     };
 
@@ -45,8 +46,8 @@ export class TutorialStateManager {
       charms: [],
       consumables: [],
       blessings: [],
-      rerollValue: 0,
-      livesValue: 0,
+      baseLevelRerolls: 0,
+      baseLevelBanks: 0,
       charmSlots: 0,
       consumableSlots: 0,
       settings: {
@@ -66,7 +67,7 @@ export class TutorialStateManager {
         levelNumber: 1,
         levelThreshold: 1000,
         rerollsRemaining: 0,
-        livesRemaining: 0,
+        banksRemaining: 0,
         consecutiveFlops: 0,
         pointsBanked: 0,
         shop: {
@@ -88,21 +89,9 @@ export class TutorialStateManager {
       },
       history: {
         totalScore: 0,
-        combinationCounters: {
-          godStraight: 0,
-          straight: 0,
-          fourPairs: 0,
-          threePairs: 0,
-          tripleTriplets: 0,
-          twoTriplets: 0,
-          sevenOfAKind: 0,
-          sixOfAKind: 0,
-          fiveOfAKind: 0,
-          fourOfAKind: 0,
-          threeOfAKind: 0,
-          singleOne: 0,
-          singleFive: 0
-        },
+        combinationCounters: Object.fromEntries(
+          ALL_SCORING_TYPES.map(c => [c, 0])
+        ) as CombinationCounters,
         levelHistory: []
       }
     };

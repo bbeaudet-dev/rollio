@@ -4,13 +4,13 @@ import { LevelRewards as LevelRewardsType } from '../../../../game/logic/tallyin
 interface LevelRewardsProps {
   levelNumber: number;
   rewards: LevelRewardsType;
-  livesRemaining: number;
+  banksRemaining: number;
 }
 
 export const LevelRewards: React.FC<LevelRewardsProps> = ({
   levelNumber,
   rewards,
-  livesRemaining
+  banksRemaining
 }) => {
   return (
     <div style={{
@@ -35,8 +35,8 @@ export const LevelRewards: React.FC<LevelRewardsProps> = ({
         </div>
         <div style={{ fontSize: '13px', marginLeft: '12px' }}>
           <div>Base Reward: <strong>${rewards.baseReward}</strong></div>
-          {rewards.livesBonus > 0 && (
-            <div>Lives Bonus ({livesRemaining} lives × $1): <strong>+${rewards.livesBonus}</strong></div>
+          {rewards.banksBonus > 0 && (
+            <div>Banks Bonus ({banksRemaining} banks × $1): <strong>+${rewards.banksBonus}</strong></div>
           )}
           {rewards.charmBonuses > 0 && (
             <div>Charm Bonuses: <strong>+${rewards.charmBonuses}</strong></div>

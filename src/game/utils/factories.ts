@@ -1,10 +1,11 @@
 import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState } from '../types';
-import { ALL_SCORING_TYPES } from '../logic/scoring';
+import { ALL_SCORING_TYPES } from '../data/combinations';
 import { getRandomInt } from './effectUtils';
 import { validateDiceSetConfig } from '../validation/diceSetValidation';
 import { getLevelConfig } from '../data/levels';
-import { calculateRerollsForLevel, calculateLivesForLevel } from '../logic/rerollLogic';
+import { calculateRerollsForLevel, calculateBanksForLevel } from '../logic/rerollLogic';
 import { applyLevelEffects } from '../logic/gameLogic';
+import { getWorldForLevel, getWorldNumber, isMinibossLevel, isMainBossLevel } from '../data/worlds';
 
 // Default game configuration
 export const DEFAULT_GAME_CONFIG = {
@@ -50,12 +51,18 @@ export function createDiceFromConfig(diceConfig: Omit<Die, 'scored' | 'rolledVal
 export function createInitialLevelState(levelNumber: number, gameState: GameState): LevelState {
   const levelConfig = getLevelConfig(levelNumber);
   
-  // Calculate base rerolls and lives (from game state + charms/blessings)
+  // Get world information
+  const world = getWorldForLevel(levelNumber);
+  const worldNumber = getWorldNumber(levelNumber);
+  const isMiniboss = isMinibossLevel(levelNumber);
+  const isMainBoss = isMainBossLevel(levelNumber);
+  
+  // Calculate base rerolls and banks (from game state + charms/blessings)
   const baseRerolls = calculateRerollsForLevel(gameState);
-  const baseLives = calculateLivesForLevel(gameState);
+  const baseBanks = calculateBanksForLevel(gameState);
   
   // Apply level effects (boss effects, modifiers)
-  const { rerolls, lives } = applyLevelEffects(baseRerolls, baseLives, levelConfig);
+  const { rerolls, banks } = applyLevelEffects(baseRerolls, baseBanks, levelConfig);
   
   // Create first round of the level
   const firstRound = createInitialRoundState(1);
@@ -63,8 +70,12 @@ export function createInitialLevelState(levelNumber: number, gameState: GameStat
   return {
     levelNumber,
     levelThreshold: levelConfig.pointThreshold,
+    worldId: world?.id,
+    worldNumber,
+    isMiniboss,
+    isMainBoss,
     rerollsRemaining: rerolls,
-    livesRemaining: lives,
+    banksRemaining: banks,
     consecutiveFlops: 0,  // Reset at start of each level
     pointsBanked: 0,  // Initialize to 0 at level start
     shop: DEFAULT_SHOP_STATE,
@@ -83,8 +94,8 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig): GameState 
     charms: [],
     consumables: [],
     blessings: [],
-    rerollValue: diceSetConfig.rerollValue,
-    livesValue: diceSetConfig.livesValue,
+    baseLevelRerolls: diceSetConfig.baseLevelRerolls,
+    baseLevelBanks: diceSetConfig.baseLevelBanks,
     charmSlots: diceSetConfig.charmSlots,
     consumableSlots: diceSetConfig.consumableSlots,
     settings: DEFAULT_GAME_SETTINGS,

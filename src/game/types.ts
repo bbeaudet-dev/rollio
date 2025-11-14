@@ -28,13 +28,13 @@ export interface DiceSetConfig {
   startingMoney: number;
   charmSlots: number;
   consumableSlots: number;
-  rerollValue: number; 
-  livesValue: number;  
+  baseLevelRerolls: number; 
+  baseLevelBanks: number;
   setType: DiceSetType;
 }
 
 // SCORING TYPES
-import { ScoringCombinationType } from './logic/scoring';
+import { ScoringCombinationType } from './data/combinations';
 export type CombinationCounters = Record<ScoringCombinationType, number>;
 
 export interface ScoringCombination {
@@ -85,8 +85,8 @@ export interface Blessing {
 }
 
 export type BlessingEffect =
-  | { type: "rerollValue"; amount: number }
-  | { type: "livesValue"; amount: number }
+  | { type: "baseLevelRerolls"; amount: number }
+  | { type: "baseLevelBanks"; amount: number }
   | { type: "rerollOnBank"; amount: number }
   | { type: "rerollOnFlop"; amount: number }
   | { type: "rerollOnCombination"; combination: string; amount: number }
@@ -94,7 +94,7 @@ export type BlessingEffect =
   | { type: "consumableSlots"; amount: number }
   | { type: "shopDiscount"; percentage: number }
   | { type: "flopSubversion"; percentage: number }
-  | { type: "moneyPerLife"; amount: number }
+  | { type: "moneyPerBank"; amount: number }
   | { type: "moneyOnLevelEnd"; amount: number }
   | { type: "moneyOnRerollUsed"; amount: number };
 
@@ -161,10 +161,14 @@ export interface ShopState {
 export interface LevelState {
   levelNumber: number;
   levelThreshold: number;
+  worldId?: string;
+  worldNumber?: number;
+  isMiniboss?: boolean;
+  isMainBoss?: boolean;
 
   // Current level only
   rerollsRemaining?: number;
-  livesRemaining?: number;
+  banksRemaining?: number;
   consecutiveFlops: number; 
   pointsBanked: number; 
   shop?: ShopState;
@@ -175,7 +179,7 @@ export interface LevelState {
   roundHistory?: RoundState[];
   rewards?: {
     baseReward: number;
-    livesBonus: number;
+    banksBonus: number;
     charmBonuses: number;
     blessingBonuses: number;
     total: number;
@@ -210,8 +214,8 @@ export interface GameState {
   charms: Charm[];
   consumables: Consumable[];
   blessings: Blessing[];
-  rerollValue: number;  // Base value (persists across levels)
-  livesValue: number;   // Base value (persists across levels)
+  baseLevelRerolls: number;  // Base rerolls per level (persists across levels)
+  baseLevelBanks: number;    // Base banks per level (persists across levels)
   charmSlots: number;
   consumableSlots: number;
   settings: GameSettings;

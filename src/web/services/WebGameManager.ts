@@ -7,7 +7,7 @@ import { LevelRewards } from '../../game/logic/tallying';
 import { GameAPI } from '../../game/api';
 import { isFlop } from '../../game/logic/gameLogic';
 import { validateRerollSelection } from '../../game/logic/rerollLogic';
-import { calculateRerollsForLevel, calculateLivesForLevel } from '../../game/logic/rerollLogic';
+import { calculateRerollsForLevel, calculateBanksForLevel } from '../../game/logic/rerollLogic';
 
 export interface WebGameState {
   gameState: GameState | null;
@@ -401,11 +401,11 @@ export class WebGameManager {
     const result = await this.gameAPI.handleFlop(state.gameState);
     const gameState = result.gameState;
 
-    this.addMessage(`-1 Life (${gameState.currentLevel.livesRemaining || 0} lives remaining)`);
+    this.addMessage(`Consecutive flops: ${gameState.currentLevel.consecutiveFlops}`);
 
     if (!gameState.isActive) {
       this.addMessage('=== GAME OVER ===');
-      this.addMessage('You ran out of lives!');
+      this.addMessage('3 consecutive flops - game over!');
       const roundState = gameState.currentLevel.currentRound;
       return this.createWebGameState(gameState, roundState || null, [], null, [], [], false, false, false);
     }
@@ -469,11 +469,11 @@ export class WebGameManager {
       gameState.consumables.splice(index, 1);
     }
     
-    if (gameState.currentLevel.livesRemaining !== undefined && gameState.currentLevel.livesRemaining <= 0) {
+    if (gameState.currentLevel.banksRemaining !== undefined && gameState.currentLevel.banksRemaining <= 0) {
       gameState.isActive = false;
       gameState.endReason = 'lost';
       this.addMessage('=== GAME OVER ===');
-      this.addMessage('You ran out of lives!');
+      this.addMessage('3 consecutive flops - game over!');
     }
     
     return this.createWebGameState(gameState, roundState, state.selectedDice, state.previewScoring, state.materialLogs, state.charmLogs, state.justBanked, state.justFlopped, state.isProcessing);
@@ -579,7 +579,7 @@ export class WebGameManager {
     
     this.addMessage(`=== LEVEL ${gameState.currentLevel.levelNumber} ===`);
     this.addMessage(`Threshold: ${gameState.currentLevel.levelThreshold} points`);
-    this.addMessage(`Rerolls: ${gameState.currentLevel.rerollsRemaining}, Lives: ${gameState.currentLevel.livesRemaining}`);
+    this.addMessage(`Rerolls: ${gameState.currentLevel.rerollsRemaining}, Lives: ${gameState.currentLevel.banksRemaining}`);
     this.addMessage('Click "Roll" to start the round.');
     
     return this.createWebGameState(gameState, roundState, [], null, [], [], false, false, false);

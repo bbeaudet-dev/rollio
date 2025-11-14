@@ -6,7 +6,7 @@ interface TallyModalProps {
   isOpen: boolean;
   levelNumber: number;
   rewards: LevelRewardsType;
-  livesRemaining: number;
+  banksRemaining: number;
   onContinue: () => void;
 }
 
@@ -14,7 +14,7 @@ export const TallyModal: React.FC<TallyModalProps> = ({
   isOpen,
   levelNumber,
   rewards,
-  livesRemaining,
+  banksRemaining,
   onContinue
 }) => {
   const containerStyle: React.CSSProperties = {
@@ -82,10 +82,10 @@ export const TallyModal: React.FC<TallyModalProps> = ({
           <div style={valueStyle}>${rewards.baseReward}</div>
         </div>
 
-        {rewards.livesBonus > 0 && (
+        {rewards.banksBonus > 0 && (
           <div style={sectionStyle}>
-            <div style={labelStyle}>Lives Bonus ({livesRemaining} lives × $1)</div>
-            <div style={valueStyle}>+${rewards.livesBonus}</div>
+            <div style={labelStyle}>Banks Bonus ({banksRemaining} banks × $1)</div>
+            <div style={valueStyle}>+${rewards.banksBonus}</div>
           </div>
         )}
 

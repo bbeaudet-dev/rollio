@@ -1,7 +1,7 @@
 import readline from 'readline';
 import { DEFAULT_GAME_CONFIG } from '../game/utils/factories';
 import { DieValue, ScoringCombination, GameState, Die } from '../game/types';
-import { DisplayInterface, InputInterface, GameInterface } from '../game/interfaces';
+import { DisplayInterface, InputInterface, GameInterface } from './interfaces';
 import { DisplayFormatter } from '../web/utils/display';
 import { CLIDisplayFormatter } from './display/cliDisplay';
 import { SimpleDiceAnimation } from './display/simpleDiceAnimation';
@@ -450,7 +450,7 @@ export class CLIInterface implements GameInterface {
   
     await this.log(`Points: ${gameState.currentLevel.pointsBanked} / ${gameState.currentLevel.levelThreshold}`);
     await this.log(`Flops: ${gameState.currentLevel.consecutiveFlops}`);
-    await this.log(`Lives: ${gameState.currentLevel.livesRemaining}`);
+    await this.log(`Lives: ${gameState.currentLevel.banksRemaining}`);
     await this.log('----------------------\n');
   }
 
