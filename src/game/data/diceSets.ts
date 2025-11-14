@@ -110,11 +110,56 @@ export function createMaterialSet(material: DiceMaterialType): DiceSetConfig {
 
 
 
+// Material-specific dice sets
+export const PLASTIC_SET = createMaterialSet('plastic');
+export const CRYSTAL_SET = createMaterialSet('crystal');
+export const FLOWER_SET = createMaterialSet('flower');
+export const GOLDEN_SET = createMaterialSet('golden');
+export const VOLCANO_SET = createMaterialSet('volcano');
+export const MIRROR_SET = createMaterialSet('mirror');
+export const RAINBOW_SET = createMaterialSet('rainbow');
+export const GHOST_SET = createMaterialSet('ghost');
+export const LEAD_SET = createMaterialSet('lead');
+
+/**
+ * Mixed Material Set - one die of each material
+ */
+export const MIXED_MATERIAL_SET: DiceSetConfig = {
+    name: "Mixed Material Set",
+    dice: [
+        { id: "d1", sides: 6, allowedValues: [1,2,3,4,5,6], material: "plastic" },
+        { id: "d2", sides: 6, allowedValues: [1,2,3,4,5,6], material: "crystal" },
+        { id: "d3", sides: 6, allowedValues: [1,2,3,4,5,6], material: "flower" },
+        { id: "d4", sides: 6, allowedValues: [1,2,3,4,5,6], material: "golden" },
+        { id: "d5", sides: 6, allowedValues: [1,2,3,4,5,6], material: "volcano" },
+        { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "mirror" },
+        { id: "d7", sides: 6, allowedValues: [1,2,3,4,5,6], material: "rainbow" },
+        { id: "d8", sides: 6, allowedValues: [1,2,3,4,5,6], material: "ghost" },
+        { id: "d9", sides: 6, allowedValues: [1,2,3,4,5,6], material: "lead" }
+    ],
+    startingMoney: 10,
+    charmSlots: 4,
+    consumableSlots: 2,
+    baseLevelRerolls: 3,
+    baseLevelBanks: 4,
+    setType: 'advanced',
+};
+
 // Static dice sets (for display/collection purposes)
 export const STATIC_DICE_SETS: DiceSetConfig[] = [
     BASIC_DICE_SET,
     LOW_BALLER_SET,
     COLLECTOR_SET,
+    PLASTIC_SET,
+    CRYSTAL_SET,
+    FLOWER_SET,
+    GOLDEN_SET,
+    VOLCANO_SET,
+    MIRROR_SET,
+    RAINBOW_SET,
+    GHOST_SET,
+    LEAD_SET,
+    MIXED_MATERIAL_SET,
 ];
 
 // All dice sets including dynamic ones (for game selection)
@@ -122,5 +167,15 @@ export const ALL_DICE_SETS: (DiceSetConfig | (() => DiceSetConfig))[] = [
     BASIC_DICE_SET,
     LOW_BALLER_SET,
     COLLECTOR_SET,
+    PLASTIC_SET,
+    CRYSTAL_SET,
+    FLOWER_SET,
+    GOLDEN_SET,
+    VOLCANO_SET,
+    MIRROR_SET,
+    RAINBOW_SET,
+    GHOST_SET,
+    LEAD_SET,
+    MIXED_MATERIAL_SET,
     RANDOM_SET,
 ]; 

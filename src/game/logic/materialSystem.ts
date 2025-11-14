@@ -51,19 +51,19 @@ const materialEffects: Record<string, MaterialEffectFn> = {
     return { score, materialLogs };
   },
   /*
-   * Wooden Material Effect
+   * Flower Material Effect
    * ---------------------
-   * Exponential multiplier based on wooden dice count.
-   * Effect: 1.25x per wooden die (exponential).
+   * Exponential multiplier based on flower dice count.
+   * Effect: 1.25x per flower die (exponential).
    */
-  wooden: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
+  flower: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
     let score = baseScore;
     const materialLogs: string[] = [];
     const selectedDice = selectedIndices.map(i => diceHand[i]);
-    const woodenCount = selectedDice.filter(die => die.material === 'wooden').length;
-    if (woodenCount > 0) {
-      materialLogs.push(`Wooden: ${woodenCount} scored, multiplier: x${Math.pow(1.25, woodenCount).toFixed(2)}`);
-      score *= Math.pow(1.25, woodenCount);
+    const flowerCount = selectedDice.filter(die => die.material === 'flower').length;
+    if (flowerCount > 0) {
+      materialLogs.push(`Flower: ${flowerCount} scored, multiplier: x${Math.pow(1.25, flowerCount).toFixed(2)}`);
+      score *= Math.pow(1.25, flowerCount);
     }
     return { score, materialLogs };
   },
@@ -193,8 +193,82 @@ const materialEffects: Record<string, MaterialEffectFn> = {
     
     return { score, materialLogs };
   },
-  // Add more materials as needed
+  /*
+   * Ghost Material Effect
+   * ---------------------
+   * Ghost dice don't need to be scored to trigger hot dice.
+   * Effect: No scoring bonus, but special hot dice logic (handled in scoring system).
+   */
+  ghost: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
+    let score = baseScore;
+    const materialLogs: string[] = [];
+    const selectedDice = selectedIndices.map(i => diceHand[i]);
+    const ghostCount = selectedDice.filter(die => (die.material as string) === 'ghost').length;
+    
+    if (ghostCount > 0) {
+      materialLogs.push(`Ghost: ${ghostCount} ghost dice (hot dice trigger if only ghosts remain)`);
+    }
+    
+    return { score, materialLogs };
+  },
+  /*
+   * Lead Material Effect
+   * --------------------
+   * Heavy die that stays in hand after scoring.
+   * Effect: No scoring bonus, but special removal logic (handled in scoring system).
+   */
+  lead: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
+    let score = baseScore;
+    const materialLogs: string[] = [];
+    const selectedDice = selectedIndices.map(i => diceHand[i]);
+    const leadCount = selectedDice.filter(die => (die.material as string) === 'lead').length;
+    
+    if (leadCount > 0) {
+      materialLogs.push(`Lead: ${leadCount} lead dice (stay in hand after scoring)`);
+    }
+    
+    return { score, materialLogs };
+  },
 };
+
+/*
+ * =============================
+ * Material Special Effects
+ * =============================
+ * Functions to check for special material behaviors that affect game logic
+ * (not scoring bonuses, but things like hot dice triggers, dice removal, etc.)
+ */
+
+/**
+ * Checks if hot dice should trigger based on remaining dice materials
+ * Hot dice triggers if:
+ * 1. All dice are removed (normal hot dice), OR
+ * 2. Only ghost dice remain (ghost dice special effect)
+ */
+export function shouldTriggerHotDice(remainingDice: Die[]): boolean {
+  if (remainingDice.length === 0) {
+    return true; // Normal hot dice
+  }
+  
+  // Ghost dice special effect: hot dice if only ghost dice remain
+  const allGhost = remainingDice.every(die => die.material === 'ghost');
+  return allGhost;
+}
+
+/**
+ * Filters dice indices to remove, accounting for special material effects
+ * Lead dice are not removed (they stay in hand after scoring)
+ */
+export function getDiceIndicesToRemove(diceHand: Die[], selectedIndices: number[]): number[] {
+  return selectedIndices.filter(i => {
+    const die = diceHand[i];
+    // Lead dice stay in hand
+    if (die && die.material === 'lead') {
+      return false;
+    }
+    return true;
+  });
+}
 
 /*
  * =============================

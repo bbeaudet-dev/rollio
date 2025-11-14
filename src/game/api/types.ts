@@ -13,6 +13,8 @@ export interface InitializeGameResult {
 export interface RollDiceResult {
   gameState: GameState;
   rollNumber: number;
+  isFlop?: boolean;
+  flopShieldAvailable?: boolean;
 }
 
 export interface ScoreDiceResult {
@@ -33,5 +35,11 @@ export interface FlopResult {
   gameState: GameState;
   forfeitedPoints: number;
   consecutiveFlops: number;
+}
+
+export interface ScoringStep {
+  type: 'findCombinations' | 'applyCharms' | 'applyMaterials' | 'removeDice' | 'addPoints' | 'incrementCrystals' | 'processHotDice' | 'updateHistory';
+  gameState: GameState;
+  data?: any;
 }
 

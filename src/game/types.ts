@@ -6,10 +6,9 @@ export interface DiceMaterial {
   name: string;
   description: string;
   abbreviation?: string;
-  color: string;
 }
 
-export type DiceMaterialType = 'plastic' | 'crystal' | 'wooden' | 'golden' | 'volcano' | 'mirror' | 'rainbow';
+export type DiceMaterialType = 'plastic' | 'crystal' | 'flower' | 'golden' | 'volcano' | 'mirror' | 'rainbow' | 'ghost' | 'lead';
 
 export interface Die {
   id: string;
@@ -144,7 +143,6 @@ export interface GameConfig {
   diceSetConfig: DiceSetConfig;
   penalties: {
     consecutiveFlopLimit: number;
-    consecutiveFlopPenalty: number;
     flopPenaltyEnabled: boolean;
   };
 }

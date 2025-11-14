@@ -297,9 +297,16 @@ export function findAllPossibleCombinations(
 
 /**
  * Check if dice hand has any scoring combination
+ * Only checks dice that have rolled values (filters out dice without rolledValue)
  */
 export function hasAnyScoringCombination(diceHand: Die[]): boolean {
-  const values = diceHand.map(die => die.rolledValue!);
+  // Filter to only dice with rolled values (exclude dice that haven't been rolled yet)
+  const diceWithValues = diceHand.filter(die => die.rolledValue !== undefined && die.rolledValue !== null);
+  
+  // If no dice have rolled values, it's not a flop (just haven't rolled yet)
+  if (diceWithValues.length === 0) return false;
+  
+  const values = diceWithValues.map(die => die.rolledValue!);
   const counts = countDice(values);
   
   // Singles (1s or 5s)

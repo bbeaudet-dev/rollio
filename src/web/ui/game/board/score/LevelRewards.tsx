@@ -1,9 +1,14 @@
 import React from 'react';
-import { LevelRewards as LevelRewardsType } from '../../../../game/logic/tallying';
 
 interface LevelRewardsProps {
   levelNumber: number;
-  rewards: LevelRewardsType;
+  rewards: {
+    baseReward: number;
+    banksBonus: number;
+    charmBonuses: number;
+    blessingBonuses: number;
+    total: number;
+  };
   banksRemaining: number;
 }
 

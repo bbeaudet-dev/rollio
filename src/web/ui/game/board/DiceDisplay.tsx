@@ -2,61 +2,70 @@ import React from 'react';
 import { DiceFace } from './dice/DiceFace';
 
 interface DiceDisplayProps {
-  dice: any[];
+  allDice: any[]; // Full dice array (for index mapping)
+  rolledDice: any[]; // Already filtered and sorted rolled dice
   selectedIndices: number[];
   onDiceSelect: (index: number) => void;
   canSelect: boolean;
-  dicePositions: Map<string, { x: number; y: number }>;
+  animatingDiceIds: Set<string>; // Dice IDs that should animate
 }
 
 export const DiceDisplay: React.FC<DiceDisplayProps> = ({
-  dice,
+  allDice,
+  rolledDice,
   selectedIndices,
   onDiceSelect,
   canSelect,
-  dicePositions
+  animatingDiceIds
 }) => {
-  // Only show dice that have been rolled (have a rolledValue)
-  const rolledDice = dice.filter((die, index) => die.rolledValue !== undefined && die.rolledValue !== null);
-  
   return (
-    <>
-      {rolledDice.map((die, rolledIndex) => {
-        // Find the original index in the full dice array
-        const originalIndex = dice.findIndex((d, idx) => 
-          d === die && d.rolledValue === die.rolledValue
-        );
-        const isSelected = selectedIndices.includes(originalIndex);
-        const material = die.material || 'standard';
-        const position = dicePositions.get(die.id);
-        
-        // If no position found, don't render this die
-        if (!position) {
-          console.warn(`No position found for die ${die.id}`);
+    <div style={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '15px',
+      padding: '20px',
+      minHeight: '100px',
+      position: 'absolute',
+      top: '55%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: '100%',
+      maxWidth: 'calc(100% - 40px)',
+      boxSizing: 'border-box'
+    }}>
+      {rolledDice.map((die) => {
+        // Find the original index in the full dice array by matching id
+        const originalIndex = allDice.findIndex(d => d.id === die.id);
+        if (originalIndex === -1) {
+          console.warn(`Die ${die.id} not found in allDice array`);
           return null;
         }
         
+        const isSelected = selectedIndices.includes(originalIndex);
+        const material = die.material || 'plastic';
+        const isAnimating = animatingDiceIds.has(die.id);
+        
         return (
           <button
-            key={`${originalIndex}-${die.rolledValue}`}
+            key={`${die.id}-${die.rolledValue}`}
             onClick={() => canSelect && onDiceSelect(originalIndex)}
             disabled={!canSelect}
             style={{
-              position: 'absolute',
-              left: `${position.x}%`,
-              top: `${position.y}%`,
-              transform: 'translate(-50%, -50%)',
               width: '70px',
               height: '70px',
-              border: isSelected ? '3px solid #007bff' : '3px solid transparent',
+              border: isSelected ? '3px solid rgba(0, 123, 255, 0.3)' : '3px solid transparent',
               borderRadius: '8px',
-              backgroundColor: isSelected ? '#e3f2fd' : 'transparent',
+              backgroundColor: isSelected ? 'rgba(227, 242, 253, 0.3)' : 'transparent',
               cursor: !canSelect ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               opacity: !canSelect ? 0.6 : 1,
               padding: '2px',
+              transition: isAnimating ? 'transform 0.3s ease-in-out' : 'none',
+              transform: isAnimating ? 'rotate(360deg) scale(1.1)' : 'none',
               zIndex: isSelected ? 10 : 1
             }}
           >
@@ -68,7 +77,7 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
           </button>
         );
       })}
-    </>
+    </div>
   );
 };
 
