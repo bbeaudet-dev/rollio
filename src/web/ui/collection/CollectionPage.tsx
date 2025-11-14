@@ -8,6 +8,7 @@ import { ALL_BLESSINGS, getBlessingName, getBlessingDescription } from '../../..
 import { STATIC_DICE_SETS } from '../../../game/data/diceSets';
 import { PIP_EFFECTS } from '../../../game/data/pipEffects';
 import { DiceFace } from '../game/board/dice/DiceFace';
+import { PipEffectIcon } from './PipEffectIcon';
 
 // Simple hover tooltip component
 const HoverTooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => {
@@ -313,8 +314,8 @@ export const CollectionPage: React.FC = () => {
               border: '2px solid #dee2e6',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '36px', marginBottom: '12px' }}>
-                {effect.icon || '○'}
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '36px' }}>
+                <PipEffectIcon type={effect.type} size={36} />
               </div>
               <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>
                 {effect.name}
