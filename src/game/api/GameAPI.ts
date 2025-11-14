@@ -1,17 +1,33 @@
 import { GameInterface } from '../../cli/interfaces';
-import { GameState, GameConfig } from '../types';
+import { GameState, GameConfig, RoundState } from '../types';
 import { CharmManager } from '../logic/charmSystem';
 import { 
-  processCompleteScoring, 
   calculatePreviewScoring, 
   processRoll,
-  resetDiceHandToFullSet,
-  rollDice,
-  rerollDice as rerollDiceFunction
+  processBankPoints,
+  startNewRound,
+  endRound,
+  removeDiceFromHand,
+  addPointsToRound,
+  incrementCrystalsScored,
+  updateRollHistory,
+  processHotDice,
+  randomizeSelectedDice,
+  decrementRerolls,
+  incrementConsecutiveFlops,
+  setForfeitedPoints
 } from '../logic/gameActions';
-import { isFlop, isLevelCompleted, advanceToNextLevel } from '../logic/gameLogic';
-import { tallyLevel as tallyLevelFunction } from '../logic/tallying';
+import { isGameOver, isFlop, isHotDice, isLevelCompleted, canBankPoints as canBankPointsLogic } from '../logic/gameLogic';
+import { endGame, advanceToNextLevel } from '../logic/gameActions';
+import { tallyLevel as tallyLevelFunction, calculateLevelRewards, LevelRewards } from '../logic/tallying';
 import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing } from '../logic/shop';
+import { validateRerollSelection } from '../logic/rerollLogic';
+import { applyConsumableEffect } from '../logic/consumableEffects';
+import { getAllPartitionings, getHighestPointsPartitioning } from '../logic/scoring';
+import { validateDiceSelection } from '../utils/effectUtils';
+import { applyMaterialEffects, shouldTriggerHotDice } from '../logic/materialSystem';
+import { DieValue, RollState } from '../types';
+import { ScoringStep } from './types';
 import { ShopState } from '../types';
 import { GameAPIEvent, GameAPIEventData } from './GameAPIEvents';
 import {
@@ -21,7 +37,7 @@ import {
   BankPointsResult,
   FlopResult
 } from './types';
-import { createInitialGameState, createInitialLevelState, createInitialRoundState } from '../utils/factories';
+import { createInitialGameState, createInitialLevelState } from '../utils/factories';
 import { registerCharms } from '../logic/charms/index';
 
 /**
@@ -131,7 +147,111 @@ export class GameAPI {
   }
 
   /**
-   * Score selected dice
+   * Score selected dice - generator version for animations
+   * Yields steps that React can iterate through with delays
+   */
+  *scoreDiceSteps(
+    gameState: GameState,
+    selectedIndices: number[]
+  ): Generator<ScoringStep> {
+    const roundState = gameState.currentLevel.currentRound!;
+    
+    // Step 1: Find combinations
+    const selectedValues = selectedIndices.map(i => roundState.diceHand[i].rolledValue);
+    const input = selectedValues.join('');
+    const context = { charms: gameState.charms || [] };
+    const selectedIndicesFromInput = validateDiceSelection(input, roundState.diceHand.map(die => die.rolledValue) as DieValue[]);
+    const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndicesFromInput, context);
+    
+    if (allPartitionings.length === 0) {
+      return; // Invalid selection
+    }
+    
+    const bestPartitioningIndex = getHighestPointsPartitioning(allPartitionings);
+    const selectedPartitioning = allPartitionings[bestPartitioningIndex] || [];
+    let basePoints = selectedPartitioning.reduce((sum: number, c: any) => sum + c.points, 0);
+    
+    yield { type: 'findCombinations', gameState, data: { combinations: selectedPartitioning, basePoints } };
+    
+    // Step 2: Apply charm effects
+    const modifiedPoints = this.charmManager.applyCharmEffects({
+      gameState,
+      roundState,
+      basePoints,
+      combinations: selectedPartitioning,
+      selectedIndices
+    });
+    
+    yield { type: 'applyCharms', gameState, data: { basePoints, modifiedPoints } };
+    
+    // Step 3: Apply material effects
+    const materialResult = applyMaterialEffects(
+      roundState.diceHand,
+      selectedIndices,
+      modifiedPoints,
+      gameState,
+      roundState,
+      this.charmManager
+    );
+    
+    let currentGameState = gameState;
+    yield { type: 'applyMaterials', gameState: currentGameState, data: { materialResult } };
+    
+    // Step 4: Remove dice from hand
+    currentGameState = removeDiceFromHand(currentGameState, selectedIndices);
+    yield { type: 'removeDice', gameState: currentGameState, data: { selectedIndices } };
+    
+    // Step 5: Add points to round
+    const finalPoints = Math.ceil(materialResult.score);
+    currentGameState = addPointsToRound(currentGameState, finalPoints);
+    yield { type: 'addPoints', gameState: currentGameState, data: { points: finalPoints } };
+    
+    // Step 6: Increment crystals scored
+    const scoredCrystals = selectedIndices.filter((idx: number) => {
+      const die = roundState.diceHand[idx];
+      return die && die.material === 'crystal';
+    }).length;
+    
+    if (scoredCrystals > 0) {
+      currentGameState = incrementCrystalsScored(currentGameState, scoredCrystals);
+      yield { type: 'incrementCrystals', gameState: currentGameState, data: { count: scoredCrystals } };
+    }
+    
+    // Step 7: Check for hot dice and process if needed
+    const remainingDice = currentGameState.currentLevel.currentRound!.diceHand;
+    const wasHotDice = shouldTriggerHotDice(remainingDice);
+    
+    if (wasHotDice) {
+      currentGameState = processHotDice(currentGameState);
+      yield { type: 'processHotDice', gameState: currentGameState, data: {} };
+    }
+    
+    // Step 8: Update roll history
+    const currentRoundState = currentGameState.currentLevel.currentRound!;
+    const lastRollEntry = currentRoundState.rollHistory.length > 0 
+      ? currentRoundState.rollHistory[currentRoundState.rollHistory.length - 1]
+      : null;
+    const currentRollNumber = lastRollEntry?.rollNumber || 1;
+    
+    const historyEntry: RollState = {
+      rollNumber: currentRollNumber,
+      isReroll: false,
+      diceHand: wasHotDice ? [] : [...currentRoundState.diceHand],
+      selectedDice: [],
+      rollPoints: finalPoints,
+      maxRollPoints: finalPoints,
+      scoringSelection: selectedIndices,
+      combinations: selectedPartitioning.map((c: any) => c.type),
+      isHotDice: wasHotDice,
+      isFlop: false,
+    };
+    
+    currentGameState = updateRollHistory(currentGameState, historyEntry);
+    yield { type: 'updateHistory', gameState: currentGameState, data: { historyEntry } };
+  }
+
+  /**
+   * Score selected dice - immediate execution version
    */
   async scoreDice(
     gameState: GameState,
@@ -139,6 +259,20 @@ export class GameAPI {
   ): Promise<ScoreDiceResult> {
     const roundState = gameState.currentLevel.currentRound;
     if (!roundState) {
+      throw new Error('No active round to score dice');
+    }
+    
+    // Execute all steps immediately
+    const generator = this.scoreDiceSteps(gameState, selectedIndices);
+    let lastStep: ScoringStep | undefined;
+    let currentGameState = gameState;
+    
+    for (const step of generator) {
+      lastStep = step;
+      currentGameState = step.gameState;
+    }
+    
+    if (!lastStep) {
       return {
         success: false,
         gameState,
@@ -148,41 +282,24 @@ export class GameAPI {
       };
     }
     
-    const result = processCompleteScoring(
-      gameState,
-      roundState,
-      selectedIndices,
-      this.charmManager
-    );
-    
-    if (!result.success) {
-      return {
-        success: false,
-        gameState,
-        points: 0,
-        combinations: [],
-        hotDice: false
-      };
-    }
-    
-    // Update game state
-    const newGameState = { ...result.newGameState };
-    newGameState.currentLevel.currentRound = result.newRoundState;
+    const hotDice = lastStep.data?.historyEntry?.isHotDice === true;
+    const combinations = lastStep.data?.historyEntry?.combinations || [];
+    const points = lastStep.data?.historyEntry?.rollPoints || 0;
     
     this.emit('diceScored', {
       selectedIndices,
-      points: result.finalPoints,
-      combinations: result.scoringResult.map((c: any) => c.type),
-      gameState: newGameState
+      points,
+      combinations,
+      gameState: currentGameState
     });
-    this.emit('stateChanged', { gameState: newGameState });
+    this.emit('stateChanged', { gameState: currentGameState });
     
     return {
       success: true,
-      gameState: newGameState,
-      points: result.finalPoints,
-      combinations: result.scoringResult.map((c: any) => c.type),
-      hotDice: result.hotDice
+      gameState: currentGameState,
+      points,
+      combinations,
+      hotDice
     };
   }
 
@@ -195,63 +312,52 @@ export class GameAPI {
       throw new Error('No active round to bank points');
     }
     
-    // Check if player has banks remaining
-    if (!gameState.currentLevel.banksRemaining || gameState.currentLevel.banksRemaining <= 0) {
-      throw new Error('No banks remaining - cannot bank points');
-    }
+    // Use pure function to process banking
+    const result = processBankPoints(gameState, roundState);
     
-    const newGameState = { ...gameState };
-    const newRoundState = { ...roundState };
-    
-    // Bank the points
-    newGameState.currentLevel.pointsBanked += newRoundState.roundPoints;
-    newGameState.history.totalScore += newRoundState.roundPoints;
-    
-    // Consume 1 bank
-    newGameState.currentLevel.banksRemaining = (newGameState.currentLevel.banksRemaining || 0) - 1;
-    
-    // End the round
-    newRoundState.isActive = false;
-    newRoundState.banked = true;
-    newRoundState.endReason = 'banked';
-    
-    // Update game state
-    newGameState.currentLevel.currentRound = newRoundState;
-    
-    this.emit('pointsBanked', {
-      points: newRoundState.roundPoints,
-      gameState: newGameState
-    });
-    this.emit('roundEnded', {
-      roundNumber: newRoundState.roundNumber,
-      reason: 'banked',
-      gameState: newGameState
-    });
-    
-    // Check if level is completed
-    const levelCompleted = isLevelCompleted(newGameState);
-    
-    if (levelCompleted) {
-      // Level is complete 
-      // Don't advance level yet - happens after shop
-      this.emit('levelCompleted', {
-        levelNumber: newGameState.currentLevel.levelNumber,
-        gameState: newGameState
+    // Check if game should end (no banks remaining) - only if level not completed
+    // If level is completed, player proceeds to tally/shop, not game over
+    if (!result.levelCompleted && isGameOver(result.newGameState)) {
+      const finalGameState = endGame(result.newGameState, 'lost');
+      this.emit('gameEnded', {
+        reason: 'lost',
+        gameState: finalGameState
       });
-      
       return {
-        gameState: newGameState,
-        bankedPoints: newRoundState.roundPoints,
-        levelCompleted: true
+        gameState: finalGameState,
+        bankedPoints: result.bankedPoints,
+        levelCompleted: result.levelCompleted
       };
     }
     
-    this.emit('stateChanged', { gameState: newGameState });
+    // Emit events
+    this.emit('pointsBanked', {
+      points: result.bankedPoints,
+      gameState: result.newGameState
+    });
+    this.emit('roundEnded', {
+      roundNumber: result.newRoundState.roundNumber,
+      reason: 'banked',
+      gameState: result.newGameState
+    });
+    
+    if (result.levelCompleted) {
+      // Level is complete 
+      // Don't advance level yet - happens after shop
+      this.emit('levelCompleted', {
+        levelNumber: result.newGameState.currentLevel.levelNumber,
+        gameState: result.newGameState
+      });
+    }
+    
+    if (result.newGameState.isActive && !result.levelCompleted) {
+      this.emit('stateChanged', { gameState: result.newGameState });
+    }
     
     return {
-      gameState: newGameState,
-      bankedPoints: newRoundState.roundPoints,
-      levelCompleted: false
+      gameState: result.newGameState,
+      bankedPoints: result.bankedPoints,
+      levelCompleted: result.levelCompleted
     };
   }
 
@@ -259,7 +365,7 @@ export class GameAPI {
    * Tally level completion (calculate and apply rewards)
    * This is the "cashing out" phase - applies rewards and prepares for shop
    */
-  async tallyLevel(gameState: GameState): Promise<{ gameState: GameState; rewards: any }> {
+  async tallyLevel(gameState: GameState): Promise<{ gameState: GameState; rewards: LevelRewards }> {
     const completedLevelNumber = gameState.currentLevel.levelNumber;
     const result = tallyLevelFunction(gameState, completedLevelNumber);
     
@@ -285,23 +391,13 @@ export class GameAPI {
       throw new Error('No active round to handle flop');
     }
     
-    const newGameState = { ...gameState };
-    const newRoundState = { ...roundState };
+    const forfeitedPoints = roundState.roundPoints;
     
-    const forfeitedPoints = newRoundState.roundPoints;
-    const consecutiveFlops = newGameState.currentLevel.consecutiveFlops + 1;
+    let newGameState = incrementConsecutiveFlops(gameState);
+    newGameState = setForfeitedPoints(newGameState, forfeitedPoints);
+    newGameState = endRound(newGameState, 'flopped');
     
-    // Increment consecutive flops 
-    newGameState.currentLevel.consecutiveFlops = consecutiveFlops;
-    
-    // End the round
-    newRoundState.isActive = false;
-    newRoundState.flopped = true;
-    newRoundState.endReason = 'flopped';
-    newRoundState.forfeitedPoints = forfeitedPoints;
-    
-    // Update game state
-    newGameState.currentLevel.currentRound = newRoundState;
+    const consecutiveFlops = newGameState.currentLevel.consecutiveFlops;
     
     this.emit('flopOccurred', {
       forfeitedPoints,
@@ -309,7 +405,7 @@ export class GameAPI {
       gameState: newGameState
     });
     this.emit('roundEnded', {
-      roundNumber: newRoundState.roundNumber,
+      roundNumber: newGameState.currentLevel.currentRound?.roundNumber || 0,
       reason: 'flopped',
       gameState: newGameState
     });
@@ -335,36 +431,15 @@ export class GameAPI {
    * Start a new round
    */
   async startNewRound(gameState: GameState): Promise<{ gameState: GameState }> {
-    const newGameState = { ...gameState };
-    
-    // Determine next round number
-    const existingRound = newGameState.currentLevel.currentRound;
-    let nextRoundNumber: number;
-    
-    if (existingRound && existingRound.isActive === true) {
-      nextRoundNumber = existingRound.roundNumber;
-    } else if (existingRound === undefined) {
-      nextRoundNumber = 1;
-    } else {
-      nextRoundNumber = existingRound.roundNumber + 1;
-    }
-    
-    // Create new round state with full dice set 
-    const roundState = createInitialRoundState(nextRoundNumber, newGameState.diceSet);
-    
-    // Call charm onRoundStart hooks
-    this.charmManager.callAllOnRoundStart({ gameState: newGameState, roundState });
-    
-    // Update game state
-    newGameState.currentLevel.currentRound = roundState;
+    const result = startNewRound(gameState, this.charmManager);
     
     this.emit('roundStarted', {
-      roundNumber: nextRoundNumber,
-      gameState: newGameState
+      roundNumber: result.newGameState.currentLevel.currentRound?.roundNumber || 1,
+      gameState: result.newGameState
     });
-    this.emit('stateChanged', { gameState: newGameState });
+    this.emit('stateChanged', { gameState: result.newGameState });
     
-    return { gameState: newGameState };
+    return { gameState: result.newGameState };
   }
 
   /**
@@ -373,25 +448,22 @@ export class GameAPI {
   async rerollDice(
     gameState: GameState,
     diceToReroll: number[]
-  ): Promise<{ gameState: GameState }> {
+  ): Promise<{ gameState: GameState; isFlop: boolean }> {
     const roundState = gameState.currentLevel.currentRound;
     if (!roundState) {
       throw new Error('No active round to reroll dice');
     }
     
-    const newGameState = { ...gameState };
-    const newRoundState = { ...roundState };
+    // Use atomic actions
+    let newGameState = randomizeSelectedDice(gameState, diceToReroll);
+    newGameState = decrementRerolls(newGameState);
     
-    // Reroll the specified dice
-    rerollDiceFunction(newRoundState.diceHand, diceToReroll);
-    
-    // Decrement rerolls remaining
-    if (newGameState.currentLevel.rerollsRemaining !== undefined) {
-      newGameState.currentLevel.rerollsRemaining--;
+    // Check for flop
+    const newRoundState = newGameState.currentLevel.currentRound;
+    if (!newRoundState) {
+      throw new Error('Round state lost after reroll');
     }
-    
-    // Update game state
-    newGameState.currentLevel.currentRound = newRoundState;
+    const flopResult = isFlop(newRoundState.diceHand);
     
     this.emit('diceRolled', {
       rollNumber: newRoundState.rollHistory.length + 1,
@@ -399,7 +471,7 @@ export class GameAPI {
     });
     this.emit('stateChanged', { gameState: newGameState });
     
-    return { gameState: newGameState };
+    return { gameState: newGameState, isFlop: flopResult };
   }
 
   /**
@@ -413,20 +485,24 @@ export class GameAPI {
       throw new Error('No active round to roll dice');
     }
     
-    const newGameState = { ...gameState };
-    const newRoundState = { ...roundState };
-    
-    // Check for hot dice (empty diceHand) - processRoll will handle populating if needed
-    const isHotDice = newRoundState.diceHand.length === 0;
-    
-    const result = processRoll(newRoundState, isHotDice ? newGameState.diceSet : undefined);
+    // Hot dice should have been processed during scoring, so diceHand should already be reset
+    // If diceHand is empty and we have history, hot dice occurred but wasn't reset - fix it
+    let newGameState = { ...gameState };
+    if (roundState.diceHand.length === 0 && roundState.rollHistory.length > 0) {
+      newGameState = processHotDice(newGameState);
+    }
+    const currentRoundState = newGameState.currentLevel.currentRound;
+    if (!currentRoundState) {
+      throw new Error('No active round to roll dice');
+    }
+    const result = processRoll(currentRoundState, newGameState.diceSet);
     
     // Update game state
+    newGameState.currentLevel = { ...newGameState.currentLevel };
     newGameState.currentLevel.currentRound = result.newRoundState;
     
     // Get roll number from history
-    const lastRollEntry = result.newRoundState.rollHistory[result.newRoundState.rollHistory.length - 1];
-    const rollNumber = lastRollEntry?.rollNumber || 1;
+    const rollNumber = result.newRoundState.rollHistory[result.newRoundState.rollHistory.length - 1]?.rollNumber || 1;
     
     this.emit('diceRolled', {
       rollNumber,
@@ -481,6 +557,139 @@ export class GameAPI {
     this.emit('stateChanged', { gameState: newGameState });
     
     return { ...result, gameState: newGameState };
+  }
+
+  /**
+   * Check if a roll is a flop (no valid scoring combinations)
+   */
+  checkFlop(gameState: GameState): boolean {
+    const roundState = gameState.currentLevel.currentRound;
+    if (!roundState) return false;
+    return isFlop(roundState.diceHand);
+  }
+
+  /**
+   * Check if player can reroll
+   */
+  canReroll(gameState: GameState): boolean {
+    const roundState = gameState.currentLevel.currentRound;
+    if (!roundState) return false;
+    return roundState.isActive 
+      && roundState.diceHand.length > 0
+      && (gameState.currentLevel.rerollsRemaining || 0) > 0;
+  }
+
+  /**
+   * Check if player can roll
+   */
+  canRoll(gameState: GameState): boolean {
+    if (!gameState.isActive) return false;
+    if ((gameState.currentLevel.banksRemaining || 0) <= 0) return false;
+    const roundState = gameState.currentLevel.currentRound;
+    if (!roundState) return true; // Can start new round
+    if (!roundState.isActive) return true; // Can start new round
+    // Can roll if no dice rolled yet in this round
+    return roundState.rollHistory.length === 0;
+  }
+
+  /**
+   * Check if player can bank points
+   */
+  canBankPoints(gameState: GameState): boolean {
+    return canBankPointsLogic(gameState);
+  }
+
+  /**
+   * Check if hot dice occurred
+   */
+  isHotDice(gameState: GameState): boolean {
+    return isHotDice(gameState);
+  }
+
+  /**
+   * Check if game is over
+   */
+  isGameOver(gameState: GameState): boolean {
+    return isGameOver(gameState);
+  }
+
+  /**
+   * Check if level is completed
+   */
+  isLevelCompleted(gameState: GameState): boolean {
+    return isLevelCompleted(gameState);
+  }
+
+  /**
+   * Validate reroll selection
+   */
+  validateReroll(gameState: GameState, selectedIndices: number[]): { valid: boolean; error?: string } {
+    const roundState = gameState.currentLevel.currentRound;
+    if (!roundState) {
+      return { valid: false, error: 'No active round' };
+    }
+    return validateRerollSelection(selectedIndices, roundState.diceHand);
+  }
+
+  /**
+   * Calculate level rewards (without applying them)
+   */
+  calculateLevelRewards(levelNumber: number, gameState: GameState): LevelRewards {
+    return calculateLevelRewards(levelNumber, gameState.currentLevel, gameState);
+  }
+
+  /**
+   * Use a consumable
+   */
+  async useConsumable(gameState: GameState, index: number): Promise<{ success: boolean; gameState: GameState; roundState?: RoundState; requiresInput?: any; shouldRemove: boolean }> {
+    const roundState = gameState.currentLevel.currentRound || null;
+    const newGameState = { ...gameState };
+    const newRoundState = roundState ? { ...roundState } : undefined;
+    
+    const result = applyConsumableEffect(index, newGameState, newRoundState || null, this.charmManager);
+    
+    // Update game state
+    Object.assign(newGameState, result.gameState);
+    if (result.roundState && newRoundState) {
+      Object.assign(newRoundState, result.roundState);
+    }
+    
+    // Remove consumable if needed
+    if (result.shouldRemove) {
+      newGameState.consumables.splice(index, 1);
+    }
+    
+    // Check if consumable has 0 uses
+    const consumable = newGameState.consumables[index];
+    if (consumable && consumable.uses !== undefined && consumable.uses <= 0) {
+      newGameState.consumables.splice(index, 1);
+    }
+    
+    // Update round state if it exists
+    if (newRoundState && result.roundState) {
+      newGameState.currentLevel.currentRound = newRoundState;
+    }
+    
+    this.emit('stateChanged', { gameState: newGameState });
+    
+    return {
+      success: result.success,
+      gameState: newGameState,
+      roundState: newRoundState,
+      requiresInput: result.requiresInput,
+      shouldRemove: result.shouldRemove
+    };
+  }
+
+  /**
+   * Advance to next level
+   */
+  async advanceToNextLevel(gameState: GameState): Promise<{ gameState: GameState }> {
+    const newGameState = advanceToNextLevel(gameState);
+    
+    this.emit('stateChanged', { gameState: newGameState });
+    
+    return { gameState: newGameState };
   }
 
   /**

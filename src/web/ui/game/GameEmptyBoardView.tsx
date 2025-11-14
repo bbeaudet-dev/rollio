@@ -54,7 +54,7 @@ export const GameEmptyBoardView: React.FC<GameEmptyBoardViewProps> = ({
           <div><strong>Level:</strong> {gameState.currentLevel?.levelNumber || 1}</div>
           <div><strong>Points:</strong> {gameState.currentLevel?.pointsBanked || 0} / {gameState.currentLevel?.levelThreshold || 0}</div>
           <div><strong>Rerolls:</strong> {gameState.currentLevel?.rerollsRemaining || 0}</div>
-          <div><strong>Lives:</strong> {gameState.currentLevel?.banksRemaining || 0}</div>
+          <div><strong>Banks:</strong> {gameState.currentLevel?.banksRemaining || 0}</div>
           <div style={{ marginLeft: 'auto' }}><strong>Money:</strong> ${gameState.money || 0}</div>
         </div>
       </div>
@@ -73,7 +73,6 @@ export const GameEmptyBoardView: React.FC<GameEmptyBoardViewProps> = ({
           canSelect={false}
           roundNumber={roundState.roundNumber || 1}
           rollNumber={0}
-          hotDiceCount={0}
           consecutiveFlops={gameState.currentLevel.consecutiveFlops}
           levelNumber={gameState.currentLevel?.levelNumber || 1}
           roundPoints={roundState.roundPoints || 0}

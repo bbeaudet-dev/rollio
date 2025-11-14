@@ -32,7 +32,7 @@ export const GameAlerts: React.FC<GameAlertsProps> = ({
       {canSelectDice && selectedDiceCount > 0 && (
         <div style={{
           position: 'absolute',
-          top: '50%',
+          top: '35%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 30,
@@ -52,7 +52,7 @@ export const GameAlerts: React.FC<GameAlertsProps> = ({
       {canChooseFlopShield && (
         <div style={{
           position: 'absolute',
-          top: '50%',
+          top: '35%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 30,
@@ -109,7 +109,7 @@ export const GameAlerts: React.FC<GameAlertsProps> = ({
       {canContinueFlop && (
         <div style={{
           position: 'absolute',
-          top: '50%',
+          top: '35%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 30,
@@ -134,7 +134,7 @@ export const GameAlerts: React.FC<GameAlertsProps> = ({
       {gameOver && (
         <div style={{
           position: 'absolute',
-          top: '50%',
+          top: '35%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 30,
@@ -150,7 +150,7 @@ export const GameAlerts: React.FC<GameAlertsProps> = ({
         }}>
           💀 GAME OVER 💀
           <div style={{ fontSize: '14px', marginTop: '8px', fontWeight: 'normal' }}>
-            You ran out of lives!
+            You ran out of banks!
           </div>
         </div>
       )}

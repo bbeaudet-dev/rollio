@@ -75,7 +75,7 @@ export type CharmType =
   | 'flopNavigator'
   | 'flopCommander'
   | 'flopConqueror'
-  | 'woodenWonder'
+  | 'flowerWonder'
   | 'crystalClear'
   | 'metallicMight'
   | 'stoneStrength'
@@ -116,7 +116,7 @@ export type CharmType =
   | 'rainbowRider'
   | 'mirrorMage'
   | 'goldenGuard'
-  | 'woodenWarden'
+  | 'flowerWarden'
   | 'dollarDash'
   | 'sureShot'
   | 'flopInsurance'
@@ -326,9 +326,9 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'common'
   },
   {
-    id: 'woodenWonder',
-    name: 'Wooden Wonder',
-    description: '+5 points for each wooden die in the scoring selection',
+    id: 'flowerWonder',
+    name: 'Flower Wonder',
+    description: '+5 points for each flower die in the scoring selection',
     rarity: 'common'
   },
   {
@@ -446,9 +446,9 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'common'
   },
   {
-    id: 'woodenWarden',
-    name: 'Wooden Warden',
-    description: '+8 points when all scored dice are wooden',
+    id: 'flowerWarden',
+    name: 'Flower Warden',
+    description: '+8 points when all scored dice are flower',
     rarity: 'common'
   },
 

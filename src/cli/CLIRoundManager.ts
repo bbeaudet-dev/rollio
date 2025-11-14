@@ -1,7 +1,11 @@
 import { GameInterface } from './interfaces';
 import { CharmManager } from '../game/logic/charmSystem';
 import { createInitialRoundState, DEFAULT_GAME_CONFIG } from '../game/utils/factories';
-import { validateDiceSelectionAndScore, processDiceScoring, processBankAction, processFlop, updateGameStateAfterRound, isFlop } from '../game/logic/gameLogic';
+import { isFlop } from '../game/logic/gameLogic';
+import { processBankAction, processFlop, updateGameStateAfterRound } from './CLIGameActions';
+import { getAllPartitionings } from '../game/logic/scoring';
+import { validateDiceSelection } from '../game/utils/effectUtils';
+import { DieValue } from '../game/types';
 import { applyMaterialEffects } from '../game/logic/materialSystem';
 import { getHighestPointsPartitioning } from '../game/logic/scoring';
 import { calculateRerollsForLevel, calculateBanksForLevel, validateRerollSelection } from '../game/logic/rerollLogic';
@@ -177,7 +181,10 @@ export class CLIRoundManager {
       await gameInterface.log('');
 
       /* === Remove Scored Dice and Update History === */
-      const scoringActionResult = processDiceScoring(roundState.diceHand, selectedIndices, { valid: true, points: finalPoints, combinations: selectedPartitioning });
+      // Remove scored dice from diceHand
+      const newHand = roundState.diceHand.filter((_, i) => !selectedIndices.includes(i));
+      const hotDice = newHand.length === 0;
+      const scoringActionResult = { newHand, hotDice };
       roundState.diceHand = scoringActionResult.newHand;
       
       // Get the roll number from the last roll entry
@@ -283,7 +290,20 @@ export class CLIRoundManager {
       async (idx: number) => await useConsumable(idx, gameState, roundState),
       gameState
     );
-    return validateDiceSelectionAndScore(input, roundState.diceHand, { charms: gameState.charms || [] });
+    
+    // Validate selection and get scoring result
+    const selectedIndices = validateDiceSelection(input, roundState.diceHand.map((die: Die) => die.rolledValue) as DieValue[]);
+    const context = { charms: gameState.charms || [] };
+    const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndices, context);
+    const combos = allPartitionings.length > 0 ? allPartitionings[0] : [];
+    const totalComboDice = combos.reduce((sum, c) => sum + c.dice.length, 0);
+    const valid = combos.length > 0 && totalComboDice === selectedIndices.length;
+    const points = combos.reduce((sum, c) => sum + c.points, 0);
+    
+    return {
+      selectedIndices,
+      scoringResult: { valid, points, combinations: combos, allPartitionings }
+    };
   }
 
 

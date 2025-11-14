@@ -4,7 +4,7 @@ import { getRandomInt } from './effectUtils';
 import { validateDiceSetConfig } from '../validation/diceSetValidation';
 import { getLevelConfig } from '../data/levels';
 import { calculateRerollsForLevel, calculateBanksForLevel } from '../logic/rerollLogic';
-import { applyLevelEffects } from '../logic/gameLogic';
+import { applyLevelEffects } from '../logic/gameActions';
 import { getWorldForLevel, getWorldNumber, isMinibossLevel, isMainBossLevel } from '../data/worlds';
 
 // Default game configuration
@@ -64,7 +64,7 @@ export function createInitialLevelState(levelNumber: number, gameState: GameStat
   // Apply level effects (boss effects, modifiers)
   const { rerolls, banks } = applyLevelEffects(baseRerolls, baseBanks, levelConfig);
   
-  // Create first round of the level
+  // Create first round of the level (diceHand will be empty until first roll)
   const firstRound = createInitialRoundState(1);
   
   return {
@@ -119,13 +119,9 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig): GameState 
 }
 
 export function createInitialRoundState(roundNumber: number = 1, diceSet?: any[]): RoundState {
+  // Start with empty diceHand - dice will be added when rolling
+  // If diceSet is provided, we'll use it when rolling, but don't populate diceHand yet
   const diceHand: any[] = [];
-  
-  // If diceSet is provided, populate dice hand with full set
-  if (diceSet) {
-    diceHand.length = 0;
-    diceHand.push(...diceSet.map((die: any) => ({ ...die, scored: false })));
-  }
   
   return {
     roundNumber: roundNumber,
