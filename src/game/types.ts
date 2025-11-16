@@ -19,7 +19,7 @@ export interface Die {
   rolledValue?: number; // Set at runtime
 }
 
-export type DiceSetType = 'beginner' | 'advanced' | 'mayhem';
+export type DiceSetType = 'standard' | 'cheat' | 'challenge';
 
 export interface DiceSetConfig {
   name: string;
@@ -30,6 +30,9 @@ export interface DiceSetConfig {
   baseLevelRerolls: number; 
   baseLevelBanks: number;
   setType: DiceSetType;
+  startingCharms?: string[]; 
+  startingConsumables?: string[];
+  startingBlessings?: string[];
 }
 
 // SCORING TYPES
@@ -143,7 +146,6 @@ export interface GameConfig {
   diceSetConfig: DiceSetConfig;
   penalties: {
     consecutiveFlopLimit: number;
-    flopPenaltyEnabled: boolean;
   };
 }
 

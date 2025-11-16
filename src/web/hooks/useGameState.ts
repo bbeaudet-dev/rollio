@@ -225,8 +225,6 @@ export function useGameState() {
     inventory: {
       charms: webState?.gameState?.charms || [],
       consumables: webState?.gameState?.consumables || [],
-      materialLogs: webState?.materialLogs || [],
-      charmLogs: webState?.charmLogs || [],
     },
     
     // Shop state

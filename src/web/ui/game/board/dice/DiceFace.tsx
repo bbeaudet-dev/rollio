@@ -1,4 +1,5 @@
 import React from 'react';
+import { MATERIAL_COLORS } from '../../../../utils/colors';
 
 interface DiceFaceProps {
   value: number;
@@ -6,65 +7,10 @@ interface DiceFaceProps {
   material?: string;
 }
 
-// Color mapping for different materials
+// Get material colors from centralized colors.ts
 const getMaterialColors = (material: string = 'plastic') => {
-  switch (material) {
-    case 'plastic':
-    default:
-      return { 
-        background: '#fff', 
-        border: '#333', 
-        pip: '#333' 
-      };
-    case 'crystal':
-      return { 
-        background: 'radial-gradient(ellipse at top left, #f3e5f5, #ce93d8, #9c27b0, #6a1b9a)', 
-        border: '#6a1b9a', 
-        pip: '#f3e5f5' 
-      };
-    case 'flower':
-      return { 
-        background: 'radial-gradient(circle at 30% 30%, #ffb3d9, #ffd700, #87ceeb, #98fb98)', 
-        border: '#4caf50', 
-        pip: '#ff1493' 
-      };
-    case 'golden':
-      return { 
-        background: 'linear-gradient(135deg, #ffd700, #ffed4e, #ffc107, #daa520)', 
-        border: '#b8860b', 
-        pip: '#b87333' 
-      };
-    case 'volcano':
-      return { 
-        background: 'radial-gradient(circle at 50% 50%, #ff4500, #ff6600, #ff8c00, #800000, #4a0000)', 
-        border: '#000000', 
-        pip: '#8b0000' 
-      };
-    case 'mirror':
-      return { 
-        background: 'linear-gradient(135deg, #c0c0c0, #e8e8e8, #f0f0f0, #d3d3d3)', 
-        border: '#808080', 
-        pip: '#404040' 
-      };
-    case 'rainbow':
-      return { 
-        background: 'linear-gradient(45deg, #ff0000, #ffff00, #32cd32, #4169e1, #4b0082, #875fff, #ff69b4)', 
-        border: '#333', 
-        pip: '#fff' 
-      };
-    case 'ghost':
-      return { 
-        background: '#1a1a2e', 
-        border: '#0a0a0f', 
-        pip: '#7fffd4' 
-      };
-    case 'lead':
-      return { 
-        background: '#4a4a4a', 
-        border: '#5a5a6a', 
-        pip: '#2a2a2a' 
-      };
-  }
+  const materialKey = material as keyof typeof MATERIAL_COLORS;
+  return MATERIAL_COLORS[materialKey] || MATERIAL_COLORS.plastic;
 };
 
 export const DiceFace: React.FC<DiceFaceProps> = ({ value, size = 40, material = 'plastic' }) => {

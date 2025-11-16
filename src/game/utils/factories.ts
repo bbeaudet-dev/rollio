@@ -10,9 +10,7 @@ import { getWorldForLevel, getWorldNumber, isMinibossLevel, isMainBossLevel } fr
 // Default game configuration
 export const DEFAULT_GAME_CONFIG = {
   penalties: {
-    consecutiveFlopPenalty: 1000,
     consecutiveFlopLimit: 3,
-    flopPenaltyEnabled: true,
   },
 };
 

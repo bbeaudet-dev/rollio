@@ -356,24 +356,13 @@ export class CLIInterface implements GameInterface {
     return selectedIndices;
   }
 
-  async askForGameRules(): Promise<{ penaltyEnabled: boolean; consecutiveFlopLimit: number; consecutiveFlopPenalty: number }> {
-    // Get user inputs (interface concern)
-    const penaltyEnabledInput = await this.ask('  Enable flop penalty? (y/n, default y): ', 'y');
-    
-    let flopLimitInput: string | undefined;
-    let flopPenaltyInput: string | undefined;
-    
-    // Only ask for penalty details if enabled
-    if (penaltyEnabledInput.trim() === '' || penaltyEnabledInput.trim().toLowerCase() === 'y') {
-      flopLimitInput = await this.ask(`  Set consecutive flop limit before penalty (default ${DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit}): `, DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit.toString());
-      flopPenaltyInput = await this.ask(`  Set penalty amount (default ${DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty}): `, DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty.toString());
-    }
+  async askForGameRules(): Promise<{ consecutiveFlopLimit: number }> {
+    // Get user input for consecutive flop limit
+    const flopLimitInput = await this.ask(`  Set consecutive flop limit before game over (default ${DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit}): `, DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit.toString());
     
     // Delegate parsing and validation to ConfigManager (game logic concern)
     return ConfigManager.parseGameRules({
-      penaltyEnabledInput,
-      flopLimitInput,
-      flopPenaltyInput
+      flopLimitInput
     });
   }
 
@@ -400,9 +389,9 @@ export class CLIInterface implements GameInterface {
       await this.log(DisplayFormatter.formatGameScore(score));
   }
 
-  async displayFlopMessage(forfeitedPoints: number, consecutiveFlops: number, levelBankedPoints: number, consecutiveFlopPenalty: number, consecutiveFlopLimit: number): Promise<void> {
+  async displayFlopMessage(forfeitedPoints: number, consecutiveFlops: number, levelBankedPoints: number, consecutiveFlopLimit: number): Promise<void> {
     const { formatFlopMessage } = require('../game/utils/effectUtils');
-    await this.log(formatFlopMessage(forfeitedPoints, consecutiveFlops, levelBankedPoints, consecutiveFlopPenalty, consecutiveFlopLimit), this.MESSAGE_DELAY);
+    await this.log(formatFlopMessage(forfeitedPoints, consecutiveFlops, levelBankedPoints, consecutiveFlopLimit), this.MESSAGE_DELAY);
   }
 
   async displayGameEnd(gameState: any): Promise<void> {

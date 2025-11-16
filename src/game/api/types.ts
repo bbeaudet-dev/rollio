@@ -1,4 +1,4 @@
-import { GameState, GameConfig } from '../types';
+import { GameState } from '../types';
 
 /**
  * GameAPI-specific types
@@ -15,6 +15,11 @@ export interface RollDiceResult {
   rollNumber: number;
   isFlop?: boolean;
   flopShieldAvailable?: boolean;
+}
+
+export interface RerollDiceResult {
+  gameState: GameState;
+  isFlop: boolean;
 }
 
 export interface ScoreDiceResult {
@@ -37,9 +42,4 @@ export interface FlopResult {
   consecutiveFlops: number;
 }
 
-export interface ScoringStep {
-  type: 'findCombinations' | 'applyCharms' | 'applyMaterials' | 'removeDice' | 'addPoints' | 'incrementCrystals' | 'processHotDice' | 'updateHistory';
-  gameState: GameState;
-  data?: any;
-}
 

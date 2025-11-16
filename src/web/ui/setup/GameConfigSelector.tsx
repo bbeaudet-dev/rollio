@@ -3,13 +3,17 @@ import { CharmSelector } from './CharmSelector';
 import { ConsumableSelector } from './ConsumableSelector';
 import { DiceSetSelector } from './DiceSetSelector';
 import { StartGameButton } from './StartGameButton';
+import { CheatModeToggle } from './CheatModeToggle';
+import { DifficultySelector } from './DifficultySelector';
 import { MenuButton } from '../components';
+import { DifficultyLevel } from '../../../game/logic/difficulty';
 
 interface GameConfigSelectorProps {
   onConfigComplete: (config: {
     diceSetIndex: number;
     selectedCharms: number[];
     selectedConsumables: number[];
+    difficulty: DifficultyLevel;
   }) => void;
 }
 
@@ -17,16 +21,20 @@ interface GameConfig {
   diceSetIndex: number;
   selectedCharms: number[];
   selectedConsumables: number[];
+  difficulty: DifficultyLevel;
+  cheatMode: boolean;
 }
 
 export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfigComplete }) => {
   const [config, setConfig] = useState<GameConfig>({
     diceSetIndex: 0,
     selectedCharms: [],
-    selectedConsumables: []
+    selectedConsumables: [],
+    difficulty: 'normal',
+    cheatMode: false
   });
   
-  const [diceSets, setDiceSets] = useState<any[]>([]);
+  const [allDiceSets, setAllDiceSets] = useState<any[]>([]);
   const [charms, setCharms] = useState<any[]>([]);
   const [consumables, setConsumables] = useState<any[]>([]);
 
@@ -37,7 +45,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
         const { CHARMS } = await import('../../../game/data/charms');
         const { CONSUMABLES } = await import('../../../game/data/consumables');
         
-        setDiceSets(ALL_DICE_SETS);
+        setAllDiceSets(ALL_DICE_SETS);
         setCharms(CHARMS);
         setConsumables(CONSUMABLES);
       } catch (error) {
@@ -48,9 +56,37 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
     loadData();
   }, []);
 
+  // Filter dice sets based on cheat mode
+  const getAvailableDiceSets = () => {
+    if (!config.cheatMode) {
+      // Only show Standard sets when cheat mode is off
+      return allDiceSets.filter((ds, index) => {
+        const diceSetConfig = typeof ds === 'function' ? ds() : ds;
+        // Find Basic, Low Baller, and Collector sets by name
+        return diceSetConfig.name === 'Beginner Set' || 
+               diceSetConfig.name === 'Low Baller Set' || 
+               diceSetConfig.name === 'Hoarder Set';
+      });
+    }
+    return allDiceSets;
+  };
+
+  const availableDiceSets = getAvailableDiceSets();
+  
+  // Adjust diceSetIndex if current selection is not available
+  useEffect(() => {
+    if (availableDiceSets.length > 0) {
+      const currentSet = allDiceSets[config.diceSetIndex];
+      const isAvailable = availableDiceSets.includes(currentSet);
+      if (!isAvailable) {
+        setConfig(prev => ({ ...prev, diceSetIndex: 0 }));
+      }
+    }
+  }, [config.cheatMode, allDiceSets, availableDiceSets]);
+
   const getCurrentDiceSet = () => {
-    if (diceSets.length === 0) return null;
-    const diceSet = diceSets[config.diceSetIndex];
+    if (availableDiceSets.length === 0) return null;
+    const diceSet = availableDiceSets[config.diceSetIndex];
     return typeof diceSet === 'function' ? diceSet() : diceSet;
   };
 
@@ -61,6 +97,20 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
       selectedCharms: [], // Reset selections when dice set changes
       selectedConsumables: []
     }));
+  };
+
+  const handleCheatModeToggle = () => {
+    setConfig(prev => ({ 
+      ...prev, 
+      cheatMode: !prev.cheatMode,
+      selectedCharms: [], // Reset when toggling cheat mode
+      selectedConsumables: [],
+      diceSetIndex: 0
+    }));
+  };
+
+  const handleDifficultyChange = (difficulty: DifficultyLevel) => {
+    setConfig(prev => ({ ...prev, difficulty }));
   };
 
   const handleCharmSelect = (index: number) => {
@@ -119,29 +169,64 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
         🎲 Choose Your Loadout
       </h1>
 
-      <StartGameButton onClick={() => onConfigComplete(config)} />
+      {/* Cheat Mode Toggle and Difficulty Selector */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px',
+        padding: '15px',
+        backgroundColor: '#fff',
+        borderRadius: '8px',
+        border: '1px solid #dee2e6'
+      }}>
+        <CheatModeToggle
+          cheatMode={config.cheatMode}
+          onToggle={handleCheatModeToggle}
+        />
+
+        <DifficultySelector
+          difficulty={config.difficulty}
+          onChange={handleDifficultyChange}
+        />
+      </div>
+
+      <StartGameButton onClick={() => onConfigComplete({
+        diceSetIndex: config.diceSetIndex,
+        selectedCharms: config.selectedCharms,
+        selectedConsumables: config.selectedConsumables,
+        difficulty: config.difficulty
+      })} />
 
       {/* All sections in one view */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: config.cheatMode ? '1fr 1fr 1fr' : '1fr', 
+        gap: '20px' 
+      }}>
         <DiceSetSelector
-          diceSets={diceSets}
+          diceSets={availableDiceSets}
           selectedIndex={config.diceSetIndex}
           onDiceSetSelect={handleDiceSetSelect}
         />
 
-        <CharmSelector
-          charms={charms}
-          selectedCharms={config.selectedCharms}
-          maxSlots={maxCharmSlots}
-          onCharmSelect={handleCharmSelect}
-        />
+        {config.cheatMode && (
+          <>
+            <CharmSelector
+              charms={charms}
+              selectedCharms={config.selectedCharms}
+              maxSlots={maxCharmSlots}
+              onCharmSelect={handleCharmSelect}
+            />
 
-        <ConsumableSelector
-          consumables={consumables}
-          selectedConsumables={config.selectedConsumables}
-          maxSlots={maxConsumableSlots}
-          onConsumableSelect={handleConsumableSelect}
-        />
+            <ConsumableSelector
+              consumables={consumables}
+              selectedConsumables={config.selectedConsumables}
+              maxSlots={maxConsumableSlots}
+              onConsumableSelect={handleConsumableSelect}
+            />
+          </>
+        )}
       </div>
     </div>
   );

@@ -36,7 +36,7 @@ export class TutorialStateManager {
       consumableSlots: 0,
       baseLevelRerolls: 0,
       baseLevelBanks: 0,
-      setType: 'beginner'
+      setType: 'standard'
     };
 
     const gameState: GameState = {
@@ -59,8 +59,6 @@ export class TutorialStateManager {
         diceSetConfig,
         penalties: {
           consecutiveFlopLimit: 3,
-          consecutiveFlopPenalty: 1000,
-          flopPenaltyEnabled: true
         }
       },
       currentLevel: {

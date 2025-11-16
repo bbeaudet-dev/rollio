@@ -17,11 +17,13 @@ export const SinglePlayerGame: React.FC = () => {
     diceSetIndex: number;
     selectedCharms: number[];
     selectedConsumables: number[];
+    difficulty: string;
   }) => {
     setSelectedDiceSetIndex(config.diceSetIndex);
     setSelectedCharms(config.selectedCharms);
     setSelectedConsumables(config.selectedConsumables);
     setShowConfigSelector(false);
+    // TODO: Pass difficulty to startNewGame when it's implemented
     game.gameActions.startNewGame(config.diceSetIndex, config.selectedCharms, config.selectedConsumables);
   };
 

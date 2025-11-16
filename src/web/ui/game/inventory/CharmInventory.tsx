@@ -1,4 +1,5 @@
 import React from 'react';
+import { getItemTypeColor } from '../../../utils/colors';
 import { CharmInventoryProps } from '../../../types/inventory';
 import { InventoryItem } from '../../components/InventoryItem';
 import { RarityDot } from '../../../utils/rarityColors';
@@ -27,6 +28,7 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms }) => {
                 description={charm.description}
                 rarity={(charm as any).rarity || 'Common'}
                 uses={charm.uses}
+                backgroundColor={getItemTypeColor('charm')}
               />
             </li>
           ))}

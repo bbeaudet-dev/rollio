@@ -241,6 +241,26 @@ Avoid
 
 - advanced combinations unlocked, MAYBE tier 1?
 
+#### Shop-Related Blessings (Requires Shop Improvements)
+
+- **Extra Shop Slots** (Tier 1/2/3): Increase the number of charm/consumable slots in the shop by 1/2/3
+  - Similar to Balatro's "Extra Hand" blessing that increases shop slots
+  - Tier 1: +1 charm slot, Tier 2: +1 consumable slot, Tier 3: +1 blessing slot
+- **Booster Pack** (Tier 1/2/3): Add an extra booster pack to each shop
+  - Tier 1: 1 extra booster pack per shop
+  - Tier 2: 2 extra booster packs per shop
+  - Tier 3: 3 extra booster packs per shop
+- **Blessing Access** (Tier 1): Any tier blessing can show up in the shop regardless of unlock status
+  - Alternatively, this could be a charm instead of a blessing
+  - Allows access to higher-tier blessings earlier in the game
+
+**Implementation Requirements:**
+
+- These blessings require the following shop improvements to be implemented first:
+  1. Shop reroll system (pay money to reroll shop inventory)
+  2. Items going away when purchased (not auto-refilling slots)
+  3. Booster pack system (packs that contain random items)
+
 ---
 
 ### Dice Sets
@@ -521,6 +541,51 @@ Design a simple system and let complexity grow out of it. This is the way
 ---
 
 ### Shop
+
+#### Current Shop System
+
+The shop currently:
+
+- Generates 3 random charms (excluding owned ones)
+- Generates 3 random consumables (10% wishes, 90% whims, excluding owned ones)
+- Generates 1 random blessing (tier-based unlock system)
+- Items are auto-refilled when purchased (slots don't empty)
+- No shop reroll functionality
+- No booster pack system
+
+#### Shop Improvements Needed
+
+**1. Shop Reroll System**
+
+- Allow players to pay money (e.g., $2-5) to reroll the entire shop inventory
+- Reroll should generate new random items (charms, consumables, blessings)
+- Cost could scale with level or be fixed
+- Could be a blessing that reduces reroll cost or allows free rerolls
+
+**2. Items Going Away When Purchased**
+
+- Currently, when an item is purchased, the slot auto-refills with a new item
+- Change behavior so purchased items leave empty slots
+- Empty slots remain empty until next shop visit or reroll
+- This makes shop decisions more meaningful and allows for "saving" money for better items
+
+**3. Booster Pack System**
+
+- Booster packs contain random items (charms, consumables, or mixed)
+- Packs can be purchased from the shop
+- Opening a pack reveals items that can be immediately used or added to inventory
+- Different pack types:
+  - **Charm Pack**: Contains 1-2 random charms
+  - **Consumable Pack**: Contains 2-3 random consumables (whims/wishes mix)
+  - **Mixed Pack**: Contains 1 charm and 1-2 consumables
+  - **Blessing Pack**: Contains 1 random blessing (tier-appropriate)
+- Pack prices should be cheaper than buying individual items but with less control
+
+**4. Shop Slot Management**
+
+- Support variable number of slots per category (charms, consumables, blessings)
+- Blessings can modify slot counts
+- UI needs to handle empty slots gracefully
 
 #### Using Consumables
 
