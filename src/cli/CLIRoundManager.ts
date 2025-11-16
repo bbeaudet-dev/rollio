@@ -658,7 +658,6 @@ export class CLIRoundManager {
         roundState.roundPoints,
         consecutiveFlops,
         levelBankedPoints,
-        (gameState.config?.penalties?.consecutiveFlopPenalty ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty),
         (gameState.config?.penalties?.consecutiveFlopLimit ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit)
       );
       

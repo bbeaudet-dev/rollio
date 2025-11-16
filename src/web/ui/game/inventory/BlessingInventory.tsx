@@ -1,4 +1,5 @@
 import React from 'react';
+import { getItemTypeColor } from '../../../utils/colors'; 
 import { Blessing } from '../../../../game/types';
 import { getBlessingName, getBlessingDescription } from '../../../../game/data/blessings';
 import { InventoryItem } from '../../components/InventoryItem';
@@ -70,6 +71,7 @@ export const BlessingInventory: React.FC<BlessingInventoryProps> = ({ blessings 
                   <InventoryItem
                     title={group.baseName}
                     description={group.description}
+                    backgroundColor={getItemTypeColor('blessing')}
                   />
                   <span style={{
                     fontSize: '11px',

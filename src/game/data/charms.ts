@@ -1,149 +1,85 @@
 import { Charm, CharmRarity } from '../types';
 
 export type CharmType = 
+  // Common charms
   | 'flopShield'
-  | 'scoreMultiplier' 
-  | 'fourOfAKindBooster'
-  | 'volcanoAmplifier'
-  | 'straightCollector'
-  | 'roundMultiplier'
+  | 'stairstepper'
   | 'consumableGenerator'
-  | 'oddCollector'
-  | 'evenPerfection'
+  | 'oddsAndEnds'
+  | 'nowWereEven'
   | 'moneyMagnet'
-  | 'sizeMatters'
-  | 'rabbitsFoot'
-  | 'weightedDice'
   | 'highStakes'
   | 'lowHangingFruit'
-  // New charms
-  | 'diceDoubler'
-  | 'sequentialSurge'
-  | 'luckySeven'
-  | 'evenFlow'
+  | 'ninetyEightPercentAPlus'
   | 'oddOdyssey'
-  | 'primeTime'
+  | 'pairUp'
   | 'tripleThreat'
-  | 'mirrorMatch'
-  | 'ascendingAce'
-  | 'descendingDynamo'
-  | 'roundRobin'
-  | 'fullHouseBonus'
+  | 'pennyPincher'
+  | 'dimeADozen'
+  | 'secondChance'
+  | 'sandbagger'
+  | 'flowerPower'
+  | 'crystalClear'
+  | 'goldenTouch'
   | 'straightShooter'
-  | 'fourOfAKindBonus'
+  | 'longshot'
+  | 'roundRobin'
+  | 'ghostWhisperer'
+  | 'ironFortress'
+  | 'rerollRanger'
+  | 'bankBaron'
+  | 'pointPirate'
+  | 'solitary'
+  | 'oneSongGlory'
+  | 'blessed'
+  | 'blessYou'
+  | 'angelInvestor'
+  | 'magicEightBall'
+  | 'hotDiceHero'
+  | 'sureShot'
+  | 'flopStrategist'
+  | 'pipCollector'
+  | 'digitalNomad'
+  // Uncommon charms
+  | 'quadBoosters'
+  | 'roundMultiplier'
+  | 'rabbitsFoot'
+  | 'weightedDice'
+  | 'luckySevens'
+  | 'savingGrace'
+  | 'tasteTheRainbow'
+  | 'swordInTheStone'
+  | 'primeTime'
+  | 'luckyLeprechaun'
+  | 'irrational'
+  | 'ferrisEuler'
+  | 'fourForYourFavor'
   | 'fiveAlive'
   | 'sixShooter'
-  | 'pairUp'
-  | 'triplePlay'
-  | 'quadQuest'
-  | 'quintupleCrown'
-  | 'levelLeap'
-  | 'flawlessFinish'
-  | 'speedster'
-  | 'comboKing'
-  | 'riskTaker'
-  | 'perfectionist'
-  | 'comebackKid'
-  | 'steadyHand'
-  | 'highRoller'
-  | 'lowRoller'
-  | 'coinCollector'
-  | 'treasureTrove'
-  | 'pennyPincher'
-  | 'dimeDozen'
-  | 'quarterQuest'
-  | 'halfDollar'
-  | 'dollarDash'
-  | 'bankersBonus'
-  | 'investorsInsight'
-  | 'jackpotJoy'
-  | 'safetyNet'
-  | 'secondChance'
-  | 'guardianAngel'
-  | 'luckyCharm'
-  | 'resilientRoller'
-  | 'bounceBack'
-  | 'sureShot'
-  | 'flopInsurance'
-  | 'flopFortune'
-  | 'flopFighter'
-  | 'flopMaster'
-  | 'flopSurvivor'
-  | 'flopStrategist'
-  | 'flopResistor'
-  | 'flopExpert'
-  | 'flopNavigator'
-  | 'flopCommander'
-  | 'flopConqueror'
-  | 'flowerWonder'
-  | 'crystalClear'
-  | 'metallicMight'
-  | 'stoneStrength'
-  | 'glassGuardian'
-  | 'obsidianObelisk'
-  | 'marbleMarvel'
-  | 'goldGlimmer'
-  | 'silverShine'
-  | 'doubleDip'
-  | 'tripleTrouble'
-  | 'quadrupleQuake'
-  | 'straightFlush'
-  | 'pairParade'
-  | 'tripletTriumph'
-  | 'hotDiceHero'
-  | 'hotDiceMaven'
-  | 'hotDiceVeteran'
-  | 'hotDiceLegend'
-  | 'rerollRanger'
-  | 'rerollRogue'
-  | 'rerollRoyal'
-  | 'bankBaron'
-  | 'bankBaroness'
-  | 'levelLord'
-  | 'levelLady'
-  | 'pointPirate'
-  | 'pointPrincess'
-  | 'diceDuke'
-  | 'diceDuchess'
-  | 'fortuneFinder'
-  | 'fortuneFavor'
-  | 'luckyLeprechaun'
+  | 'hedgeFund'
   | 'luckyLotus'
-  | 'mysticMagnet'
-  | 'mysticMoon'
-  | 'crystalCrown'
-  | 'volcanoVanguard'
-  | 'rainbowRider'
-  | 'mirrorMage'
-  | 'goldenGuard'
-  | 'flowerWarden'
-  | 'dollarDash'
-  | 'sureShot'
-  | 'flopInsurance'
-  | 'flopExpert'
-  | 'silverShine'
-  | 'obsidianObelisk'
-  | 'marbleMarvel'
-  | 'quadrupleQuake'
-  | 'hotDiceMaven'
-  | 'rerollRoyal'
-  | 'levelLord'
-  | 'flopCommander'
-  | 'flopConqueror'
-  | 'flawlessFinish'
-  | 'speedster'
-  | 'riskTaker'
+  | 'hotPocket'
+  | 'wildCard'
+  | 'whimWhisperer'
+  // Rare charms
+  | 'whimWisher'
+  | 'kingslayer'
+  | 'blankSlate'
+  | 'doubleDown'
   | 'perfectionist'
-  | 'comebackKid'
-  | 'steadyHand'
-  | 'highRoller'
-  | 'lowRoller'
-  | 'investorsInsight'
-  | 'jackpotJoy'
-  | 'flopStrategist'
-  | 'hotDiceVeteran'
-  | 'hotDiceLegend'
-  | 'flopMasterSupreme';
+  | 'divineIntervention'
+  | 'holyGrail'
+  | 'divineFavor'
+  | 'dukeOfDice'
+  | 'eyeOfHorus'
+  | 'leadTitan'
+  | 'bodyDouble'
+  | 'inheritance'
+  | 'resonance'
+  | 'bloom'
+  | 'sizeMatters'
+  | 'vesuvius'
+  | 'armadilloArmor';
 
 // Rarity price mapping
 export const CHARM_PRICES: Record<string, { buy: number; sell: number }> = {
@@ -154,7 +90,10 @@ export const CHARM_PRICES: Record<string, { buy: number; sell: number }> = {
 };
 
 export const CHARMS: Omit<Charm, 'active'>[] = [
-  // ========== EXISTING CHARMS (15) ==========
+
+
+  // COMMON CHARMS
+
   {
     id: 'flopShield',
     name: 'Flop Shield',
@@ -162,149 +101,81 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'common'
   },
   {
-    id: 'scoreMultiplier',
-    name: 'Score Multiplier',
-    description: 'Multiplies all scored roll points by 1.25x',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'fourOfAKindBooster',
-    name: 'Four-of-a-Kind Booster',
-    description: 'Multiplies 4+ of a kind scoring by 2.0x',
-    rarity: 'rare'
-  },
-  {
-    id: 'volcanoAmplifier',
-    name: 'Volcano Amplifier',
-    description: '+0.5x multiplier per volcano die × hot dice counter',
-    rarity: 'legendary'
-  },
-  {
-    id: 'straightCollector',
-    name: 'Straight Collector',
-    description: '+20 score per straight played (cumulative)',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'roundMultiplier',
-    name: 'Round Multiplier',
-    description: 'Multiplies round score by 1.25x when banking points',
-    rarity: 'rare'
+    id: 'stairstepper',
+    name: 'Stairstepper',
+    description: '+20 points when banking. Add +20 per straight played (cumulative)',
+    rarity: 'common'
   },
   {
     id: 'consumableGenerator',
     name: 'Consumable Generator',
-    description: 'Creates a random consumable when scoring 4+ of a digit',
-    rarity: 'legendary'
+    description: 'Creates a random consumable when scoring 3 or more pairs',
+    rarity: 'common'
   },
   {
-    id: 'oddCollector',
-    name: 'Odd Collector',
-    description: '+15 points for each odd number in the selected dice',
-    rarity: 'uncommon'
+    id: 'oddsAndEnds',
+    name: 'Odds and Ends',
+    description: '+25 points for each odd value scored',
+    rarity: 'common'
   },
   {
-    id: 'evenPerfection',
-    name: 'Even Perfection',
-    description: 'If all selected dice are even, gain +300 points',
-    rarity: 'rare'
+    id: 'nowWereEven',
+    name: 'Now We\'re Even',
+    description: 'If all selected dice are even, gain +150 points',
+    rarity: 'common'
   },
   {
     id: 'moneyMagnet',
     name: 'Money Magnet',
-    description: '+5 points for every $1 you have',
+    description: '+1 point for every $1 you have',
     rarity: 'common'
-  },
-  {
-    id: 'sizeMatters',
-    name: 'Size Matters',
-    description: 'Multiplier based on die size: 6 faces = 1x, below 6 = -0.5x per size, above 6 = +0.5x per size',
-    rarity: 'rare'
-  },
-  {
-    id: 'rabbitsFoot',
-    name: "Rabbit's Foot",
-    description: 'Score multiplier based on number of successful Rainbow die effect triggers.',
-    rarity: 'legendary'
-  },
-  {
-    id: 'weightedDice',
-    name: 'Weighted Dice',
-    description: 'Doubles probability of all chance-based effects (e.g., Rainbow dice, Lucky Token).',
-    rarity: 'rare'
   },
   {
     id: 'highStakes',
     name: 'High Stakes',
-    description: '3x scoring multiplier, but removes single 1 and single 5 as valid scoring combinations',
-    rarity: 'legendary'
+    description: '2x scoring multiplier, but removes single 1 and single 5 as valid scoring combinations',
+    rarity: 'common'
   },
   {
     id: 'lowHangingFruit',
     name: 'Low Hanging Fruit',
-    description: 'Allows single 3s to be scored as valid combinations (worth 25 points each)',
-    rarity: 'rare'
-  },
-
-  // ========== COMMON CHARMS (30 new, 45 total) ==========
-  {
-    id: 'diceDoubler',
-    name: 'Dice Doubler',
-    description: '+10 points when rolling two identical numbers',
+    description: 'Allows single 3s to be scored as valid combinations (worth 25 points)',
     rarity: 'common'
   },
   {
-    id: 'luckySeven',
-    name: 'Lucky Seven',
-    description: '+7 points when any die shows 7 (if using 7+ sided dice)',
-    rarity: 'common'
-  },
-  {
-    id: 'evenFlow',
-    name: 'Even Flow',
-    description: '+5 points for each even number rolled',
+    id: 'ninetyEightPercentAPlus',
+    name: '98% A+',
+    description: '+10 points if scored dice includes a pair',
     rarity: 'common'
   },
   {
     id: 'oddOdyssey',
     name: 'Odd Odyssey',
-    description: '+5 points for each odd number rolled',
+    description: '+0.25 points when scoring. Add +0.25 for each odd value scored (cumulative)',
     rarity: 'common'
   },
   {
     id: 'pairUp',
     name: 'Pair Up',
-    description: '+10 points for each pair in the roll',
+    description: '+20 points for each pair rolled',
     rarity: 'common'
   },
   {
-    id: 'triplePlay',
+    id: 'tripleThreat',
     name: 'Triple Play',
-    description: '+15 points for each three-of-a-kind in the roll',
-    rarity: 'common'
-  },
-  {
-    id: 'coinCollector',
-    name: 'Coin Collector',
-    description: '+$1 for each round completed without flopping',
+    description: '+50 points for each triplet rolled',
     rarity: 'common'
   },
   {
     id: 'pennyPincher',
     name: 'Penny Pincher',
-    description: '+$2 for each pair scored',
+    description: '+$1 for each round completed without flopping',
     rarity: 'common'
   },
   {
-    id: 'dimeDozen',
-    name: 'Dime Dozen',
-    description: '+$3 for each three-of-a-kind scored',
-    rarity: 'common'
-  },
-  {
-    id: 'safetyNet',
-    name: 'Safety Net',
-    description: 'Prevents one flop per level (single use)',
+    id: 'dimeADozen',
+    name: 'Dime-a-Dozen',
+    description: '+$3 if scored dice includes 6 of one value',
     rarity: 'common'
   },
   {
@@ -314,33 +185,27 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'common'
   },
   {
-    id: 'flopFortune',
-    name: 'Flop Fortune',
-    description: '+10 points for each flop recovered from this round',
+    id: 'sandbagger',
+    name: 'Sandbagger',
+    description: '+100 points when flopping (includes prevented flops)',
     rarity: 'common'
   },
   {
-    id: 'flopFighter',
-    name: 'Flop Fighter',
-    description: '+5 points for each consecutive flop avoided',
-    rarity: 'common'
-  },
-  {
-    id: 'flowerWonder',
-    name: 'Flower Wonder',
-    description: '+5 points for each flower die in the scoring selection',
+    id: 'flowerPower',
+    name: 'Flower Power',
+    description: '+10 points for each flower die scored in current round',
     rarity: 'common'
   },
   {
     id: 'crystalClear',
     name: 'Crystal Clear',
-    description: '+3 points for each crystal die in the scoring selection',
+    description: '+75 points for each crystal die scored',
     rarity: 'common'
   },
   {
-    id: 'goldGlimmer',
-    name: 'Gold Glimmer',
-    description: '+$1 for each golden die scored',
+    id: 'goldenTouch',
+    name: 'Golden Touch',
+    description: '+$1 for each golden die rolled',
     rarity: 'common'
   },
   {
@@ -350,118 +215,192 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'common'
   },
   {
-    id: 'fullHouseBonus',
-    name: 'Full House Bonus',
-    description: '+30 points when scoring two triplets',
+    id: 'longshot',
+    name: 'Longshot',
+    description: '+250 points when scoring a straight of 6 or longer',
     rarity: 'common'
   },
   {
     id: 'roundRobin',
     name: 'Round Robin',
-    description: '+15 points when all dice show different numbers',
+    description: '+150 points when banking if no repeated hands scored in round',
     rarity: 'common'
   },
   {
-    id: 'mirrorMatch',
-    name: 'Mirror Match',
-    description: '+20 points when first and last dice match',
+    id: 'ghostWhisperer',
+    name: 'Ghost Whisperer',
+    description: '+50 points for each unscored Ghost die; +10 points for each scored Ghost die',
     rarity: 'common'
   },
   {
-    id: 'ascendingAce',
-    name: 'Ascending Ace',
-    description: '+10 points when dice are in ascending order',
-    rarity: 'common'
-  },
-  {
-    id: 'descendingDynamo',
-    name: 'Descending Dynamo',
-    description: '+10 points when dice are in descending order',
-    rarity: 'common'
-  },
-  {
-    id: 'primeTime',
-    name: 'Prime Time',
-    description: '+8 points when rolling only prime numbers (2, 3, 5, 7)',
-    rarity: 'common'
-  },
-  {
-    id: 'tripleThreat',
-    name: 'Triple Threat',
-    description: '+25 points when three dice show the same number',
+    id: 'ironFortress',
+    name: 'Iron Fortress',
+    description: 'Each Lead die gives +15 points when scored and 5% chance to prevent flop',
     rarity: 'common'
   },
   {
     id: 'rerollRanger',
     name: 'Reroll Ranger',
-    description: '+5 points for each reroll used this round',
+    description: '+5 points when banking. Add +5 for each reroll used (cumulative)',
     rarity: 'common'
   },
   {
     id: 'bankBaron',
     name: 'Bank Baron',
-    description: '+$2 when banking points',
+    description: '+25 points when banking. Add +25 for bank (cumulative)',
     rarity: 'common'
   },
   {
     id: 'pointPirate',
     name: 'Point Pirate',
-    description: '+10 points when round score exceeds 500',
+    description: '+500 points on first bank, -10 points per subsequent roll',
     rarity: 'common'
   },
   {
-    id: 'diceDuke',
-    name: 'Dice Duke',
-    description: '+5 points for each die with 6 or more faces',
+    id: 'solitary',
+    name: 'Solitary',
+    description: '2x multiplier if no repeated values scored',
     rarity: 'common'
   },
   {
-    id: 'fortuneFinder',
-    name: 'Fortune Finder',
-    description: '+$1 for each level completed',
+    id: 'oneSongGlory',
+    name: 'One Song Glory',
+    description: '+$5 for completing a level with a single bank',
     rarity: 'common'
+  },
+  {
+    id: 'blessed',
+    name: 'Blessed',
+    description: '+25 points when banking if you have at least one blessing',
+    rarity: 'common'
+  },
+  {
+    id: 'blessYou',
+    name: 'Bless You',
+    description: '25% of forfeited points recovered when flopping',
+    rarity: 'common'
+  },
+  {
+    id: 'angelInvestor',
+    name: 'Angel Investor',
+    description: '+$1 for each flop',
+    rarity: 'common'
+  },
+  {
+    id: 'magicEightBall',
+    name: 'Magic 8 Ball',
+    description: '+200 points when scoring an 8+ sided die',
+    rarity: 'common'
+  },
+  {
+    id: 'hotDiceHero',
+    name: 'Hot Dice Hero',
+    description: '+100 points for each Hot Dice trigger',
+    rarity: 'common'
+  },
+  {
+    id: 'sureShot',
+    name: 'Sure Shot',
+    description: '+1 reroll and +100 points when rolling no scoring combinations',
+    rarity: 'common'
+  },
+  {
+    id: 'flopStrategist',
+    name: 'Flop Strategist',
+    description: '+100 points for flopping with remaining reroll(s)',
+    rarity: 'common'
+  },
+  {
+    id: 'pipCollector',
+    name: 'Pip Collector',
+    description: '+10 points for each die with a pip effect in the scoring selection',
+    rarity: 'common'
+  },
+  {
+    id: 'digitalNomad',
+    name: 'Digital Nomad',
+    description: '+$10 when completing a world (every 5 levels)',
+    rarity: 'common'
+  },
+
+
+  // UNCOMMON CHARMS
+  
+  {
+    id: 'quadBoosters',
+    name: 'Quad Boosters',
+    description: 'Multiplies score by 3x if scored dice include 4 of the same value',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'roundMultiplier',
+    name: 'Round Multiplier',
+    description: 'Multiplies level score by 1.15x when banking points',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'rabbitsFoot',
+    name: "Rabbit's Foot",
+    description: 'Score multiplier based on number of successful Rainbow die effect triggers.',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'weightedDice',
+    name: 'Weighted Dice',
+    description: 'Doubles probability of all chance-based effects (e.g., Rainbow dice, Lucky Token).',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'luckySevens',
+    name: 'Lucky Sevens',
+    description: '+77 points if at least one 7 is rolled',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'savingGrace',
+    name: 'Saving Grace',
+    description: '50% chance to prevent all flops',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'tasteTheRainbow',
+    name: 'Taste the Rainbow',
+    description: '+300 points if all rolled dice have unique materials',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'swordInTheStone',
+    name: 'Sword in the Stone',
+    description: 'Hot Dice triggers if all dice (including Lead) are scored',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'primeTime',
+    name: 'Prime Time',
+    description: '2x multiplier when scoring only prime numbers (2, 3, 5, 7, etc.)',
+    rarity: 'uncommon'
   },
   {
     id: 'luckyLeprechaun',
     name: 'Lucky Leprechaun',
-    description: '+$3 when scoring a combination worth 1000+ points',
-    rarity: 'common'
-  },
-  {
-    id: 'mysticMagnet',
-    name: 'Mystic Magnet',
-    description: '+5 points for each rainbow die in the scoring selection',
-    rarity: 'common'
-  },
-  {
-    id: 'volcanoVanguard',
-    name: 'Volcano Vanguard',
-    description: '+10 points for each volcano die in the scoring selection',
-    rarity: 'common'
-  },
-  {
-    id: 'mirrorMage',
-    name: 'Mirror Mage',
-    description: '+15 points for each mirror die in the scoring selection',
-    rarity: 'common'
-  },
-  {
-    id: 'flowerWarden',
-    name: 'Flower Warden',
-    description: '+8 points when all scored dice are flower',
-    rarity: 'common'
-  },
-
-  // ========== UNCOMMON CHARMS (20 new, 35 total) ==========
-  {
-    id: 'sequentialSurge',
-    name: 'Sequential Surge',
-    description: '+20 points for each consecutive number in the roll',
+    description: '+$2 when scoring a combination worth 1000+ points',
     rarity: 'uncommon'
   },
   {
-    id: 'fourOfAKindBonus',
-    name: 'Four-of-a-Kind Bonus',
+    id: 'irrational',
+    name: 'Irrational',
+    description: '3.1415x multiplier if scored hand contains 1,1,3,4,5',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'ferrisEuler',
+    name: 'Ferris Euler',
+    description: '2.71x multiplier if scored hand contains 1,2,7',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'fourForYourFavor',
+    name: 'Four For Your Favor',
     description: '+40 points when scoring four-of-a-kind',
     rarity: 'uncommon'
   },
@@ -478,387 +417,151 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'uncommon'
   },
   {
-    id: 'quadQuest',
-    name: 'Quad Quest',
-    description: '+30 points for each four-of-a-kind scored',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'quintupleCrown',
-    name: 'Quintuple Crown',
-    description: '+40 points for each five-of-a-kind scored',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'levelLeap',
-    name: 'Level Leap',
-    description: '+10% to banked points when completing a level (per round without flopping)',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'comboKing',
-    name: 'Combo King',
-    description: '+5% to round score for each consecutive successful roll',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'treasureTrove',
-    name: 'Treasure Trove',
-    description: '+$5 for completing a level without any flops',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'quarterQuest',
-    name: 'Quarter Quest',
-    description: '+$4 for each four-of-a-kind scored',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'halfDollar',
-    name: 'Half Dollar',
-    description: '+$5 for each five-of-a-kind scored',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'bankersBonus',
-    name: "Banker's Bonus",
-    description: '+10% money earned when banking points',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'guardianAngel',
-    name: 'Guardian Angel',
-    description: 'Automatically prevents one flop per level (single use)',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'luckyCharm',
-    name: 'Lucky Charm',
-    description: 'Reduces flop chance by 15%',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'resilientRoller',
-    name: 'Resilient Roller',
-    description: 'Prevents flops for the first two rounds of each level',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'bounceBack',
-    name: 'Bounce Back',
-    description: 'Recover from one flop per level without losing life',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'flopMaster',
-    name: 'Flop Master',
-    description: '+5% to banked points when completing a level without flopping',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'flopSurvivor',
-    name: 'Flop Survivor',
-    description: '+$3 for each flop survived',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'flopResistor',
-    name: 'Flop Resistor',
-    description: 'Reduces flop penalty by 50%',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'flopNavigator',
-    name: 'Flop Navigator',
-    description: '+15 points for each consecutive flop avoided',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'metallicMight',
-    name: 'Metallic Might',
-    description: '+15 points for each golden die in the scoring selection',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'stoneStrength',
-    name: 'Stone Strength',
-    description: '+20 points when all scored dice are crystal',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'glassGuardian',
-    name: 'Glass Guardian',
-    description: 'Reduces flop chance by 10% for each mirror die in set',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'doubleDip',
-    name: 'Double Dip',
-    description: 'Doubles points and money earned for rolling pairs',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'tripleTrouble',
-    name: 'Triple Trouble',
-    description: 'Triples points for three-of-a-kind combinations',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'straightFlush',
-    name: 'Straight Flush',
-    description: '+50 points when scoring a straight',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'pairParade',
-    name: 'Pair Parade',
-    description: '+20 points for each pair in the roll',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'tripletTriumph',
-    name: 'Triplet Triumph',
-    description: '+25 points for each three-of-a-kind in the roll',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'hotDiceHero',
-    name: 'Hot Dice Hero',
-    description: '+50 points when hot dice is triggered',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'rerollRogue',
-    name: 'Reroll Rogue',
-    description: '+10 points for each reroll used this round',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'bankBaroness',
-    name: 'Bank Baroness',
-    description: '+$5 when banking points',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'levelLady',
-    name: 'Level Lady',
-    description: '+15% to banked points when completing a level',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'pointPrincess',
-    name: 'Point Princess',
-    description: '+20 points when round score exceeds 1000',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'diceDuchess',
-    name: 'Dice Duchess',
-    description: '+10 points for each die with 8 or more faces',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'fortuneFavor',
-    name: 'Fortune Favor',
-    description: '+$2 for each level completed',
+    id: 'hedgeFund',
+    name: 'Hedge Fund',
+    description: '+1x multiplier for every $100 owned',
     rarity: 'uncommon'
   },
   {
     id: 'luckyLotus',
     name: 'Lucky Lotus',
-    description: '+$5 when scoring a combination worth 2000+ points',
+    description: '+$4 when scoring a combination worth 3000+ points',
     rarity: 'uncommon'
   },
   {
-    id: 'mysticMoon',
-    name: 'Mystic Moon',
-    description: '+10 points for each rainbow die in the scoring selection',
+    id: 'hotPocket',
+    name: 'Hot Pocket',
+    description: '2x multiplier when hot dice counter is 2 or higher',
     rarity: 'uncommon'
   },
   {
-    id: 'crystalCrown',
-    name: 'Crystal Crown',
-    description: '+20 points when all scored dice are crystal',
+    id: 'wildCard',
+    name: 'Wild Card',
+    description: '+25 points for each wild pip effect in the scoring selection',
     rarity: 'uncommon'
   },
   {
-    id: 'rainbowRider',
-    name: 'Rainbow Rider',
-    description: '+15 points for each rainbow die in the scoring selection',
-    rarity: 'uncommon'
-  },
-  {
-    id: 'goldenGuard',
-    name: 'Golden Guard',
-    description: '+25 points when all scored dice are golden',
+    id: 'whimWhisperer',
+    name: 'Whim Whisperer',
+    description: 'Whims have a 25% chance to not be consumed when used',
     rarity: 'uncommon'
   },
 
-  // ========== COMMON CHARMS (13 more to reach 45 total) ==========
-  {
-    id: 'dollarDash',
-    name: 'Dollar Dash',
-    description: '+$6 for each six-of-a-kind scored',
-    rarity: 'common'
-  },
-  {
-    id: 'sureShot',
-    name: 'Sure Shot',
-    description: 'Guarantees at least one scoring combination on next roll (once per level)',
-    rarity: 'common'
-  },
-  {
-    id: 'flopInsurance',
-    name: 'Flop Insurance',
-    description: '+20 points if a flop occurs this round',
-    rarity: 'common'
-  },
-  {
-    id: 'flopExpert',
-    name: 'Flop Expert',
-    description: '+5 points for each flop that occurred this level',
-    rarity: 'common'
-  },
-  {
-    id: 'silverShine',
-    name: 'Silver Shine',
-    description: '+$2 for each crystal die scored',
-    rarity: 'common'
-  },
-  {
-    id: 'obsidianObelisk',
-    name: 'Obsidian Obelisk',
-    description: '+12 points for each volcano die in the scoring selection',
-    rarity: 'common'
-  },
-  {
-    id: 'marbleMarvel',
-    name: 'Marble Marvel',
-    description: '+8 points when all scored dice are mirror',
-    rarity: 'common'
-  },
-  {
-    id: 'quadrupleQuake',
-    name: 'Quadruple Quake',
-    description: '+35 points for each four-of-a-kind in the roll',
-    rarity: 'common'
-  },
-  {
-    id: 'hotDiceMaven',
-    name: 'Hot Dice Maven',
-    description: '+25 points when hot dice counter is 2 or higher',
-    rarity: 'common'
-  },
-  {
-    id: 'rerollRoyal',
-    name: 'Reroll Royal',
-    description: '+8 points for each reroll used this round',
-    rarity: 'common'
-  },
-  {
-    id: 'levelLord',
-    name: 'Level Lord',
-    description: '+$3 when completing a level',
-    rarity: 'common'
-  },
-  {
-    id: 'flopCommander',
-    name: 'Flop Commander',
-    description: '+30 points when banking after completing a level with no flops',
-    rarity: 'common'
-  },
-  {
-    id: 'flopConqueror',
-    name: 'Flop Conqueror',
-    description: '+$4 for completing a level with multiple flops but still succeeding',
-    rarity: 'common'
-  },
 
-  // ========== RARE CHARMS (9 new to reach 15 total) ==========
+  // RARE CHARMS
+  
   {
-    id: 'flawlessFinish',
-    name: 'Flawless Finish',
-    description: '+100 points when banking after completing a level without any flops',
+    id: 'whimWisher',
+    name: 'Whim Wisher',
+    description: 'Using a whim has a 10% chance to create a random wish',
     rarity: 'rare'
   },
   {
-    id: 'speedster',
-    name: 'Speedster',
-    description: '+50 points when banking after completing a level within 3 rounds',
+    id: 'kingslayer',
+    name: 'Kingslayer',
+    description: '3x multiplier during miniboss and boss levels',
     rarity: 'rare'
   },
   {
-    id: 'riskTaker',
-    name: 'Risk Taker',
-    description: '+75 points when banking after completing a level with only one roll per round',
+    id: 'blankSlate',
+    name: 'Blank Slate',
+    description: 'Blank pip effects give ^1.25 multiplier instead of ^1.1',
+    rarity: 'rare'
+  },
+  {
+    id: 'doubleDown',
+    name: 'Double Down',
+    description: '2x multiplier if a two-faced side is scored',
     rarity: 'rare'
   },
   {
     id: 'perfectionist',
     name: 'Perfectionist',
-    description: '+200 points when banking after achieving maximum points in every round',
+    description: '+0.25x multiplier for each consecutive time all dice are scored',
     rarity: 'rare'
   },
   {
-    id: 'comebackKid',
-    name: 'Comeback Kid',
-    description: '+100 points when banking after recovering from a flop to complete the level',
+    id: 'divineIntervention',
+    name: 'Divine Intervention',
+    description: '80% chance to prevent all flops',
     rarity: 'rare'
   },
   {
-    id: 'steadyHand',
-    name: 'Steady Hand',
-    description: '+20% to banked points when maintaining consistent points across rounds',
+    id: 'holyGrail',
+    name: 'Holy Grail',
+    description: '+2x multiplier for each Tier 3 Blessing you own',
     rarity: 'rare'
   },
   {
-    id: 'highRoller',
-    name: 'High Roller',
-    description: '+50 points when banking after rolling the highest possible number in each round',
+    id: 'divineFavor',
+    name: 'Divine Favor',
+    description: '+10 / +100 / +1000 points when banking for each blessing tier 1 / 2 / 3 you own',
     rarity: 'rare'
   },
   {
-    id: 'lowRoller',
-    name: 'Low Roller',
-    description: '+50 points when banking after rolling the lowest possible number in each round',
+    id: 'dukeOfDice',
+    name: 'Duke of Dice',
+    description: '+0.75x multiplier for each repeated value on each scored die',
     rarity: 'rare'
   },
   {
-    id: 'investorsInsight',
-    name: "Investor's Insight",
-    description: '+$10 for completing a level with only one roll per round',
+    id: 'eyeOfHorus',
+    name: 'Eye of Horus',
+    description: '+1.5x multiplier for each layer of a scored Pyramid, 0.25x for all other hands',
+    rarity: 'rare'
+  }, 
+  {
+    id: 'leadTitan',
+    name: 'Lead Titan',
+    description: 'If at least one Lead die is scored, all scored dice remain in hand',
     rarity: 'rare'
   },
   {
-    id: 'jackpotJoy',
-    name: 'Jackpot Joy',
-    description: '+$15 for achieving maximum roll points in every round',
+    id: 'bodyDouble',
+    name: 'Body Double',
+    description: '+1 to Hot Dice counter when getting Hot Dice with an unscored Ghost Die',
     rarity: 'rare'
   },
   {
-    id: 'flopStrategist',
-    name: 'Flop Strategist',
-    description: '+100 points for intentionally causing and recovering from a flop',
+    id: 'inheritance',
+    name: 'Inheritance',
+    description: 'One Rainbow effect guaranteed per Rainbow die scored',
     rarity: 'rare'
   },
   {
-    id: 'hotDiceVeteran',
-    name: 'Hot Dice Veteran',
-    description: '+100 points when hot dice counter is 3 or higher',
+    id: 'resonance',
+    name: 'Resonance',
+    description: '1 in 3 chance for crystal dice to bounce off of each other, repeating effect until failure',
     rarity: 'rare'
   },
   {
-    id: 'hotDiceLegend',
-    name: 'Hot Dice Legend',
-    description: '+200 points when hot dice counter is 5 or higher',
+    id: 'bloom',
+    name: 'Bloom',
+    description: 'Each flower die scored adds 3 to flower dice counter',
     rarity: 'rare'
   },
-
-  // ========== LEGENDARY CHARMS (1 new to reach 5 total) ==========
   {
-    id: 'flopMasterSupreme',
-    name: 'Flop Master Supreme',
-    description: '2x multiplier to banked points, but lose 1 life for each flop',
-    rarity: 'legendary'
-  }
+    id: 'sizeMatters',
+    name: 'Size Matters',
+    description: 'Multiplier based on die size: 6 faces = 1x, below 6 = -0.5x per size, above 6 = +0.5x per size',
+    rarity: 'rare'
+  },
+  {
+    id: 'vesuvius',
+    name: 'Vesuvius',
+    description: '+0.25x multiplier per volcano die × hot dice counter',
+    rarity: 'rare'
+  },
+  {
+    id: 'armadilloArmor',
+    name: 'Armadillo Armor',
+    description: 'Multiplies score by number of rerolls remaining',
+    rarity: 'rare'
+  },
 ];
+
+
+
+// doubles rerolls
+// play some combo in a row, gain mult
+// disabling boss battles and stuff

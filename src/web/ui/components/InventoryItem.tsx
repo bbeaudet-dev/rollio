@@ -8,6 +8,7 @@ interface InventoryItemProps {
   showUseButton?: boolean;
   onUse?: () => void;
   children?: React.ReactNode;
+  backgroundColor?: string;
 }
 
 export const InventoryItem: React.FC<InventoryItemProps> = ({ 
@@ -17,7 +18,8 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({
   uses, 
   showUseButton = false,
   onUse,
-  children 
+  children,
+  backgroundColor
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -29,7 +31,8 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({
           border: '1px solid #ddd', 
           margin: '4px 0',
           borderRadius: '4px',
-          cursor: showUseButton ? 'default' : 'help'
+          cursor: showUseButton ? 'default' : 'help',
+          backgroundColor: backgroundColor || 'white'
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}

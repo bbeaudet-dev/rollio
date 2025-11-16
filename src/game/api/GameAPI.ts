@@ -25,14 +25,14 @@ import { validateRerollSelection } from '../logic/rerollLogic';
 import { applyConsumableEffect } from '../logic/consumableEffects';
 import { getAllPartitionings, getHighestPointsPartitioning } from '../logic/scoring';
 import { validateDiceSelection } from '../utils/effectUtils';
-import { applyMaterialEffects, shouldTriggerHotDice } from '../logic/materialSystem';
+import { applyMaterialEffects, shouldTriggerHotDice, materialEffects } from '../logic/materialSystem';
 import { DieValue, RollState } from '../types';
-import { ScoringStep } from './types';
 import { ShopState } from '../types';
 import { GameAPIEvent, GameAPIEventData } from './GameAPIEvents';
 import {
   InitializeGameResult,
   RollDiceResult,
+  RerollDiceResult,
   ScoreDiceResult,
   BankPointsResult,
   FlopResult
@@ -147,16 +147,19 @@ export class GameAPI {
   }
 
   /**
-   * Score selected dice - generator version for animations
-   * Yields steps that React can iterate through with delays
+   * Score selected dice
    */
-  *scoreDiceSteps(
+  async scoreDice(
     gameState: GameState,
     selectedIndices: number[]
-  ): Generator<ScoringStep> {
-    const roundState = gameState.currentLevel.currentRound!;
+
+  ): Promise<ScoreDiceResult> {
+    const roundState = gameState.currentLevel.currentRound;
+    if (!roundState) {
+      throw new Error('No active round to score dice');
+    }
     
-    // Step 1: Find combinations
+    // Find combinations
     const selectedValues = selectedIndices.map(i => roundState.diceHand[i].rolledValue);
     const input = selectedValues.join('');
     const context = { charms: gameState.charms || [] };
@@ -164,27 +167,57 @@ export class GameAPI {
     const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndicesFromInput, context);
     
     if (allPartitionings.length === 0) {
-      return; // Invalid selection
+      return {
+        success: false,
+        gameState,
+        points: 0,
+        combinations: [],
+        hotDice: false
+      };
     }
     
     const bestPartitioningIndex = getHighestPointsPartitioning(allPartitionings);
     const selectedPartitioning = allPartitionings[bestPartitioningIndex] || [];
     let basePoints = selectedPartitioning.reduce((sum: number, c: any) => sum + c.points, 0);
     
-    yield { type: 'findCombinations', gameState, data: { combinations: selectedPartitioning, basePoints } };
+    // Apply charm effects
+    let filteredCombinations = selectedPartitioning;
+    const activeCharms = this.charmManager.getActiveCharms();
     
-    // Step 2: Apply charm effects
-    const modifiedPoints = this.charmManager.applyCharmEffects({
-      gameState,
-      roundState,
-      basePoints,
-      combinations: selectedPartitioning,
-      selectedIndices
-    });
+    // First, filter combinations if any charm has a filter method
+    for (const charm of activeCharms) {
+      if (charm.filterScoringCombinations) {
+        filteredCombinations = charm.filterScoringCombinations(filteredCombinations, {
+          gameState,
+          roundState,
+          basePoints,
+          combinations: filteredCombinations,
+          selectedIndices
+        });
+      }
+    }
     
-    yield { type: 'applyCharms', gameState, data: { basePoints, modifiedPoints } };
+    // Recalculate base points with filtered combinations
+    const filteredBasePoints = filteredCombinations.reduce((sum: number, c: any) => sum + c.points, 0);
     
-    // Step 3: Apply material effects
+    // Apply charm bonuses
+    let charmBonusTotal = 0;
+    for (const charm of activeCharms) {
+      const bonus = charm.onScoring({
+        gameState,
+        roundState,
+        basePoints: filteredBasePoints,
+        combinations: filteredCombinations,
+        selectedIndices
+      });
+      if (bonus && bonus !== 0) {
+        charmBonusTotal += bonus;
+      }
+    }
+    
+    const modifiedPoints = filteredBasePoints + charmBonusTotal;
+    
+    // Apply material effects
     const materialResult = applyMaterialEffects(
       roundState.diceHand,
       selectedIndices,
@@ -195,18 +228,15 @@ export class GameAPI {
     );
     
     let currentGameState = gameState;
-    yield { type: 'applyMaterials', gameState: currentGameState, data: { materialResult } };
     
-    // Step 4: Remove dice from hand
+    // Remove dice from hand
     currentGameState = removeDiceFromHand(currentGameState, selectedIndices);
-    yield { type: 'removeDice', gameState: currentGameState, data: { selectedIndices } };
     
-    // Step 5: Add points to round
+    // Add points to round
     const finalPoints = Math.ceil(materialResult.score);
     currentGameState = addPointsToRound(currentGameState, finalPoints);
-    yield { type: 'addPoints', gameState: currentGameState, data: { points: finalPoints } };
     
-    // Step 6: Increment crystals scored
+    // Increment crystals scored
     const scoredCrystals = selectedIndices.filter((idx: number) => {
       const die = roundState.diceHand[idx];
       return die && die.material === 'crystal';
@@ -214,19 +244,17 @@ export class GameAPI {
     
     if (scoredCrystals > 0) {
       currentGameState = incrementCrystalsScored(currentGameState, scoredCrystals);
-      yield { type: 'incrementCrystals', gameState: currentGameState, data: { count: scoredCrystals } };
     }
     
-    // Step 7: Check for hot dice and process if needed
+    // Check for hot dice and process if needed
     const remainingDice = currentGameState.currentLevel.currentRound!.diceHand;
     const wasHotDice = shouldTriggerHotDice(remainingDice);
     
     if (wasHotDice) {
       currentGameState = processHotDice(currentGameState);
-      yield { type: 'processHotDice', gameState: currentGameState, data: {} };
     }
     
-    // Step 8: Update roll history
+    // Update roll history
     const currentRoundState = currentGameState.currentLevel.currentRound!;
     const lastRollEntry = currentRoundState.rollHistory.length > 0 
       ? currentRoundState.rollHistory[currentRoundState.rollHistory.length - 1]
@@ -247,49 +275,13 @@ export class GameAPI {
     };
     
     currentGameState = updateRollHistory(currentGameState, historyEntry);
-    yield { type: 'updateHistory', gameState: currentGameState, data: { historyEntry } };
-  }
-
-  /**
-   * Score selected dice - immediate execution version
-   */
-  async scoreDice(
-    gameState: GameState,
-    selectedIndices: number[]
-  ): Promise<ScoreDiceResult> {
-    const roundState = gameState.currentLevel.currentRound;
-    if (!roundState) {
-      throw new Error('No active round to score dice');
-    }
     
-    // Execute all steps immediately
-    const generator = this.scoreDiceSteps(gameState, selectedIndices);
-    let lastStep: ScoringStep | undefined;
-    let currentGameState = gameState;
-    
-    for (const step of generator) {
-      lastStep = step;
-      currentGameState = step.gameState;
-    }
-    
-    if (!lastStep) {
-      return {
-        success: false,
-        gameState,
-        points: 0,
-        combinations: [],
-        hotDice: false
-      };
-    }
-    
-    const hotDice = lastStep.data?.historyEntry?.isHotDice === true;
-    const combinations = lastStep.data?.historyEntry?.combinations || [];
-    const points = lastStep.data?.historyEntry?.rollPoints || 0;
+    const combinationTypes = selectedPartitioning.map((c: any) => c.type);
     
     this.emit('diceScored', {
       selectedIndices,
-      points,
-      combinations,
+      points: finalPoints,
+      combinations: combinationTypes,
       gameState: currentGameState
     });
     this.emit('stateChanged', { gameState: currentGameState });
@@ -297,9 +289,9 @@ export class GameAPI {
     return {
       success: true,
       gameState: currentGameState,
-      points,
-      combinations,
-      hotDice
+      points: finalPoints,
+      combinations: combinationTypes,
+      hotDice: wasHotDice
     };
   }
 
@@ -448,7 +440,7 @@ export class GameAPI {
   async rerollDice(
     gameState: GameState,
     diceToReroll: number[]
-  ): Promise<{ gameState: GameState; isFlop: boolean }> {
+  ): Promise<RerollDiceResult> {
     const roundState = gameState.currentLevel.currentRound;
     if (!roundState) {
       throw new Error('No active round to reroll dice');
@@ -504,6 +496,10 @@ export class GameAPI {
     // Get roll number from history
     const rollNumber = result.newRoundState.rollHistory[result.newRoundState.rollHistory.length - 1]?.rollNumber || 1;
     
+    const isFlopResult = isFlop(result.newRoundState.diceHand);
+    const charmManager = this.getCharmManager();
+    const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState: newGameState, roundState: result.newRoundState });
+    
     this.emit('diceRolled', {
       rollNumber,
       gameState: newGameState
@@ -512,7 +508,9 @@ export class GameAPI {
     
     return {
       gameState: newGameState,
-      rollNumber
+      rollNumber,
+      isFlop: isFlopResult,
+      flopShieldAvailable: shieldCheck.available
     };
   }
 
@@ -527,36 +525,42 @@ export class GameAPI {
    * Purchase charm from shop
    */
   async purchaseCharm(gameState: GameState, shopState: ShopState, charmIndex: number): Promise<{ success: boolean; message: string; gameState: GameState }> {
-    const newGameState = { ...gameState };
-    const result = purchaseCharm(newGameState, shopState, charmIndex);
+    const result = purchaseCharm(gameState, shopState, charmIndex);
     
-    this.emit('stateChanged', { gameState: newGameState });
+    if (result.success && result.gameState) {
+      this.emit('stateChanged', { gameState: result.gameState });
+      return { ...result, gameState: result.gameState };
+    }
     
-    return { ...result, gameState: newGameState };
+    return { ...result, gameState };
   }
 
   /**
    * Purchase consumable from shop
    */
   async purchaseConsumable(gameState: GameState, shopState: ShopState, consumableIndex: number): Promise<{ success: boolean; message: string; gameState: GameState }> {
-    const newGameState = { ...gameState };
-    const result = purchaseConsumable(newGameState, shopState, consumableIndex);
+    const result = purchaseConsumable(gameState, shopState, consumableIndex);
     
-    this.emit('stateChanged', { gameState: newGameState });
+    if (result.success && result.gameState) {
+      this.emit('stateChanged', { gameState: result.gameState });
+      return { ...result, gameState: result.gameState };
+    }
     
-    return { ...result, gameState: newGameState };
+    return { ...result, gameState };
   }
 
   /**
    * Purchase blessing from shop
    */
   async purchaseBlessing(gameState: GameState, shopState: ShopState, blessingIndex: number): Promise<{ success: boolean; message: string; gameState: GameState }> {
-    const newGameState = { ...gameState };
-    const result = purchaseBlessing(newGameState, shopState, blessingIndex);
+    const result = purchaseBlessing(gameState, shopState, blessingIndex);
     
-    this.emit('stateChanged', { gameState: newGameState });
+    if (result.success && result.gameState) {
+      this.emit('stateChanged', { gameState: result.gameState });
+      return { ...result, gameState: result.gameState };
+    }
     
-    return { ...result, gameState: newGameState };
+    return { ...result, gameState };
   }
 
   /**

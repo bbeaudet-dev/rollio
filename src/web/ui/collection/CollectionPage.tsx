@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { MenuButton } from '../components';
 import { MATERIALS } from '../../../game/data/materials';
 import { CHARMS } from '../../../game/data/charms';
-import { CONSUMABLES } from '../../../game/data/consumables';
+import { CONSUMABLES, WHIMS, WISHES } from '../../../game/data/consumables';
+import { getConsumableColor, getItemTypeColor } from '../../utils/colors';
 import { ALL_BLESSINGS, getBlessingName, getBlessingDescription } from '../../../game/data/blessings';
 import { STATIC_DICE_SETS } from '../../../game/data/diceSets';
 import { PIP_EFFECTS } from '../../../game/data/pipEffects';
+import { DIFFICULTY_CONFIGS } from '../../../game/logic/difficulty';
 import { DiceFace } from '../game/board/dice/DiceFace';
 import { PipEffectIcon } from './PipEffectIcon';
 
@@ -208,7 +210,7 @@ export const CollectionPage: React.FC = () => {
             <HoverTooltip key={consumable.id} text={consumable.description}>
               <div style={{
                 padding: '12px',
-                backgroundColor: 'white',
+                backgroundColor: getConsumableColor(consumable.id, WHIMS, WISHES),
                 borderRadius: '6px',
                 border: '2px solid #dee2e6',
                 textAlign: 'center',
@@ -230,21 +232,6 @@ export const CollectionPage: React.FC = () => {
                 <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>
                   {consumable.name}
                 </div>
-                {consumable.rarity && (
-                  <span style={{ 
-                    padding: '2px 6px', 
-                    backgroundColor: consumable.rarity === 'legendary' ? '#ff6b35' : 
-                                     consumable.rarity === 'rare' ? '#9b59b6' :
-                                     consumable.rarity === 'uncommon' ? '#3498db' : '#95a5a6',
-                    color: 'white',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    textTransform: 'capitalize',
-                    display: 'inline-block'
-                  }}>
-                    {consumable.rarity}
-                  </span>
-                )}
               </div>
             </HoverTooltip>
           ))}
@@ -259,7 +246,7 @@ export const CollectionPage: React.FC = () => {
             <HoverTooltip key={charm.id} text={charm.description}>
               <div style={{
                 padding: '12px',
-                backgroundColor: 'white',
+                backgroundColor: getItemTypeColor('charm'),
                 borderRadius: '6px',
                 border: '2px solid #dee2e6',
                 textAlign: 'center',
@@ -299,55 +286,6 @@ export const CollectionPage: React.FC = () => {
               </div>
             </HoverTooltip>
           ))}
-        </div>
-      </div>
-
-      {/* Pip Effects */}
-      <div style={sectionStyle}>
-        <h2 style={headerStyle}>Pip Effects ({PIP_EFFECTS.length})</h2>
-        <div style={grid3ColStyle}>
-          {PIP_EFFECTS.map((effect) => (
-            <div key={effect.id} style={{
-              padding: '20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              border: '2px solid #dee2e6',
-              textAlign: 'center'
-            }}>
-              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '36px' }}>
-                <PipEffectIcon type={effect.type} size={36} />
-              </div>
-              <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>
-                {effect.name}
-              </div>
-              <div style={{ fontSize: '14px', color: '#6c757d' }}>
-                {effect.description}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Levels & Worlds */}
-      <div style={sectionStyle}>
-        <h2 style={headerStyle}>Levels & Worlds</h2>
-        <div style={{
-          padding: '20px',
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          border: '2px solid #dee2e6',
-          textAlign: 'center',
-          color: '#6c757d'
-        }}>
-          <div style={{ fontSize: '18px', marginBottom: '10px' }}>
-            Level System
-          </div>
-          <div style={{ fontSize: '14px', marginBottom: '20px' }}>
-            Every 5 levels is a World. Levels 3, 8, 13... are Minibosses. Levels 5, 10, 15... are Main Bosses.
-          </div>
-          <div style={{ fontSize: '14px', fontStyle: 'italic' }}>
-            More details coming soon...
-          </div>
         </div>
       </div>
 
@@ -404,6 +342,91 @@ export const CollectionPage: React.FC = () => {
           ))}
         </div>
       </div>
+      
+      {/* Pip Effects */}
+      <div style={sectionStyle}>
+        <h2 style={headerStyle}>Pip Effects ({PIP_EFFECTS.length})</h2>
+        <div style={grid3ColStyle}>
+          {PIP_EFFECTS.map((effect) => (
+            <div key={effect.id} style={{
+              padding: '20px',
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              border: '2px solid #dee2e6',
+              textAlign: 'center'
+            }}>
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '36px' }}>
+                <PipEffectIcon type={effect.type} size={36} />
+              </div>
+              <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>
+                {effect.name}
+              </div>
+              <div style={{ fontSize: '14px', color: '#6c757d' }}>
+                {effect.description}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Levels & Worlds */}
+      <div style={sectionStyle}>
+        <h2 style={headerStyle}>Levels & Worlds</h2>
+        <div style={{
+          padding: '20px',
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '2px solid #dee2e6',
+          textAlign: 'center',
+          color: '#6c757d'
+        }}>
+          <div style={{ fontSize: '18px', marginBottom: '10px' }}>
+            Level System
+          </div>
+          <div style={{ fontSize: '14px', marginBottom: '20px' }}>
+            Every 5 levels is a World. Levels 3, 8, 13... are Minibosses. Levels 5, 10, 15... are Main Bosses.
+          </div>
+          <div style={{ fontSize: '14px', fontStyle: 'italic' }}>
+            More details coming soon...
+          </div>
+        </div>
+      </div>
+
+      {/* Difficulties */}
+      <div style={sectionStyle}>
+        <h2 style={headerStyle}>Difficulty Levels ({Object.keys(DIFFICULTY_CONFIGS).length})</h2>
+        <div style={grid2ColStyle}>
+          {Object.values(DIFFICULTY_CONFIGS).map((difficulty) => (
+            <HoverTooltip key={difficulty.id} text={difficulty.description}>
+              <div style={{
+                padding: '20px',
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                border: '2px solid #dee2e6',
+                textAlign: 'center',
+                cursor: 'help',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#007bff';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#dee2e6';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}>
+                <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '8px' }}>
+                  {difficulty.name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  {difficulty.description}
+                </div>
+              </div>
+            </HoverTooltip>
+          ))}
+        </div>
+      </div>
+     
     </div>
   );
 };

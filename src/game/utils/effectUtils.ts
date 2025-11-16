@@ -23,15 +23,14 @@ export function formatFlopMessage(
   forfeitedPoints: number, 
   consecutiveFlops: number, 
   levelBankedPoints: number,
-  consecutiveFlopPenalty: number,
   consecutiveFlopLimit: number
 ): string {
   let message = `  No valid scoring combinations found, you flopped!`;
   
   if (consecutiveFlops === consecutiveFlopLimit - 1) {
-    message += `\n  (${consecutiveFlops} consecutive flops - one more and you lose ${consecutiveFlopPenalty} points!)`;
+    message += `\n  (${consecutiveFlops} consecutive flops - one more and the game ends!)`;
   } else if (consecutiveFlops >= consecutiveFlopLimit) {
-    message += `\n  (${consecutiveFlops} consecutive flops - you lost ${consecutiveFlopPenalty} points! Banked: ${levelBankedPoints})`;
+    message += `\n  (${consecutiveFlops} consecutive flops - game over! Banked: ${levelBankedPoints})`;
   }
   
   return message;

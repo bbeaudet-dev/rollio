@@ -1,4 +1,6 @@
 import React from 'react';
+import { WHIMS, WISHES } from '../../../game/data/consumables';
+import { getConsumableColor } from '../../utils/colors';
 
 interface ConsumableSelectorProps {
   consumables: any[];
@@ -47,13 +49,12 @@ export const ConsumableSelector: React.FC<ConsumableSelectorProps> = ({
                 cursor: canSelect ? 'pointer' : 'not-allowed',
                 opacity: canSelect ? 1 : 0.5,
                 borderRadius: '4px',
-                backgroundColor: isSelected ? '#f0f8ff' : '#fff'
+                backgroundColor: getConsumableColor(consumable.id, WHIMS, WISHES)
               }}
               onClick={() => canSelect && onConsumableSelect(index)}
             >
               <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{consumable.name}</div>
               <div style={{ fontSize: '10px', color: '#666' }}>{consumable.description}</div>
-              <div style={{ fontSize: '9px', color: '#999' }}>{consumable.rarity}</div>
             </div>
           );
         })}

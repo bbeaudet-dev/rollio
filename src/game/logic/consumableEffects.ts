@@ -1,14 +1,20 @@
-import { CHARMS } from '../data/charms';
+import { CHARMS, CHARM_PRICES } from '../data/charms';
+import { CONSUMABLES, WHIMS, WISHES } from '../data/consumables';
 import { MATERIALS } from '../data/materials';
-import { getNextDieSize, getPreviousDieSize, DIE_SIZE_SEQUENCE } from '../utils/dieSizeUtils';
+import { getNextDieSize, getPreviousDieSize } from '../utils/dieSizeUtils';
 import { GameState, RoundState, DiceMaterialType } from '../types';
+
+const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
+  wish: { buy: 8, sell: 4 },
+  whim: { buy: 4, sell: 2 },
+};
 
 export interface ConsumableEffectResult {
   success: boolean;
   shouldRemove: boolean;
   requiresInput?: {
-    type: 'dieSelection';
-    consumableId: 'chisel' | 'potteryWheel';
+    type: 'dieSelection' | 'dieSideSelection' | 'twoDieSelection';
+    consumableId: 'chisel' | 'potteryWheel' | 'copyMaterial' | 'copyDieSide';
     diceSet: any[];
   };
   gameState: GameState;
@@ -115,7 +121,217 @@ export function applyConsumableEffect(
 
     case 'slotExpander':
       newGameState.charmSlots = (newGameState.charmSlots || 3) + 1;
+      newGameState.consumableSlots = (newGameState.consumableSlots || 2) + 1;
       break;
+
+    case 'createTwoConsumables': {
+      const maxConsumables = newGameState.consumableSlots || 2;
+      const availableSlots = maxConsumables - newGameState.consumables.length;
+      if (availableSlots < 2) {
+        shouldRemove = false;
+        break;
+      }
+      // Get all consumables, excluding ones already owned
+      const ownedIds = new Set(newGameState.consumables.map(c => c.id));
+      const available = CONSUMABLES.filter(c => !ownedIds.has(c.id));
+      if (available.length === 0) {
+        shouldRemove = false;
+        break;
+      }
+      // Select 2 random consumables
+      const selected: typeof CONSUMABLES = [];
+      const indices = new Set<number>();
+      while (selected.length < 2 && indices.size < available.length) {
+        const randomIdx = Math.floor(Math.random() * available.length);
+        if (!indices.has(randomIdx)) {
+          indices.add(randomIdx);
+          selected.push(available[randomIdx]);
+        }
+      }
+      newGameState.consumables = [...newGameState.consumables, ...selected];
+      break;
+    }
+
+    case 'createLastConsumable': {
+      // Track last consumable used - stored in gameState.history or we can add a field
+      // For now, use the last consumable in the list (most recently added)
+      // TODO: Properly track last consumable used in GameState
+      const lastConsumable = (newGameState as any).lastConsumableUsed;
+      if (!lastConsumable) {
+        shouldRemove = false;
+        break;
+      }
+      const maxConsumables = newGameState.consumableSlots || 2;
+      if (newGameState.consumables.length >= maxConsumables) {
+        shouldRemove = false;
+        break;
+      }
+      newGameState.consumables = [...newGameState.consumables, { ...lastConsumable }];
+      break;
+    }
+
+    case 'addMoneyFromItems': {
+      let totalValue = 0;
+      // Add value of consumables
+      for (const consumable of newGameState.consumables) {
+        const isWish = WISHES.some(w => w.id === consumable.id);
+        const isWhim = WHIMS.some(w => w.id === consumable.id);
+        const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+        const priceInfo = CONSUMABLE_PRICES[category] || CONSUMABLE_PRICES.whim;
+        totalValue += priceInfo.sell;
+      }
+      // Add value of charms
+      for (const charm of newGameState.charms) {
+        const rarity = charm.rarity || 'common';
+        const priceInfo = CHARM_PRICES[rarity] || CHARM_PRICES.common;
+        totalValue += priceInfo.sell;
+      }
+      // Add value of blessings (fixed price)
+      totalValue += (newGameState.blessings.length * 5); // BLESSING_PRICE = 5
+      newGameState.money = (newGameState.money || 0) + totalValue;
+      break;
+    }
+
+    case 'doubleMoneyCapped': {
+      const currentMoney = newGameState.money || 0;
+      const doubled = currentMoney * 2;
+      newGameState.money = Math.min(doubled, 50);
+      break;
+    }
+
+    case 'createTwoHandUpgrades': {
+      // TODO: Implement hand upgrade system
+      // For now, this is a placeholder - hand upgrades need infrastructure
+      // Hand upgrades likely modify combination point values
+      shouldRemove = false; // Don't remove until implemented
+      break;
+    }
+
+    case 'copyMaterial': {
+      // Requires user input - return request for two die selection
+      return {
+        success: true,
+        shouldRemove: false,
+        requiresInput: {
+          type: 'twoDieSelection',
+          consumableId: 'copyMaterial',
+          diceSet: newGameState.diceSet
+        },
+        gameState: newGameState,
+        roundState: newRoundState
+      };
+    }
+
+    case 'addStandardDie': {
+      const newDieId = `d${newGameState.diceSet.length + 1}`;
+      const newDie = {
+        id: newDieId,
+        sides: 6,
+        allowedValues: [1, 2, 3, 4, 5, 6],
+        material: 'plastic' as DiceMaterialType
+      };
+      newGameState.diceSet = [...newGameState.diceSet, newDie];
+      break;
+    }
+
+    case 'deleteDieAddCharmSlot': {
+      if (newGameState.diceSet.length <= 1) {
+        shouldRemove = false;
+        break;
+      }
+      // Delete a random die
+      const randomIndex = Math.floor(Math.random() * newGameState.diceSet.length);
+      newGameState.diceSet = newGameState.diceSet.filter((_, i) => i !== randomIndex);
+      // Add charm slot
+      newGameState.charmSlots = (newGameState.charmSlots || 3) + 1;
+      break;
+    }
+
+    case 'upgradeAllHands': {
+      // TODO: Implement hand upgrade system
+      // For now, this is a placeholder - hand upgrades need infrastructure
+      shouldRemove = false; // Don't remove until implemented
+      break;
+    }
+
+    case 'createLegendaryCharm': {
+      const maxCharms = newGameState.charmSlots || 3;
+      if (newGameState.charms.length >= maxCharms) {
+        shouldRemove = false;
+        break;
+      }
+      // Find available legendary charms not already owned
+      const ownedIds = new Set(newGameState.charms.map(c => c.id));
+      const available = CHARMS.filter(c => !ownedIds.has(c.id) && c.rarity === 'legendary');
+      if (available.length === 0) {
+        shouldRemove = false;
+        break;
+      }
+      const randomIdx = Math.floor(Math.random() * available.length);
+      const newCharm = { ...available[randomIdx], active: true };
+      newGameState.charms = [...newGameState.charms, newCharm];
+      charmManager.addCharm(newCharm);
+      break;
+    }
+
+    case 'createTwoRareCharms': {
+      const maxCharms = newGameState.charmSlots || 3;
+      const availableSlots = maxCharms - newGameState.charms.length;
+      if (availableSlots < 2) {
+        shouldRemove = false;
+        break;
+      }
+      // Find available rare charms not already owned
+      const ownedIds = new Set(newGameState.charms.map(c => c.id));
+      const available = CHARMS.filter(c => !ownedIds.has(c.id) && c.rarity === 'rare');
+      if (available.length < 2) {
+        shouldRemove = false;
+        break;
+      }
+      // Select 2 random rare charms
+      const selected: typeof CHARMS = [];
+      const indices = new Set<number>();
+      while (selected.length < 2 && indices.size < available.length) {
+        const randomIdx = Math.floor(Math.random() * available.length);
+        if (!indices.has(randomIdx)) {
+          indices.add(randomIdx);
+          selected.push(available[randomIdx]);
+        }
+      }
+      const newCharms = selected.map(c => ({ ...c, active: true }));
+      newGameState.charms = [...newGameState.charms, ...newCharms];
+      newCharms.forEach(charm => charmManager.addCharm(charm));
+      break;
+    }
+
+    case 'deleteTwoCopyOneCharm': {
+      if (newGameState.charms.length < 3) {
+        shouldRemove = false;
+        break;
+      }
+      // Delete 2 random charms
+      const indicesToDelete = new Set<number>();
+      while (indicesToDelete.size < 2) {
+        const randomIdx = Math.floor(Math.random() * newGameState.charms.length);
+        indicesToDelete.add(randomIdx);
+      }
+      const remaining = newGameState.charms.filter((_, i) => !indicesToDelete.has(i));
+      if (remaining.length === 0) {
+        shouldRemove = false;
+        break;
+      }
+      // Copy 1 random remaining charm
+      const randomIdx = Math.floor(Math.random() * remaining.length);
+      const copiedCharm = { ...remaining[randomIdx], id: `${remaining[randomIdx].id}_copy_${Date.now()}` };
+      newGameState.charms = [...remaining, copiedCharm];
+      // Update charm manager
+      newGameState.charms.forEach((charm: any) => {
+        if (!charmManager.getAllCharms().some((c: any) => c.id === charm.id)) {
+          charmManager.addCharm(charm);
+        }
+      });
+      break;
+    }
 
     case 'chisel': {
       // Requires user input - return request

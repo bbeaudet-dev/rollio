@@ -17,7 +17,7 @@ export type MaterialEffectFn = (
   gameState: any,
   roundState: any,
   charmManager?: any
-) => { score: number, materialLogs: string[] };
+) => { score: number };
 
 /*
  * =============================
@@ -26,46 +26,56 @@ export type MaterialEffectFn = (
  * Registry of material effect functions by material id.
  * Each function applies the specific material's effect to scoring.
  */
-const materialEffects: Record<string, MaterialEffectFn> = {
+export const materialEffects: Record<string, MaterialEffectFn> = {
   /*
    * Crystal Material Effect
    * ----------------------
-   * Multiplier based on crystals scored this round.
-   * Effect: 1.5x per crystal already scored this round.
+   * Multiplier based on crystals held in hand (not scored).
+   * Effect: 2x per crystal die held in hand.
    */
   crystal: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
     let score = baseScore;
-    const materialLogs: string[] = [];
     const selectedDice = selectedIndices.map(i => diceHand[i]);
     const crystalCount = selectedDice.filter(die => die.material === 'crystal').length;
-    let prevCrystalCount = 0;
-    if (typeof roundState.crystalsScoredThisRound === 'number') {
-      prevCrystalCount = roundState.crystalsScoredThisRound;
-    }
-    if (crystalCount > 0) {
-      const multiplier = 1 + 0.5 * prevCrystalCount;
-      materialLogs.push(`Crystal: ${crystalCount} scored, ${prevCrystalCount} previously scored this round, multiplier: x${multiplier}`);
+    
+    // Count crystals held in hand (not selected/scored)
+    const allCrystalDice = diceHand.filter(die => die.material === 'crystal');
+    const heldCrystalCount = allCrystalDice.length - crystalCount; // Total crystals minus ones being scored
+    
+    if (crystalCount > 0 && heldCrystalCount > 0) {
+      const multiplier = 1 + 1.0 * heldCrystalCount; // 2x per crystal held
       score *= multiplier;
     }
     score = Math.ceil(score);
-    return { score, materialLogs };
+    return { score };
   },
   /*
    * Flower Material Effect
    * ---------------------
-   * Exponential multiplier based on flower dice count.
-   * Effect: 1.25x per flower die (exponential).
+   * Multiplier based on flowers scored previously in the round.
+   * Effect: 1.20x for each flower played previously in the round.
    */
   flower: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
     let score = baseScore;
-    const materialLogs: string[] = [];
     const selectedDice = selectedIndices.map(i => diceHand[i]);
     const flowerCount = selectedDice.filter(die => die.material === 'flower').length;
-    if (flowerCount > 0) {
-      materialLogs.push(`Flower: ${flowerCount} scored, multiplier: x${Math.pow(1.25, flowerCount).toFixed(2)}`);
-      score *= Math.pow(1.25, flowerCount);
+    
+    // Count flowers scored previously in this round
+    let prevFlowerCount = 0;
+    if (roundState && roundState.rollHistory) {
+      for (const roll of roundState.rollHistory) {
+        if (roll.scoringSelection && roll.scoringSelection.length > 0) {
+          const scoredDice = roll.scoringSelection.map((idx: number) => roll.diceHand[idx]).filter(Boolean);
+          prevFlowerCount += scoredDice.filter((die: any) => die.material === 'flower').length;
+        }
+      }
     }
-    return { score, materialLogs };
+    
+    if (flowerCount > 0 && prevFlowerCount > 0) {
+      const multiplier = 1 + 0.20 * prevFlowerCount; // 1.20x per flower previously scored
+      score *= multiplier;
+    }
+    return { score };
   },
   /*
    * Golden Material Effect
@@ -75,14 +85,12 @@ const materialEffects: Record<string, MaterialEffectFn> = {
    */
   golden: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
     let score = baseScore;
-    const materialLogs: string[] = [];
     const selectedDice = selectedIndices.map(i => diceHand[i]);
     const goldenCount = selectedDice.filter(die => die.material === 'golden').length;
     if (goldenCount > 0 && gameState) {
-      materialLogs.push(`Golden: ${goldenCount} scored, +$${5 * goldenCount}`);
       gameState.money = (gameState.money || 0) + 5 * goldenCount;
     }
-    return { score, materialLogs };
+    return { score };
   },
   /*
    * Volcano Material Effect
@@ -92,15 +100,13 @@ const materialEffects: Record<string, MaterialEffectFn> = {
    */
   volcano: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
     let score = baseScore;
-    const materialLogs: string[] = [];
     const selectedDice = selectedIndices.map(i => diceHand[i]);
     const volcanoCount = selectedDice.filter(die => die.material === 'volcano').length;
     if (volcanoCount > 0 && roundState) {
       const hotDiceCounter = roundState.hotDiceCounter || 0;
-      materialLogs.push(`Volcano: ${volcanoCount} scored, hot dice count: ${hotDiceCounter}, bonus: +${100 * volcanoCount * hotDiceCounter}`);
       score += 100 * volcanoCount * hotDiceCounter;
     }
-    return { score, materialLogs };
+    return { score };
   },
   /*
    * Rainbow Material Effect
@@ -112,7 +118,6 @@ const materialEffects: Record<string, MaterialEffectFn> = {
    */
   rainbow: (diceHand, selectedIndices, baseScore, gameState, roundState, charmManager) => {
     let score = baseScore;
-    const materialLogs: string[] = [];
     const selectedDice = selectedIndices.map(i => diceHand[i]);
     const rainbowDice = selectedDice.filter(die => (die.material as string) === 'rainbow');
     
@@ -137,7 +142,6 @@ const materialEffects: Record<string, MaterialEffectFn> = {
       
       if (Math.random() < pointProb) {
         score += 200;
-        materialLogs.push('Rainbow: +200 points!');
         // Notify Rabbit's Foot charm if active
         if (charmManager && typeof charmManager.getCharm === 'function') {
           const rabbitsFoot = charmManager.getCharm('rabbitsFoot');
@@ -148,7 +152,6 @@ const materialEffects: Record<string, MaterialEffectFn> = {
       }
       if (Math.random() < moneyProb) {
         if (gameState) gameState.money = (gameState.money || 0) + 10;
-        materialLogs.push('Rainbow: +$10! New total: $' + gameState.money);
         // Notify Rabbit's Foot charm if active
         if (charmManager && typeof charmManager.getCharm === 'function') {
           const rabbitsFoot = charmManager.getCharm('rabbitsFoot');
@@ -161,7 +164,6 @@ const materialEffects: Record<string, MaterialEffectFn> = {
         if (gameState && gameState.diceSet) {
           const newDie = { ...die, id: `d${gameState.diceSet.length + 1}` };
           gameState.diceSet.push(newDie);
-          materialLogs.push('Rainbow: Cloned itself! New number of dice: ' + gameState.diceSet.length);
           // Notify Rabbit's Foot charm if active
           if (charmManager && typeof charmManager.getCharm === 'function') {
             const rabbitsFoot = charmManager.getCharm('rabbitsFoot');
@@ -172,7 +174,7 @@ const materialEffects: Record<string, MaterialEffectFn> = {
         }
       }
     }
-    return { score, materialLogs };
+    return { score };
   },
   /*
    * Mirror Material Effect
@@ -183,15 +185,7 @@ const materialEffects: Record<string, MaterialEffectFn> = {
    */
   mirror: (diceHand, selectedIndices, baseScore, gameState, roundState, charmManager) => {
     let score = baseScore;
-    const materialLogs: string[] = [];
-    const selectedDice = selectedIndices.map(i => diceHand[i]);
-    const mirrorDice = selectedDice.filter(die => (die.material as string) === 'mirror');
-    
-    if (mirrorDice.length > 0) {
-      materialLogs.push(`Mirror: ${mirrorDice.length} mirror dice (WIP)`);
-    }
-    
-    return { score, materialLogs };
+    return { score };
   },
   /*
    * Ghost Material Effect
@@ -201,15 +195,7 @@ const materialEffects: Record<string, MaterialEffectFn> = {
    */
   ghost: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
     let score = baseScore;
-    const materialLogs: string[] = [];
-    const selectedDice = selectedIndices.map(i => diceHand[i]);
-    const ghostCount = selectedDice.filter(die => (die.material as string) === 'ghost').length;
-    
-    if (ghostCount > 0) {
-      materialLogs.push(`Ghost: ${ghostCount} ghost dice (hot dice trigger if only ghosts remain)`);
-    }
-    
-    return { score, materialLogs };
+    return { score };
   },
   /*
    * Lead Material Effect
@@ -219,15 +205,7 @@ const materialEffects: Record<string, MaterialEffectFn> = {
    */
   lead: (diceHand, selectedIndices, baseScore, gameState, roundState) => {
     let score = baseScore;
-    const materialLogs: string[] = [];
-    const selectedDice = selectedIndices.map(i => diceHand[i]);
-    const leadCount = selectedDice.filter(die => (die.material as string) === 'lead').length;
-    
-    if (leadCount > 0) {
-      materialLogs.push(`Lead: ${leadCount} lead dice (stay in hand after scoring)`);
-    }
-    
-    return { score, materialLogs };
+    return { score };
   },
 };
 
@@ -284,15 +262,8 @@ export function applyMaterialEffects(
   gameState: any,
   roundState: any,
   charmManager?: any
-): { score: number, materialLogs: string[] } {
-  debugAction('materialEffects', 'Applying material effects', {
-    baseScore,
-    selectedDice: selectedIndices.length,
-    materials: selectedIndices.map(i => diceHand[i].material)
-  });
-  
+): { score: number } {
   let score = baseScore;
-  let allLogs: string[] = [];
   
   // Group selected dice by material
   const selectedDice = selectedIndices.map(i => diceHand[i]);
@@ -302,33 +273,15 @@ export function applyMaterialEffects(
     materialGroups[die.material].push(idx);
   });
   
-  debugVerbose(`Material groups:`, materialGroups);
-  
-  // Track if any effect logs were added
-  let hadEffect = false;
-  
   // Apply each material effect
   for (const material in materialGroups) {
     if (materialEffects[material]) {
-      debugVerbose(`Applying ${material} material effect`);
-      const { score: newScore, materialLogs } = materialEffects[material](
+      const { score: newScore } = materialEffects[material](
         diceHand, selectedIndices, score, gameState, roundState, charmManager
       );
-      if (materialLogs.length > 0) {
-        allLogs.push(...materialLogs);
-        hadEffect = true;
-        debugAction('materialEffects', `${material} effect activated`, { 
-          scoreChange: newScore - score,
-          newScore
-        });
-      }
       score = newScore;
     }
   }
   
-  if (!hadEffect) {
-    debugVerbose('No material effects applied');
-  }
-  
-  return { score, materialLogs: allLogs };
+  return { score };
 } 

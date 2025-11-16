@@ -3,6 +3,8 @@ import { Button } from '../../components/Button';
 import { Charm, Consumable, Blessing } from '../../../../game/types';
 import { RarityDot } from '../../../utils/rarityColors';
 import { getBlessingName, getBlessingDescription } from '../../../../game/data/blessings';
+import { WHIMS, WISHES } from '../../../../game/data/consumables';
+import { getConsumableColor, getItemTypeColor } from '../../../utils/colors';
 
 interface ShopItemProps {
   item: Charm | Consumable | Blessing;
@@ -27,33 +29,53 @@ export const ShopItem: React.FC<ShopItemProps> = ({
     if (itemType === 'blessing') {
       return getBlessingName(item as Blessing);
     }
-    return item.name;
+    if (itemType === 'consumable') {
+      return (item as Consumable).name;
+    }
+    return (item as Charm).name;
   };
 
   const getItemDescription = () => {
     if (itemType === 'blessing') {
       return getBlessingDescription(item as Blessing);
     }
-    return item.description;
+    if (itemType === 'consumable') {
+      return (item as Consumable).description;
+    }
+    return (item as Charm).description;
   };
 
   const getRarity = () => {
     if (itemType === 'blessing') {
       return 'common'; // Blessings don't have rarity
     }
-    return (item as Charm | Consumable).rarity || 'common';
+    if (itemType === 'consumable') {
+      // Consumables use category, not rarity
+      return 'common'; // Default for display purposes
+    }
+    return (item as Charm).rarity || 'common';
   };
 
   const name = getItemName();
   const description = getItemDescription();
   const rarity = getRarity();
 
+  // Get background color for items
+  const getBackgroundColor = () => {
+    if (itemType === 'consumable') {
+      return getConsumableColor((item as Consumable).id, WHIMS, WISHES);
+    }
+    if (itemType === 'charm') return getItemTypeColor('charm');
+    if (itemType === 'blessing') return getItemTypeColor('blessing');
+    return 'white';
+  };
+
   return (
     <div style={{
       padding: '6px 8px',
       border: '1px solid #ddd',
       borderRadius: '3px',
-      backgroundColor: 'white',
+      backgroundColor: getBackgroundColor(),
       opacity: canAfford ? 1 : 0.6,
       fontSize: '11px',
       marginBottom: '4px'

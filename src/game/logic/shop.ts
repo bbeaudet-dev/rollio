@@ -4,15 +4,13 @@
 
 import { GameState, Charm, Consumable, Blessing, ShopState } from '../types';
 import { CHARMS } from '../data/charms';
-import { CONSUMABLES } from '../data/consumables';
+import { CONSUMABLES, WHIMS, WISHES } from '../data/consumables';
 import { selectRandomBlessing, getBlessingName, getBlessingDescription, enrichBlessingForDisplay } from '../data/blessings';
 import { CHARM_PRICES } from '../data/charms';
 
 const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
-  legendary: { buy: 10, sell: 5 },
-  rare: { buy: 8, sell: 4 },
-  uncommon: { buy: 6, sell: 3 },
-  common: { buy: 4, sell: 2 },
+  wish: { buy: 8, sell: 4 },
+  whim: { buy: 4, sell: 2 },
 };
 
 const BLESSING_PRICE = 5;
@@ -52,8 +50,11 @@ export function getCharmPrice(charm: Charm): number {
  * Get consumable price
  */
 export function getConsumablePrice(consumable: Consumable): number {
-  const rarity = (consumable as any).rarity || 'common';
-  const priceInfo = CONSUMABLE_PRICES[rarity] || CONSUMABLE_PRICES.common;
+  // Check if consumable is a wish or whim
+  const isWish = WISHES.some(w => w.id === consumable.id);
+  const isWhim = WHIMS.some(w => w.id === consumable.id);
+  const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+  const priceInfo = CONSUMABLE_PRICES[category] || CONSUMABLE_PRICES.whim;
   return priceInfo.buy;
 }
 
@@ -85,14 +86,34 @@ export function generateShopInventory(gameState: GameState): ShopState {
   }
   
   // Select 3 random consumables (excluding owned ones)
-  const availableConsumables = CONSUMABLES.filter(c => !ownedConsumableIds.has(c.id));
+  // 10% chance for wishes, 90% chance for whims
+  const availableWhims = WHIMS.filter(c => !ownedConsumableIds.has(c.id));
+  const availableWishes = WISHES.filter(c => !ownedConsumableIds.has(c.id));
   const selectedConsumables: Consumable[] = [];
   const consumableIndices = new Set<number>();
-  while (selectedConsumables.length < 3 && consumableIndices.size < availableConsumables.length) {
-    const randomIndex = Math.floor(Math.random() * availableConsumables.length);
-    if (!consumableIndices.has(randomIndex)) {
-      consumableIndices.add(randomIndex);
-      selectedConsumables.push({ ...availableConsumables[randomIndex] });
+  
+  while (selectedConsumables.length < 3 && (consumableIndices.size < availableWhims.length + availableWishes.length)) {
+    // 10% chance to pick from wishes, 90% chance from whims
+    const isWish = Math.random() < 0.1;
+    const pool = isWish ? availableWishes : availableWhims;
+    
+    if (pool.length === 0) {
+      // If pool is empty, use the other one
+      const otherPool = isWish ? availableWhims : availableWishes;
+      if (otherPool.length === 0) break;
+      const randomIndex = Math.floor(Math.random() * otherPool.length);
+      const consumable = otherPool[randomIndex];
+      if (!selectedConsumables.some(c => c.id === consumable.id)) {
+        selectedConsumables.push({ ...consumable });
+        consumableIndices.add(consumable.id as any);
+      }
+    } else {
+      const randomIndex = Math.floor(Math.random() * pool.length);
+      const consumable = pool[randomIndex];
+      if (!selectedConsumables.some(c => c.id === consumable.id)) {
+        selectedConsumables.push({ ...consumable });
+        consumableIndices.add(consumable.id as any);
+      }
     }
   }
   
@@ -110,13 +131,14 @@ export function generateShopInventory(gameState: GameState): ShopState {
 }
 
 /**
- * Purchase a charm
+ * Purchase a charm - pure function
+ * Returns new game state instead of mutating
  */
 export function purchaseCharm(
   gameState: GameState,
   shopState: ShopState,
   charmIndex: number
-): { success: boolean; message: string } {
+): { success: boolean; message: string; gameState?: GameState } {
   if (charmIndex < 0 || charmIndex >= shopState.availableCharms.length) {
     return { success: false, message: 'Invalid charm selection' };
   }
@@ -143,21 +165,29 @@ export function purchaseCharm(
     return { success: false, message: `Insufficient funds. Need $${finalPrice}, have $${gameState.money}` };
   }
   
-  // Purchase
-  gameState.money -= finalPrice;
-  gameState.charms.push({ ...charm, active: true });
+  // Purchase - create new state
+  const newGameState: GameState = {
+    ...gameState,
+    money: gameState.money - finalPrice,
+    charms: [...gameState.charms, { ...charm, active: true }]
+  };
   
-  return { success: true, message: `Purchased ${charm.name} for $${finalPrice}` };
+  return { 
+    success: true, 
+    message: `Purchased ${charm.name} for $${finalPrice}`,
+    gameState: newGameState
+  };
 }
 
 /**
- * Purchase a consumable
+ * Purchase a consumable - pure function
+ * Returns new game state instead of mutating
  */
 export function purchaseConsumable(
   gameState: GameState,
   shopState: ShopState,
   consumableIndex: number
-): { success: boolean; message: string } {
+): { success: boolean; message: string; gameState?: GameState } {
   if (consumableIndex < 0 || consumableIndex >= shopState.availableConsumables.length) {
     return { success: false, message: 'Invalid consumable selection' };
   }
@@ -179,21 +209,29 @@ export function purchaseConsumable(
     return { success: false, message: `Insufficient funds. Need $${finalPrice}, have $${gameState.money}` };
   }
   
-  // Purchase
-  gameState.money -= finalPrice;
-  gameState.consumables.push({ ...consumable });
+  // Purchase - create new state
+  const newGameState: GameState = {
+    ...gameState,
+    money: gameState.money - finalPrice,
+    consumables: [...gameState.consumables, { ...consumable }]
+  };
   
-  return { success: true, message: `Purchased ${consumable.name} for $${finalPrice}` };
+  return { 
+    success: true, 
+    message: `Purchased ${consumable.name} for $${finalPrice}`,
+    gameState: newGameState
+  };
 }
 
 /**
- * Purchase a blessing
+ * Purchase a blessing - pure function
+ * Returns new game state instead of mutating
  */
 export function purchaseBlessing(
   gameState: GameState,
   shopState: ShopState,
   blessingIndex: number
-): { success: boolean; message: string } {
+): { success: boolean; message: string; gameState?: GameState } {
   if (blessingIndex < 0 || blessingIndex >= shopState.availableBlessings.length) {
     return { success: false, message: 'Invalid blessing selection' };
   }
@@ -217,33 +255,55 @@ export function purchaseBlessing(
   
   // Purchase and apply blessing (store original blessing without display properties)
   const blessingToStore = { id: blessing.id, tier: blessing.tier, effect: blessing.effect };
-  gameState.money -= finalPrice;
-  gameState.blessings.push(blessingToStore);
-  applyBlessingEffect(gameState, blessingToStore);
+  
+  // Create new state with blessing added
+  let newGameState: GameState = {
+    ...gameState,
+    money: gameState.money - finalPrice,
+    blessings: [...gameState.blessings, blessingToStore]
+  };
+  
+  // Apply blessing effect (this may modify the new state)
+  newGameState = applyBlessingEffect(newGameState, blessingToStore);
   
   const blessingName = (blessing as any).name || getBlessingName(blessing);
-  return { success: true, message: `Purchased ${blessingName} for $${finalPrice}` };
+  return { 
+    success: true, 
+    message: `Purchased ${blessingName} for $${finalPrice}`,
+    gameState: newGameState
+  };
 }
 
 /**
- * Apply blessing effect to game state
+ * Apply blessing effect to game state - pure function
+ * Returns new game state instead of mutating
  */
-export function applyBlessingEffect(gameState: GameState, blessing: Blessing): void {
+export function applyBlessingEffect(gameState: GameState, blessing: Blessing): GameState {
   switch (blessing.effect.type) {
     case 'baseLevelRerolls':
-      gameState.baseLevelRerolls += blessing.effect.amount;
-      break;
+      return {
+        ...gameState,
+        baseLevelRerolls: gameState.baseLevelRerolls + blessing.effect.amount
+      };
     case 'baseLevelBanks':
-      gameState.baseLevelBanks = (gameState.baseLevelBanks || 5) + blessing.effect.amount;
-      break;
+      return {
+        ...gameState,
+        baseLevelBanks: (gameState.baseLevelBanks || 5) + blessing.effect.amount
+      };
     case 'charmSlots':
-      gameState.charmSlots += blessing.effect.amount;
-      break;
+      return {
+        ...gameState,
+        charmSlots: gameState.charmSlots + blessing.effect.amount
+      };
     case 'consumableSlots':
-      gameState.consumableSlots += blessing.effect.amount;
-      break;
+      return {
+        ...gameState,
+        consumableSlots: gameState.consumableSlots + blessing.effect.amount
+      };
     // Other effects are applied dynamically during gameplay
     // (rerollOnBank, rerollOnFlop, shopDiscount, flopSubversion, moneyOnLevelEnd, moneyOnRerollUsed)
+    default:
+      return gameState;
   }
 }
 

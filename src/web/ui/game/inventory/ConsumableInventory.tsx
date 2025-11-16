@@ -2,6 +2,8 @@ import React from 'react';
 import { ConsumableInventoryProps } from '../../../types/inventory';
 import { InventoryItem } from '../../components/InventoryItem';
 import { RarityDot } from '../../../utils/rarityColors';
+import { WHIMS, WISHES } from '../../../../game/data/consumables';
+import { getConsumableColor } from '../../../utils/colors';
 
 export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({ 
   consumables, 
@@ -24,14 +26,13 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {consumables.map((consumable, index) => (
             <li key={index} style={{ marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <RarityDot rarity={(consumable as any).rarity || 'common'} />
               <InventoryItem
                 title={consumable.name}
                 description={consumable.description}
-                rarity={(consumable as any).rarity || 'Common'}
                 uses={consumable.uses}
                 showUseButton={true}
                 onUse={() => onConsumableUse(index)}
+                backgroundColor={getConsumableColor(consumable.id, WHIMS, WISHES)}
               />
             </li>
           ))}

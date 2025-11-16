@@ -1,5 +1,6 @@
 import { Die, ScoringCombination } from '../../game/types';
 import { MATERIALS } from '../../game/data/materials';
+import { WHIMS, WISHES } from '../../game/data/consumables';
 
 /**
  * CLI-specific display formatting utilities
@@ -305,7 +306,10 @@ export class CLIDisplayFormatter {
     } else {
       availableConsumables.forEach((consumable, idx) => {
         const price = consumablePrices[idx];
-        lines.push(`  ${idx + 1}. ${consumable.name} (${consumable.rarity}) - $${price} - ${consumable.description}`);
+        const isWish = WISHES.some((w: any) => w.id === consumable.id);
+        const isWhim = WHIMS.some((w: any) => w.id === consumable.id);
+        const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+        lines.push(`  ${idx + 1}. ${consumable.name} (${category}) - $${price} - ${consumable.description}`);
       });
     }
     lines.push('');

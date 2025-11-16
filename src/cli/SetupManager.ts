@@ -3,7 +3,7 @@ import { CharmManager } from '../game/logic/charmSystem';
 import { DEFAULT_GAME_CONFIG, createInitialGameState } from '../game/utils/factories';
 import { ALL_DICE_SETS } from '../game/data/diceSets';
 import { CHARMS } from '../game/data/charms';
-import { CONSUMABLES } from '../game/data/consumables';
+import { CONSUMABLES, WHIMS, WISHES } from '../game/data/consumables';
 import { MATERIALS } from '../game/data/materials';
 import { DiceMaterialType } from '../game/types';
 
@@ -39,8 +39,6 @@ export class SetupManager {
     gameState.charms = [];
     gameState.consumables = [];
     gameState.config.penalties.consecutiveFlopLimit = DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit;
-    gameState.config.penalties.consecutiveFlopPenalty = DEFAULT_GAME_CONFIG.penalties.consecutiveFlopPenalty;
-    gameState.config.penalties.flopPenaltyEnabled = true;
     return { gameState, diceSetConfig };
   }
 
@@ -52,7 +50,7 @@ export class SetupManager {
    */
   async setupCustomGame(gameInterface: GameInterface, charmManager: CharmManager): Promise<{ gameState: any, diceSetConfig: any }> {
     // Prompt for game rules using interface method (removed winCondition)
-    const { penaltyEnabled, consecutiveFlopLimit, consecutiveFlopPenalty } = await (gameInterface as any).askForGameRules();
+    const { consecutiveFlopLimit } = await (gameInterface as any).askForGameRules();
     // Prompt for dice set selection
     const diceSetNames = ALL_DICE_SETS.map(ds => typeof ds === 'function' ? 'Chaos' : ds.name);
     const diceSetIdx = await (gameInterface as any).askForDiceSetSelection(diceSetNames);
@@ -68,13 +66,16 @@ export class SetupManager {
     // Determine consumable slots (default 2)
     const consumableSlots = diceSetConfig.consumableSlots ?? 2;
     // Consumable Selection
-    const availableConsumables = CONSUMABLES.map(consumable => `${consumable.name} (${consumable.rarity}) - ${consumable.description}`);
+    const availableConsumables = CONSUMABLES.map(consumable => {
+      const isWish = WISHES.some((w: any) => w.id === consumable.id);
+      const isWhim = WHIMS.some((w: any) => w.id === consumable.id);
+      const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+      return `${consumable.name} (${category}) - ${consumable.description}`;
+    });
     const selectedConsumableIndices = await gameInterface.askForConsumableSelection(availableConsumables, consumableSlots);
     // Create game state with selected charms, materials, and consumables
     let gameState = createInitialGameState(diceSetConfig);
     gameState.config.penalties.consecutiveFlopLimit = consecutiveFlopLimit;
-    gameState.config.penalties.consecutiveFlopPenalty = penaltyEnabled ? consecutiveFlopPenalty : 0;
-    gameState.config.penalties.flopPenaltyEnabled = penaltyEnabled;
     // Assign materials to dice
     gameState.diceSet = gameState.diceSet.map((die: any, index: number) => ({
       ...die,
@@ -96,7 +97,7 @@ export class SetupManager {
     // Add selected consumables to game state
     gameState.consumables = selectedConsumableIndices
       .filter(index => index < CONSUMABLES.length) // Filter out "Empty" selections
-      .map((index: number) => ({ ...CONSUMABLES[index] }));
+      .map((index: number) => CONSUMABLES[index]);
     return { gameState, diceSetConfig };
   }
 } 

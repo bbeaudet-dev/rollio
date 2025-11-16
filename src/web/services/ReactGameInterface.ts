@@ -68,12 +68,11 @@ export class ReactGameInterface implements GameInterface {
     forfeitedPoints: number,
     consecutiveFlops: number,
     levelBankedPoints: number,
-    consecutiveFlopPenalty: number,
     consecutiveFlopLimit: number
   ): Promise<void> {
     this.messages.push(`You flopped! Points forfeited: ${forfeitedPoints}`);
     if (consecutiveFlops >= consecutiveFlopLimit) {
-      this.messages.push(`Consecutive flop penalty: -${consecutiveFlopPenalty} points`);
+      this.messages.push(`Game over! ${consecutiveFlops} consecutive flops.`);
     }
   }
 
