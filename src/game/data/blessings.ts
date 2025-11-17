@@ -1,8 +1,3 @@
-/**
- * Blessings data and definitions
- * Blessings are permanent upgrades that can only be purchased once per run
- */
-
 import { Blessing } from '../types';
 
 /**

@@ -61,7 +61,7 @@ export const PIP_EFFECTS: PipEffect[] = [
   {
     id: 'blank',
     name: 'Blank',
-    description: '1.1x score multiplier',
+    description: '^1.1 score exponential',
     type: 'blank',
     multiplier: 1.1,
   },
