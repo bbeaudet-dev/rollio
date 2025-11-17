@@ -20,9 +20,9 @@ interface RollActions {
 interface GameActions {
   handleBank: () => void;
   startNewGame: (diceSetIndex: number, selectedCharms: number[], selectedConsumables: number[]) => void;
-  handleFlopContinue: () => void;
   handleFlopShieldChoice: (useShield: boolean) => void;
   handleConfirmTally: () => void;
+  getDiceToRollCount: (gameState: any) => number;
 }
 
 interface InventoryActions {
@@ -39,10 +39,14 @@ interface GameBoardData {
   canSelectDice: boolean;
   isWaitingForReroll: boolean; // Before scoring - can reroll any dice
   canRerollSelected: boolean; // Before scoring - can reroll selected dice
-  canContinueFlop: boolean; // After flop - can continue
   canChooseFlopShield: boolean; // Can choose whether to use flop shield
   justBanked: boolean;
   justFlopped: boolean;
+  bankingDisplayInfo?: {
+    pointsJustBanked: number;
+    previousTotal: number;
+    newTotal: number;
+  } | null;
 }
 
 interface ShopActions {
@@ -138,7 +142,7 @@ export const Game: React.FC<GameProps> = ({
                   roundPoints={roundState?.roundPoints || 0}
                   gameScore={gameState.history?.totalScore || 0}
                   justBanked={false}
-                  canContinueFlop={false}
+                  bankingDisplayInfo={null}
                 />
               </div>
             )}
@@ -276,10 +280,10 @@ export const Game: React.FC<GameProps> = ({
           roundPoints={roundState.roundPoints}
           gameScore={gameState.history?.totalScore || 0}
           justBanked={board.justBanked}
-          canContinueFlop={board.canContinueFlop && canPlay}
+          justFlopped={board.justFlopped}
+          canBank={board.canBank && canPlay}
+          bankingDisplayInfo={board.bankingDisplayInfo}
         />
-
-        <HotDiceCounter count={roundState.hotDiceCounter} />
 
         {/* Game Controls - Bottom Center Overlay */}
         <div style={{
@@ -289,43 +293,39 @@ export const Game: React.FC<GameProps> = ({
           transform: 'translateX(-50%)',
           zIndex: 25,
           display: 'flex',
-          gap: '10px',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          flexWrap: 'wrap',
+          gap: '8px',
           width: 'calc(100% - 40px)',
           maxWidth: '500px'
         }}>
+          {/* Hot Dice Counter - only show during active rounds */}
+          {roundState.isActive && roundState.hotDiceCounter > 0 && (
+            <HotDiceCounter count={roundState.hotDiceCounter} />
+          )}
+          
           <GameControls 
-            onRoll={() => {
-              if (board.isWaitingForReroll) {
-                // Reroll selected dice
-                rollActions.handleRerollSelection(board.selectedDice);
+            onReroll={() => {
+              // Reroll Button (left)
+              rollActions.handleRerollSelection(board.selectedDice);
+            }}
+            onRollOrScore={() => {
+              // Rolling & Scoring Button (middle)
+              if (board.selectedDice.length > 0 && board.previewScoring?.isValid) {
+                rollActions.scoreSelectedDice();
               } else {
-                // Regular roll/reroll
                 rollActions.handleRollDice();
               }
             }}
-            onContinue={gameActions.handleFlopContinue}
             onBank={gameActions.handleBank}
-            canRoll={board.canRoll && canPlay}
+            canReroll={board.isWaitingForReroll && canPlay}
+            canRoll={(board.canRoll || board.canReroll) && canPlay}
+            canScore={board.canSelectDice && canPlay}
             canBank={board.canBank && canPlay}
-            diceToReroll={(() => {
-              // If hot dice occurred (diceHand is empty but we can roll full set), use full dice set
-              const hasHotDice = !!(roundState.rollHistory && roundState.rollHistory.length > 0 && 
-                roundState.rollHistory[roundState.rollHistory.length - 1]?.isHotDice);
-              if (roundState.diceHand.length === 0 && hasHotDice) {
-                return gameState.diceSet.length;
-              }
-              // Otherwise, use remaining dice count
-              return board.dice.length;
-            })()}
-            canReroll={board.canReroll && canPlay}
-            isWaitingForReroll={board.isWaitingForReroll && canPlay}
-            canRerollSelected={board.canRerollSelected && canPlay}
-            canContinueFlop={board.canContinueFlop && canPlay}
+            diceToRoll={gameActions.getDiceToRollCount(gameState)}
             selectedDiceCount={board.selectedDice.length}
-            hasRoundState={true}
+            previewScoring={board.previewScoring}
           />
         </div>
       </div>

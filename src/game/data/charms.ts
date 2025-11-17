@@ -14,7 +14,6 @@ export type CharmType =
   | 'oddOdyssey'
   | 'pairUp'
   | 'tripleThreat'
-  | 'pennyPincher'
   | 'dimeADozen'
   | 'secondChance'
   | 'sandbagger'
@@ -169,12 +168,6 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     id: 'tripleThreat',
     name: 'Triple Play',
     description: '+50 points for each triplet rolled',
-    rarity: 'common'
-  },
-  {
-    id: 'pennyPincher',
-    name: 'Penny Pincher',
-    description: '+$1 for each round completed without flopping',
     rarity: 'common'
   },
   {
@@ -622,3 +615,11 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
 
 // activation required, e.g. activates after level 20, after rerolling 100 times, etc.
 // sleeper agent
+
+/* 
+Implemented but then didn't make sense? Rounds without flopping is just banks
+  id: 'pennyPincher',
+  name: 'Penny Pincher',
+  description: '+$1 for each round completed without flopping',
+  rarity: 'common'
+*/

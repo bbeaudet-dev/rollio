@@ -1,20 +1,40 @@
 import React from 'react';
 
 interface PointsDisplayProps {
-  lastRollPoints: number;
   roundPoints: number;
-  gameScore: number;
-  canReroll: boolean;
   justBanked: boolean;
+  canSelectDice: boolean; // While actively selecting/scoring dice
+  canBank: boolean; // After scoring, when bank is available
+  bankingDisplayInfo?: {
+    pointsJustBanked: number;
+    previousTotal: number;
+    newTotal: number;
+  } | null;
 }
 
 export const PointsDisplay: React.FC<PointsDisplayProps> = ({
-  lastRollPoints,
   roundPoints,
-  gameScore,
-  canReroll,
-  justBanked
+  justBanked,
+  canSelectDice,
+  canBank,
+  bankingDisplayInfo
 }) => {
+  // Determine Pot color based on state
+  // Red: While actively selecting/scoring dice
+  // Yellow/orange: After scoring (when Bank is available)
+  // Green with "+": After banking
+  // Back to red: After clicking Roll again
+  const getPotColor = () => {
+    if (justBanked) {
+      return '#28a745'; // Green after banking
+    } else if (canBank && roundPoints > 0) {
+      return '#ff9800'; // Yellow/orange while deciding to Bank/Roll
+    } else if (canSelectDice) {
+      return '#dc3545'; // Red while selecting/scoring
+    } else {
+      return '#dc3545'; // Default red
+    }
+  };
 
   return (
     <>
@@ -24,40 +44,35 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 25,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
         color: 'white',
         padding: '6px 12px',
-        borderRadius: '6px',
+        borderRadius: '8px',
         fontSize: '13px',
         maxWidth: 'calc(100% - 20px)',
-        fontWeight: 'bold',
-        textAlign: 'center'
+        fontWeight: 500, // Less bold - informational display
+        textAlign: 'center',
+        pointerEvents: 'none', // Not clickable
+        userSelect: 'none' // Can't select text
       }}>
-        {/* Roll Points - GREEN when just scored dice */}
-        {lastRollPoints > 0 && canReroll && !justBanked && (
-          <div style={{ color: '#28a745' }}>
-            Roll points: +{lastRollPoints}
-          </div>
-        )}
-        
-        {/* Round Points - RED and LARGE when not banked (unsafe), GREEN when banking */}
+        {/* Pot */}
         <div style={{ 
-          color: justBanked ? '#28a745' : '#dc3545',
+          color: getPotColor(),
           fontSize: '20px',
-          fontWeight: 'bold',
-          marginTop: lastRollPoints > 0 && canReroll && !justBanked ? '8px' : '0'
+          fontWeight: 'bold'
         }}>
-          Round points: {justBanked ? '+' : ''}{roundPoints}
+          Pot: {justBanked && bankingDisplayInfo ? '+' : ''}{justBanked && bankingDisplayInfo ? bankingDisplayInfo.pointsJustBanked : roundPoints}
         </div>
         
-        {/* Game Score - show only when just banked points */}
-        {justBanked && (
+        {/* Bank display - show when Pot is green (after banking) */}
+        {justBanked && bankingDisplayInfo && (
           <div style={{ 
             marginTop: '5px',
-            color: 'white',
+            color: '#28a745',
+            fontSize: '20px',
             fontWeight: 'bold'
           }}>
-            Game score: {gameScore}
+            Bank: {bankingDisplayInfo.pointsJustBanked} → {bankingDisplayInfo.newTotal}
           </div>
         )}
       </div>

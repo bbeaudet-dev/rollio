@@ -7,7 +7,7 @@
 export type PipEffectType = 
   | 'money'
   | 'createConsumable'
-  | 'upgradeHand'
+  | 'upgradeCombo'
   | 'twoFaced'
   | 'wild'
   | 'blank';
@@ -41,10 +41,10 @@ export const PIP_EFFECTS: PipEffect[] = [
     type: 'createConsumable',
   },
   {
-    id: 'upgradeHand',
-    name: 'Upgrade Hand',
+    id: 'upgradeCombo',
+    name: 'Upgrade Combo',
     description: 'Upgrades the scored combination(s)',
-    type: 'upgradeHand',
+    type: 'upgradeCombo',
   },
   {
     id: 'twoFaced',

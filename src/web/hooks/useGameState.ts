@@ -49,20 +49,25 @@ export function useGameState() {
     // Check if this is the first roll of a round
     const hasRolledDice = !!(webState.roundState?.rollHistory && webState.roundState.rollHistory.length > 0);
     
-    if (!hasRolledDice && webState.roundState) {
-      // Roll dice 
+    if (webState.canRoll) {
+      // Can roll - either starting a new round or rolling after a flop
+      if (!webState.roundState) {
+        // No round state - start a new round
+        const newState = await gameManagerRef.current.startRound(webState);
+        setWebState(newState);
+      } else {
+        // Round state exists (may be ended after flop) - roll dice (will start new round if needed)
+        const newState = await gameManagerRef.current.rollDice(webState);
+        setWebState(newState);
+      }
+    } else if (!hasRolledDice && webState.roundState) {
+      // First roll of an active round
       const newState = await gameManagerRef.current.rollDice(webState);
       setWebState(newState);
-    } else if (webState.canRoll && !webState.roundState) {
-      // Starting a new round (no round state exists)
-      const newState = await gameManagerRef.current.startRound(webState);
-      setWebState(newState);
     } else if (webState.canReroll) {
-      // After scoring - rolling remaining dice
-      // Resolve bank or reroll prompt
+      // Roll after scoring
       const resolvedState = gameManagerRef.current.resolvePendingAction(webState, 'r');
       setWebState(resolvedState);
-      // Then trigger roll 
       if (gameManagerRef.current) {
         const rollState = await gameManagerRef.current.rollDice(resolvedState);
         setWebState(rollState);
@@ -102,8 +107,8 @@ export function useGameState() {
   const handleBank = useCallback(async () => {
     if (!webState || !gameManagerRef.current) return;
     
-    // If there's a pending bankOrReroll action, resolve it first
-    if (webState.pendingAction.type === 'bankOrReroll') {
+    // If there's a pending bankOrRoll action, resolve it first
+    if (webState.pendingAction.type === 'bankOrRoll') {
       const resolvedState = gameManagerRef.current.resolvePendingAction(webState, 'b');
       setWebState(resolvedState);
       // Then bank
@@ -124,17 +129,11 @@ export function useGameState() {
     setWebState(newState);
   }, [webState]);
 
-  const handleFlopContinue = useCallback(async () => {
-    if (!webState || !gameManagerRef.current) return;
-    
-    const newState = await gameManagerRef.current.handleFlopContinue(webState);
-    setWebState(newState);
-  }, [webState]);
 
-  const handleFlopShieldChoice = useCallback((useShield: boolean) => {
+  const handleFlopShieldChoice = useCallback(async (useShield: boolean) => {
     if (!webState || !gameManagerRef.current) return;
     
-    const newState = gameManagerRef.current.handleFlopShieldChoice(webState, useShield);
+    const newState = await gameManagerRef.current.handleFlopShieldChoice(webState, useShield);
     setWebState(newState);
   }, [webState]);
 
@@ -158,8 +157,11 @@ export function useGameState() {
     gameActions: {
       handleBank,
       startNewGame,
-      handleFlopContinue,
       handleFlopShieldChoice,
+      getDiceToRollCount: useCallback((gameState: any) => {
+        if (!gameManagerRef.current) return 0;
+        return gameManagerRef.current.getDiceToRollCount(gameState);
+      }, []),
       handleConfirmTally: useCallback(async () => {
         if (!webState || !gameManagerRef.current) return;
         const newState = await gameManagerRef.current.confirmTally(webState);
@@ -211,7 +213,6 @@ export function useGameState() {
         false,
       isWaitingForReroll: webState?.isWaitingForReroll || false, // Before scoring - can reroll any dice
       canRerollSelected: webState?.canRerollSelected || false, // Before scoring - can reroll selected dice
-      canContinueFlop: webState?.canContinueFlop || false, // After flop - can continue
       canChooseFlopShield: webState?.canChooseFlopShield || false, // Can choose whether to use flop shield
       justBanked: webState?.justBanked || false,
       justFlopped: webState?.justFlopped || false,

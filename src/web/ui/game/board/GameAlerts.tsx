@@ -12,8 +12,7 @@ interface GameAlertsProps {
     points: number;
     combinations: string[];
   } | null;
-  onScoreSelectedDice: () => void;
-  canContinueFlop: boolean;
+  justFlopped: boolean;
 }
 
 export const GameAlerts: React.FC<GameAlertsProps> = ({
@@ -23,31 +22,10 @@ export const GameAlerts: React.FC<GameAlertsProps> = ({
   canSelectDice,
   selectedDiceCount,
   previewScoring,
-  onScoreSelectedDice,
-  canContinueFlop
+  justFlopped
 }) => {
   return (
     <>
-      {/* Score Selected Dice Button - Center Overlay */}
-      {canSelectDice && selectedDiceCount > 0 && (
-        <div style={{
-          position: 'absolute',
-          top: '35%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 30,
-          opacity: 0.9
-        }}>
-          <Button 
-            onClick={onScoreSelectedDice}
-            disabled={!previewScoring?.isValid}
-          >
-            Score Selected Dice ({selectedDiceCount})
-            {previewScoring?.isValid && ` - ${previewScoring.points} pts`}
-          </Button>
-        </div>
-      )}
-
       {/* Flop Shield Choice - Center Overlay */}
       {canChooseFlopShield && (
         <div style={{
@@ -106,7 +84,7 @@ export const GameAlerts: React.FC<GameAlertsProps> = ({
       )}
 
       {/* Flop Notification - Center Overlay */}
-      {canContinueFlop && (
+      {justFlopped && (
         <div style={{
           position: 'absolute',
           top: '35%',

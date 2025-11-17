@@ -264,15 +264,30 @@ export class WhimWhispererCharm extends BaseCharm {
 
 export class DoubleAgentCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Doubles rerolls - handled in calculateRerollsForLevel
+    // No scoring effect - reroll multiplier is handled in getRerollBonus
     return {};
+  }
+  
+  getRerollBonus(gameState: any): { add?: number; multiply?: number; override?: number } {
+    // Doubles rerolls
+    return { multiply: 2 };
   }
 }
 
 export class PuristCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Doubles banks, sets rerolls to 0 - handled in calculateBanksForLevel and calculateRerollsForLevel
+    // No scoring effect - bank/reroll modifiers are handled in getBankBonus and getRerollBonus
     return {};
+  }
+  
+  getRerollBonus(gameState: any): { add?: number; multiply?: number; override?: number } {
+    // Sets rerolls to 0 (overrides everything)
+    return { override: 0 };
+  }
+  
+  getBankBonus(gameState: any): { add?: number; multiply?: number } {
+    // Doubles banks
+    return { multiply: 2 };
   }
 }
 

@@ -19,57 +19,58 @@ export const TallyModal: React.FC<TallyModalProps> = ({
 }) => {
   const containerStyle: React.CSSProperties = {
     fontFamily: 'Arial, sans-serif',
-    padding: '20px',
-    minWidth: '400px'
+    padding: '12px',
+    minWidth: '300px',
+    maxWidth: '400px'
   };
 
   const headerStyle: React.CSSProperties = {
-    fontSize: '24px',
+    fontSize: '18px',
     fontWeight: 'bold',
-    marginBottom: '20px',
+    marginBottom: '12px',
     color: '#2d5a2d',
     textAlign: 'center'
   };
 
   const sectionStyle: React.CSSProperties = {
-    padding: '16px',
+    padding: '8px 12px',
     backgroundColor: '#f8f9fa',
     borderRadius: '6px',
-    marginBottom: '16px',
+    marginBottom: '8px',
     border: '1px solid #e1e5e9'
   };
 
   const labelStyle: React.CSSProperties = {
-    fontSize: '14px',
+    fontSize: '12px',
     color: '#6c757d',
-    marginBottom: '4px'
+    marginBottom: '2px'
   };
 
   const valueStyle: React.CSSProperties = {
-    fontSize: '16px',
+    fontSize: '14px',
     fontWeight: 'bold',
     color: '#2c3e50'
   };
 
   const totalStyle: React.CSSProperties = {
-    padding: '16px',
+    padding: '10px 12px',
     backgroundColor: '#e8f5e9',
     borderRadius: '6px',
     border: '2px solid #4CAF50',
-    marginTop: '16px'
+    marginTop: '10px'
   };
 
   const buttonStyle: React.CSSProperties = {
     width: '100%',
-    padding: '12px 24px',
+    padding: '10px 20px',
     backgroundColor: '#4CAF50',
     color: 'white',
     border: 'none',
     borderRadius: '6px',
-    fontSize: '16px',
+    fontSize: '14px',
     fontWeight: 'bold',
     cursor: 'pointer',
-    marginTop: '20px'
+    marginTop: '12px'
   };
 
   return (
@@ -104,8 +105,8 @@ export const TallyModal: React.FC<TallyModalProps> = ({
         )}
 
         <div style={totalStyle}>
-          <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '4px' }}>Total Earned</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2d5a2d' }}>
+          <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Total Earned</div>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#2d5a2d' }}>
             ${rewards.total}
           </div>
         </div>

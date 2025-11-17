@@ -52,9 +52,24 @@ export abstract class BaseCharm implements Charm {
   onFlop?(context: CharmFlopContext): boolean | { prevented: boolean, log?: string } | void;
 
   /**
-   * Called when the player banks points at the end of a round. Can modify the banked points or trigger effects.
+   * Called when the player banks points at the end of a round. Can modify the banked points.
    */
   onBank?(context: CharmBankContext): number | void;
+  
+  /**
+   * Optional method to return reroll bonuses/modifiers for this charm
+   */
+  getRerollBonus?(gameState: any): { add?: number; multiply?: number; override?: number };
+  
+  /**
+   * Optional method to return bank bonuses/modifiers for this charm
+   */
+  getBankBonus?(gameState: any): { add?: number; multiply?: number };
+  
+  /**
+   * Optional method to return world completion bonus (called when completing a world, every 5 levels)
+   */
+  calculateWorldCompletionBonus?(completedLevelNumber: number, levelState: any, gameState: any): number;
 
   /**
    * Called at the start of each round (optional)
@@ -295,6 +310,7 @@ export class CharmManager {
    */
   applyBankEffects(context: CharmBankContext): number {
     let modified = context.bankedPoints;
+    
     this.getActiveCharms().forEach(charm => {
       if (charm.onBank && charm.canUse()) {
         const result = charm.onBank({ ...context, bankedPoints: modified });
@@ -303,6 +319,7 @@ export class CharmManager {
         }
       }
     });
+    
     return modified;
   }
 

@@ -142,6 +142,9 @@ export interface RoundState {
   // Completed round only (in history)
   banked?: boolean;
   flopped?: boolean;
+  
+  // Charm tracking fields
+  flowerCounter?: number;  // For Bloom charm - tracks flower dice scored
 }
 
 // Game settings that can change during gameplay
@@ -183,6 +186,9 @@ export interface LevelState {
   pointsBanked: number; 
   shop?: ShopState;
   currentRound?: RoundState;
+  
+  // Charm tracking fields
+  banksUsed?: number;  // For OneSongGlory charm - tracks banks used in this level
 
   // Completed level only (in history)
   completed?: boolean;
@@ -204,7 +210,7 @@ export interface GameHistory {
 
   // Historical records (nested structure)
   levelHistory: LevelState[];  // Completed levels (excluding current)
-  
+    
   // TODO: Future game-wide statistics tracking
   // We want to track cumulative stats across the entire game/run:
   // - Total rolls across all rounds
@@ -230,6 +236,10 @@ export interface GameState {
   consumableSlots: number;
   settings: GameSettings;
   config: GameConfig;
+  
+  // Charm tracking fields
+  lastConsumableUsed?: string;  // For consumable tracking charms - tracks last consumable used
+  consecutiveBanks?: number;  // Tracks consecutive rounds completed by banking (not flopping)
 
   // Current level state (nested for hierarchy)
   currentLevel: LevelState;

@@ -12,7 +12,7 @@ export type PendingAction =
   | { type: 'none' }
   | { type: 'reroll'; dice: Die[]; rerollsRemaining: number }
   | { type: 'diceSelection'; dice: Die[]; consumables?: any[] }
-  | { type: 'bankOrReroll'; diceToReroll: number }
+  | { type: 'bankOrRoll'; diceToReroll: number }
   | { type: 'partitioningChoice'; numPartitionings: number }
   | { type: 'nextRound'; gameState: GameState }
   | { type: 'shopAction' }
@@ -150,9 +150,9 @@ export class ReactGameInterface implements GameInterface {
     });
   }
 
-  async askForBankOrReroll(diceToReroll: number): Promise<string> {
+  async askForBankOrRoll(diceToReroll: number): Promise<string> {
     return new Promise((resolve) => {
-      this.pendingAction = { type: 'bankOrReroll', diceToReroll };
+      this.pendingAction = { type: 'bankOrRoll', diceToReroll };
       this.pendingActionResolve = resolve;
     });
   }

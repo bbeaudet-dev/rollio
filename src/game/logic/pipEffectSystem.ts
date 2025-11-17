@@ -68,7 +68,7 @@ export function applyPipEffect(
       };
       break;
 
-    case 'upgradeHand':
+    case 'upgradeCombo':
       // Upgrade hand pip effect: upgrades combination point values
       // This is handled during combination finding/upgrading, not here
       // But we mark it for tracking

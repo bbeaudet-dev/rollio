@@ -800,3 +800,27 @@ The following charms require new tracking systems to be fully implemented. These
 - **Initialization**: New tracking fields should be initialized in factory functions (`createInitialGameState`, `createInitialLevelState`, etc.)
 
 ---
+
+## TO-DO LIST
+
+[X][X][X][X][ ] Charms
+[X][X][X][X][ ] Materials
+[X][X][ ][ ][ ] Consumables
+[X][X][ ][ ][ ] Blessings
+[X][X][X][ ][ ] Pip Effects
+[X][X][X][X][ ] Combinations
+[X][X][X][X][X] Lives vs. Banks
+
+Rename "Material" to "Essence"
+add Angelic (rerolls/flops/banks) and Lunar (points, polarity) essences (is this too many?)
+
+New charms for angelic - increase odds, 
+New charms for lunar - more points, different triggers
+
+Could use more dice sets, but not sure how to balance
+Different Essences would make for the coolest looking sets, but might be overpowered. Balatro has no decks focused on enhancements/seals, only values, discards, hands, scoring, starting items/blessings, special abilities like double Tags
+
+
+Move to new Spec:
+- "View Dice Set" modal
+- Challenges, difficulties, levels, worlds

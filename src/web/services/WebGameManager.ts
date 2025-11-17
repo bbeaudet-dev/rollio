@@ -17,7 +17,13 @@ export interface WebGameState {
   } | null;
   justBanked: boolean;
   justFlopped: boolean;
+  justSkippedReroll: boolean; 
   isProcessing: boolean;
+  bankingDisplayInfo?: {
+    pointsJustBanked: number;
+    previousTotal: number;
+    newTotal: number;
+  } | null;
   // Derived flags for compatibility
   canRoll: boolean;
   canBank: boolean;
@@ -25,7 +31,6 @@ export interface WebGameState {
   canSelectDice: boolean;
   isWaitingForReroll: boolean;
   canRerollSelected: boolean;
-  canContinueFlop: boolean;
   canChooseFlopShield: boolean;
   // Shop state
   isInShop: boolean;
@@ -52,6 +57,26 @@ export class WebGameManager {
     });
   }
 
+  /**
+   * Get the number of dice that will be rolled on the next roll
+   * Delegates to GameAPI
+   */
+  getDiceToRollCount(gameState: any): number {
+    return this.gameAPI.getDiceToRollCount(gameState);
+  }
+
+  /**
+   * Get banking display information for UI
+   * Delegates to GameAPI
+   */
+  getBankingDisplayInfo(gameState: any, justBanked: boolean): {
+    pointsJustBanked: number;
+    previousTotal: number;
+    newTotal: number;
+  } | null {
+    return this.gameAPI.getBankingDisplayInfo(gameState, justBanked);
+  }
+
   private createWebGameState(
     gameState: GameState,
     roundState: RoundState | null,
@@ -59,7 +84,8 @@ export class WebGameManager {
     previewScoring: { isValid: boolean; points: number; combinations: string[] } | null,
     justBanked: boolean,
     justFlopped: boolean,
-    isProcessing: boolean = false
+    isProcessing: boolean = false,
+    justSkippedReroll: boolean = false,
   ): WebGameState {
     const messages = this.gameInterface.getMessages();
     const pendingAction = this.gameInterface.getPendingAction();
@@ -69,19 +95,24 @@ export class WebGameManager {
     const hasRolledDice = !!(roundState?.rollHistory && roundState.rollHistory.length > 0);
     // Use pure function to check if can bank (includes all conditions: active, roundPoints > 0, banks > 0)
     // Also need to check pendingAction for UI state (player has rolled and scored)
-    const canBank = this.gameAPI.canBankPoints(gameState) && pendingAction.type === 'bankOrReroll';
+    const canBank = this.gameAPI.canBankPoints(gameState) && pendingAction.type === 'bankOrRoll';
     const hasBanksRemaining = (gameState.currentLevel.banksRemaining || 0) > 0;
-    const canRoll: boolean = (!roundState && !isProcessing && gameState.isActive && hasBanksRemaining) || 
-                    !!(roundState?.isActive && !hasRolledDice && pendingAction.type === 'none' && hasBanksRemaining);
+    const canRoll: boolean = (!roundState && !isProcessing && gameState.isActive && hasBanksRemaining) ||
+      !!(roundState?.isActive && !hasRolledDice && pendingAction.type === 'none' && hasBanksRemaining) ||
+      !!(justFlopped && hasBanksRemaining);
     const hasHotDice = !!(roundState?.rollHistory && roundState.rollHistory.length > 0 && 
       roundState.rollHistory[roundState.rollHistory.length - 1]?.isHotDice);
-    const canReroll = !!(roundState?.isActive && pendingAction.type === 'bankOrReroll' && 
+    // canReroll: Allow reroll when in bankOrRoll state (after scoring, you can Bank or Roll)
+    const canReroll = !!(roundState?.isActive && pendingAction.type === 'bankOrRoll' && 
       (roundState.diceHand.length > 0 || hasHotDice));
     const canSelectDice = !!(gameState.isActive && roundState?.isActive && (pendingAction.type === 'diceSelection' || pendingAction.type === 'reroll') && !justBanked && !justFlopped);
-    const isWaitingForReroll = !!(roundState?.isActive && pendingAction.type === 'reroll' && gameState.currentLevel.rerollsRemaining && gameState.currentLevel.rerollsRemaining > 0);
+    // isWaitingForReroll: Show reroll button when waiting for reroll, but disable if we just clicked "Skip Reroll"
+    const isWaitingForReroll = !!(roundState?.isActive && pendingAction.type === 'reroll' && gameState.currentLevel.rerollsRemaining && gameState.currentLevel.rerollsRemaining > 0 && !justSkippedReroll);
     const canRerollSelected = !!(isWaitingForReroll && gameState.currentLevel.rerollsRemaining && gameState.currentLevel.rerollsRemaining > 0);
-    const canContinueFlop = !!(roundState?.isActive && pendingAction.type === 'flopContinue');
     const canChooseFlopShield: boolean = !!(roundState?.isActive && pendingAction.type === 'flopShieldChoice');
+    
+    // Calculate banking display info if just banked
+    const bankingDisplayInfo = justBanked ? this.getBankingDisplayInfo(gameState, justBanked) : null;
     
     return {
       gameState,
@@ -92,14 +123,15 @@ export class WebGameManager {
       previewScoring,
       justBanked,
       justFlopped,
+      justSkippedReroll,
       isProcessing,
+      bankingDisplayInfo,
       canRoll,
       canBank,
       canReroll,
       canSelectDice,
       isWaitingForReroll,
       canRerollSelected,
-      canContinueFlop,
       canChooseFlopShield: canChooseFlopShield || false,
       isInShop: false,
       shopState: null,
@@ -191,7 +223,7 @@ export class WebGameManager {
 
     const roundState = result.gameState.currentLevel.currentRound;
     const diceToReroll = roundState?.diceHand.length || 0;
-    this.gameInterface.askForBankOrReroll(diceToReroll);
+    this.gameInterface.askForBankOrRoll(diceToReroll);
 
     return this.createWebGameState(result.gameState, roundState || null, [], null, false, false, false);
   }
@@ -235,38 +267,50 @@ export class WebGameManager {
   }
 
   async rollDice(state: WebGameState): Promise<WebGameState> {
-    if (!state.gameState || !state.roundState) return state;
+    if (!state.gameState) return state;
 
+    // If the round has ended (e.g., after a flop), start a new round first
     const roundState = state.roundState;
-    const result = await this.gameAPI.rollDice(state.gameState);
-    const gameState = result.gameState;
-    const newRoundState = gameState.currentLevel.currentRound;
+    let gameState = state.gameState;
+    if (!roundState || !roundState.isActive) {
+      const roundResult = await this.gameAPI.startNewRound(gameState);
+      gameState = roundResult.gameState;
+    }
+
+    const currentRoundState = gameState.currentLevel.currentRound;
+    if (!currentRoundState) return state;
+
+    const result = await this.gameAPI.rollDice(gameState);
+    const finalGameState = result.gameState;
+    const newRoundState = finalGameState.currentLevel.currentRound;
 
     if (!newRoundState) return state;
 
     // Check if rerolls available
-    if (this.gameAPI.canReroll(gameState)) {
-      this.gameInterface.askForReroll(newRoundState.diceHand, gameState.currentLevel.rerollsRemaining || 0);
-      return this.createWebGameState(gameState, newRoundState, [], null, false, false, false);
+    if (this.gameAPI.canReroll(finalGameState)) {
+      this.gameInterface.askForReroll(newRoundState.diceHand, finalGameState.currentLevel.rerollsRemaining || 0);
+      // Reset justSkippedReroll when we roll - button should be available again
+      return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false);
     }
 
     // Check for flop
     if (result.isFlop) {
       if (result.flopShieldAvailable) {
         const charmManager = this.gameAPI.getCharmManager();
-        const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState, roundState: newRoundState });
+        const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState: finalGameState, roundState: newRoundState });
         (this.gameInterface as any).pendingAction = {
           type: 'flopShieldChoice',
           canPrevent: true,
           log: shieldCheck.log
         };
-        return this.createWebGameState(gameState, newRoundState, [], null, false, false, false);
+        return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false);
       }
       
-      return this.handleFlop(gameState, newRoundState);
+      return await this.handleFlop(finalGameState, newRoundState);
     } else {
-      this.gameInterface.askForDiceSelection(newRoundState.diceHand, gameState.consumables);
-      return this.createWebGameState(gameState, newRoundState, [], null, false, false, false);
+      this.gameInterface.askForDiceSelection(newRoundState.diceHand, finalGameState.consumables);
+      // Reset justSkippedReroll when we roll - button should be available again
+      return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false);
     }
   }
 
@@ -280,35 +324,39 @@ export class WebGameManager {
       return state;
     }
 
-    // If 0 dice selected, skip reroll (don't consume reroll)
+    // If 0 dice selected, check for scoring combinations
     if (selectedIndices.length === 0) {
-      this.gameInterface.resolvePendingAction('');
-      const roundState = state.gameState.currentLevel.currentRound;
+      const result = await this.gameAPI.rerollDice(state.gameState, []);
+      const gameState = result.gameState;
+      const roundState = gameState.currentLevel.currentRound;
       if (!roundState) return state;
       
-      // Check if more rerolls available
-      if (this.gameAPI.canReroll(state.gameState)) {
-        this.gameInterface.askForReroll(roundState.diceHand, state.gameState.currentLevel.rerollsRemaining || 0);
-        return this.createWebGameState(state.gameState, roundState, [], null, false, false, false);
-      }
-      
-      // No more rerolls - check for flop
-      if (this.gameAPI.checkFlop(state.gameState)) {
+      // If it's a flop, handle it immediately
+      if (result.isFlop) {
         const charmManager = this.gameAPI.getCharmManager();
-        const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState: state.gameState, roundState });
+        const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState, roundState });
         if (shieldCheck.available) {
           (this.gameInterface as any).pendingAction = {
             type: 'flopShieldChoice',
             canPrevent: true,
             log: shieldCheck.log
           };
-          return this.createWebGameState(state.gameState, roundState, [], null, false, false, false);
+          return this.createWebGameState(gameState, roundState, [], null, false, false, false);
         }
-        return this.handleFlop(state.gameState, roundState);
+        return await this.handleFlop(gameState, roundState);
       }
       
-      this.gameInterface.askForDiceSelection(roundState.diceHand, state.gameState.consumables);
-      return this.createWebGameState(state.gameState, roundState, [], null, false, false, false);
+      // Check if more rerolls available
+      if (this.gameAPI.canReroll(gameState)) {
+        this.gameInterface.askForReroll(roundState.diceHand, gameState.currentLevel.rerollsRemaining || 0);
+        // Set justSkippedReroll to true to prevent clicking "Skip Reroll" again
+        return this.createWebGameState(gameState, roundState, [], null, false, false, false, true);
+      }
+      
+      // Not a flop and no rerolls - ask for dice selection
+      this.gameInterface.askForDiceSelection(roundState.diceHand, gameState.consumables);
+      // Set justSkippedReroll to true to prevent clicking "Skip Reroll" again
+      return this.createWebGameState(gameState, roundState, [], null, false, false, false, true);
     }
 
     // Use GameAPI for reroll (this consumes a reroll and validates internally)
@@ -323,11 +371,12 @@ export class WebGameManager {
     // Check if more rerolls available
     if (this.gameAPI.canReroll(gameState)) {
       this.gameInterface.askForReroll(roundState.diceHand, gameState.currentLevel.rerollsRemaining || 0);
-      return this.createWebGameState(gameState, roundState, [], null, false, false, false);
+      // Reset justSkippedReroll when we actually reroll dice - button should be available again
+      return this.createWebGameState(gameState, roundState, [], null, false, false, false, false);
     }
 
-    // No more rerolls - check for flop
-    if (result.isFlop || this.gameAPI.checkFlop(gameState)) {
+    // No more rerolls - check for flop (trust result.isFlop from GameAPI)
+    if (result.isFlop) {
       const charmManager = this.gameAPI.getCharmManager();
       const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState, roundState });
       if (shieldCheck.available) {
@@ -338,7 +387,7 @@ export class WebGameManager {
         };
         return this.createWebGameState(gameState, roundState, [], null, false, false, false);
       }
-      return this.handleFlop(gameState, roundState);
+      return await this.handleFlop(gameState, roundState);
     }
 
     // Not a flop - ask for dice selection
@@ -347,7 +396,7 @@ export class WebGameManager {
   }
 
 
-  handleFlopShieldChoice(state: WebGameState, useShield: boolean): WebGameState {
+  async handleFlopShieldChoice(state: WebGameState, useShield: boolean): Promise<WebGameState> {
     if (!state.gameState || !state.roundState) return state;
     if (state.pendingAction.type !== 'flopShieldChoice') return state;
 
@@ -359,47 +408,32 @@ export class WebGameManager {
       const flopResult = charmManager.tryPreventFlop({ gameState, roundState });
       if (flopResult.prevented) {
         const diceToRoll = roundState.diceHand.length;
-        this.gameInterface.askForBankOrReroll(diceToRoll);
+        this.gameInterface.askForBankOrRoll(diceToRoll);
         return this.createWebGameState(gameState, roundState, [], null, false, false, false);
       }
     }
     
-    return this.handleFlop(gameState, roundState);
+    return await this.handleFlop(gameState, roundState);
   }
 
-  private handleFlop(gameState: GameState, roundState: RoundState): WebGameState {
-    const forfeitedPoints = roundState.roundPoints;
-    const consecutiveFlops = gameState.currentLevel.consecutiveFlops + 1;
-    
-    (this.gameInterface as any).pendingAction = { 
-      type: 'flopContinue', 
-      forfeitedPoints, 
-      consecutiveFlops 
-    };
-    
-    return this.createWebGameState(gameState, roundState, [], null, false, false, false);
-  }
+  private async handleFlop(gameState: GameState, roundState: RoundState): Promise<WebGameState> {
+    // Process the flop (ends the round, increments consecutive flops, etc.)
+    const result = await this.gameAPI.handleFlop(gameState);
+    const newGameState = result.gameState;
 
-  async handleFlopContinue(state: WebGameState): Promise<WebGameState> {
-    if (!state.gameState || !state.roundState) return state;
-    if (state.pendingAction.type !== 'flopContinue') return state;
-
-    const result = await this.gameAPI.handleFlop(state.gameState);
-    const gameState = result.gameState;
-
-    if (!gameState.isActive) {
-      const roundState = gameState.currentLevel.currentRound;
-      return this.createWebGameState(gameState, roundState || null, [], null, false, false, false);
+    // Game over check
+    if (!newGameState.isActive) {
+      const finalRoundState = newGameState.currentLevel.currentRound || null;
+      return this.createWebGameState(newGameState, finalRoundState, [], null, false, false, false);
     }
 
-    // Start a new round after flop continue
-    const newRoundResult = await this.gameAPI.startNewRound(gameState);
-    const newGameState = newRoundResult.gameState;
-    const newRoundState = newGameState.currentLevel.currentRound;
-
-    (this.gameInterface as any).pendingAction = { type: 'none' };
+    // Don't start a new round yet - keep the ended round state visible so player can see the flop dice
+    // The new round will be started when they click "Roll"
+    const endedRoundState = newGameState.currentLevel.currentRound || null;
     
-    return this.createWebGameState(newGameState, newRoundState || null, [], null, false, false, false);
+    // Set justFlopped to true - the ended round state still has the dice
+    (this.gameInterface as any).pendingAction = { type: 'none' };
+    return this.createWebGameState(newGameState, endedRoundState, [], null, false, true, false);
   }
 
   async useConsumable(state: WebGameState, index: number): Promise<WebGameState> {

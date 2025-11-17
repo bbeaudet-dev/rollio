@@ -143,7 +143,7 @@ export class CLIInterface implements GameInterface {
     return await this.ask(`Select dice to reroll (1-${dice.length}, or Enter to skip): `, '');
   }
 
-  async askForBankOrReroll(diceToReroll: number): Promise<string> {
+  async askForBankOrRoll(diceToReroll: number): Promise<string> {
     // Do not allow inventory use at this prompt
     while (true) {
       const input = await this.ask(CLIDisplayFormatter.formatBankOrRerollPrompt(diceToReroll), undefined, { allowInventory: false });

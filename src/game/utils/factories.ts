@@ -78,6 +78,7 @@ export function createInitialLevelState(levelNumber: number, gameState: GameStat
     pointsBanked: 0,  // Initialize to 0 at level start
     shop: DEFAULT_SHOP_STATE,
     currentRound: firstRound,
+    banksUsed: 0,  // Initialize for OneSongGlory charm
   };
 }
 
@@ -111,6 +112,7 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig): GameState 
       combinationCounters: createInitialCombinationCounters(),
       levelHistory: [],
     },
+    consecutiveBanks: 0,  // Initialize consecutive banks counter
   };
   
   return initialGameState;
@@ -130,6 +132,7 @@ export function createInitialRoundState(roundNumber: number = 1, diceSet?: any[]
     crystalsScoredThisRound: 0,
     isActive: true,
     rollHistory: [],
+    flowerCounter: 0,  // Initialize flower counter for Bloom charm
   };
 }
 
