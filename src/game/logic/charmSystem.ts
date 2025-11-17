@@ -1,4 +1,16 @@
 import { Charm, CharmRarity } from '../types';
+import { ScoringElements } from './scoringElements';
+
+/**
+ * Scoring value modification returned by charms
+ */
+export interface ScoringValueModification {
+  basePointsDelta?: number;
+  multiplierAdd?: number;
+  multiplierMultiply?: number;
+  exponentAdd?: number;
+  exponentMultiply?: number;
+}
 
 /**
  * Base class for all charms
@@ -21,9 +33,18 @@ export abstract class BaseCharm implements Charm {
   }
 
   /**
-   * Called during scoring to modify points
+   * Called during scoring to modify scoring values
+   * Returns a modification object that will be applied to the current scoring values
    */
-  abstract onScoring(context: CharmScoringContext): number;
+  abstract onScoring(context: CharmScoringContext): ScoringValueModification;
+
+  /**
+   * Called per-die during pip effect processing (before each die's pip effect is applied)
+   * This allows charms to trigger based on specific die values or conditions
+   * Returns a modification object if the charm should trigger for this die
+   * Return null/undefined if the charm should not trigger for this die
+   */
+  onDieScored?(context: CharmDieScoredContext): ScoringValueModification | null | undefined;
 
   /**
    * Called when a flop is about to occur. Return true to prevent the flop, false/undefined otherwise.
@@ -62,7 +83,7 @@ export abstract class BaseCharm implements Charm {
 export interface CharmScoringContext {
   gameState: any;
   roundState: any;
-  basePoints: number;
+  scoringElements: ScoringElements;
   combinations: any[];
   selectedIndices: number[];
 }
@@ -81,6 +102,16 @@ export interface CharmBankContext {
 export interface CharmRoundStartContext {
   gameState: any;
   roundState: any;
+}
+
+export interface CharmDieScoredContext {
+  gameState: any;
+  roundState: any;
+  scoringElements: ScoringElements;
+  die: any; // Die object
+  dieIndex: number; // Index in selectedIndices
+  sideValue: number; // The rolled value (which side is face up)
+  selectedIndices: number[];
 }
 
 export class CharmRegistry {
@@ -149,10 +180,10 @@ export class CharmManager {
 
   /**
    * Apply charm effects to scoring (calls onScoring on all active charms)
+   * Returns updated ScoringElements
+   * Optionally tracks each charm in breakdown if breakdownBuilder is provided.
    */
-  applyCharmEffects(context: CharmScoringContext): number {
-    let totalBonus = 0;
-    
+  applyCharmEffects(context: CharmScoringContext, breakdownBuilder?: any): ScoringElements {
     // First, filter combinations if any charm has a filter method
     let filteredCombinations = context.combinations;
     for (const charm of this.getActiveCharms()) {
@@ -161,20 +192,59 @@ export class CharmManager {
       }
     }
     
-    // Recalculate base points with filtered combinations
-    const filteredBasePoints = filteredCombinations.reduce((sum: number, combo: any) => sum + combo.points, 0);
+    // Start with current scoring elements
+    let values: ScoringElements = { ...context.scoringElements };
     
-    // Apply scoring effects
+    // Apply scoring effects from each charm individually and track in breakdown
     for (const charm of this.getActiveCharms()) {
-      const bonus = charm.onScoring({
+      const beforeCharm = { ...values };
+      const result = charm.onScoring({
         ...context,
-        basePoints: filteredBasePoints,
+        scoringElements: values,
         combinations: filteredCombinations
       });
-      totalBonus += bonus || 0;
+      
+      // Apply modifications
+      if (result) {
+        const mod = result as ScoringValueModification;
+        if (mod.basePointsDelta !== undefined) {
+          values.basePoints += mod.basePointsDelta;
+        }
+        if (mod.multiplierAdd !== undefined) {
+          values.multiplier += mod.multiplierAdd;
+        }
+        if (mod.multiplierMultiply !== undefined) {
+          values.multiplier *= mod.multiplierMultiply;
+        }
+        if (mod.exponentAdd !== undefined) {
+          values.exponent += mod.exponentAdd;
+        }
+        if (mod.exponentMultiply !== undefined) {
+          values.exponent *= mod.exponentMultiply;
+        }
+      }
+      
+      // Track in breakdown if builder provided
+      if (breakdownBuilder) {
+        const changed = JSON.stringify(beforeCharm) !== JSON.stringify(values);
+        if (changed) {
+          breakdownBuilder.addStep(
+            `charm_${charm.id}`,
+            values,
+            `Charm ${charm.name}`
+          );
+        } else {
+          // Still track charms that didn't modify values for visibility
+          breakdownBuilder.addStep(
+            `charm_${charm.id}`,
+            values,
+            `Charm ${charm.name} (no effect)`
+          );
+        }
+      }
     }
     
-    return filteredBasePoints + totalBonus;
+    return values;
   }
 
   /**

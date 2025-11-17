@@ -46,7 +46,7 @@ export function createDiceFromConfig(diceConfig: Omit<Die, 'scored' | 'rolledVal
  * Creates an initial level state
  * Handles level configuration, rerolls/lives calculation, and level effects
  */
-export function createInitialLevelState(levelNumber: number, gameState: GameState): LevelState {
+export function createInitialLevelState(levelNumber: number, gameState: GameState, charmManager?: any): LevelState {
   const levelConfig = getLevelConfig(levelNumber);
   
   // Get world information
@@ -56,8 +56,8 @@ export function createInitialLevelState(levelNumber: number, gameState: GameStat
   const isMainBoss = isMainBossLevel(levelNumber);
   
   // Calculate base rerolls and banks (from game state + charms/blessings)
-  const baseRerolls = calculateRerollsForLevel(gameState);
-  const baseBanks = calculateBanksForLevel(gameState);
+  const baseRerolls = calculateRerollsForLevel(gameState, charmManager);
+  const baseBanks = calculateBanksForLevel(gameState, charmManager);
   
   // Apply level effects (boss effects, modifiers)
   const { rerolls, banks } = applyLevelEffects(baseRerolls, baseBanks, levelConfig);

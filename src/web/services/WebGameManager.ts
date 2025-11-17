@@ -13,6 +13,7 @@ export interface WebGameState {
     isValid: boolean;
     points: number;
     combinations: string[];
+    breakdown?: any; // ScoringBreakdown for detailed view
   } | null;
   justBanked: boolean;
   justFlopped: boolean;

@@ -1,6 +1,9 @@
 // DICE SET TYPES
 export type DieValue = 1 | 2 | 3 | 4 | 5 | 6;
 
+// Import PipEffectType for use in Die interface
+import { PipEffectType } from './data/pipEffects';
+
 export interface DiceMaterial {
   id: string;
   name: string;
@@ -17,6 +20,7 @@ export interface Die {
   material: DiceMaterialType;
   scored?: boolean; // Set at runtime
   rolledValue?: number; // Set at runtime
+  pipEffects?: Record<number, PipEffectType | 'none'>; // Maps die side value (1-6) to pip effect type
 }
 
 export type DiceSetType = 'standard' | 'cheat' | 'challenge';
@@ -37,7 +41,12 @@ export interface DiceSetConfig {
 
 // SCORING TYPES
 import { ScoringCombinationType } from './data/combinations';
+import type { ScoringBreakdown } from './logic/scoringBreakdown';
 export type CombinationCounters = Record<ScoringCombinationType, number>;
+
+// Re-export scoring value types
+export type { ScoringElements } from './logic/scoringElements';
+export type { ScoringBreakdown, ScoringBreakdownStep } from './logic/scoringBreakdown';
 
 export interface ScoringCombination {
   type: string;
@@ -113,6 +122,7 @@ export interface RollState {
   combinations?: ScoringCombination[];
   isHotDice?: boolean;
   isFlop?: boolean;
+  scoringBreakdown?: ScoringBreakdown; // Detailed breakdown of scoring calculation
 }
 
 // Flattened RoundState (no meta/core/history split)

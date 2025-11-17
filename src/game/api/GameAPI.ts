@@ -8,6 +8,7 @@ import {
   startNewRound,
   endRound,
   removeDiceFromHand,
+  removeDiceAndCheckHotDice,
   addPointsToRound,
   incrementCrystalsScored,
   updateRollHistory,
@@ -23,10 +24,9 @@ import { tallyLevel as tallyLevelFunction, calculateLevelRewards, LevelRewards }
 import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing } from '../logic/shop';
 import { validateRerollSelection } from '../logic/rerollLogic';
 import { applyConsumableEffect } from '../logic/consumableEffects';
-import { getAllPartitionings, getHighestPointsPartitioning } from '../logic/scoring';
-import { validateDiceSelection } from '../utils/effectUtils';
-import { applyMaterialEffects, shouldTriggerHotDice, materialEffects } from '../logic/materialSystem';
-import { DieValue, RollState } from '../types';
+import { calculateScoringBreakdown } from '../logic/scoring';
+import { calculateFinalScore } from '../logic/scoringElements';
+import { RollState } from '../types';
 import { ShopState } from '../types';
 import { GameAPIEvent, GameAPIEventData } from './GameAPIEvents';
 import {
@@ -109,7 +109,7 @@ export class GameAPI {
     const newGameState = { ...gameState };
     
     // Use pure function to create level state (includes first round)
-    newGameState.currentLevel = createInitialLevelState(levelNumber, newGameState);
+    newGameState.currentLevel = createInitialLevelState(levelNumber, newGameState, this.charmManager);
     const roundState = newGameState.currentLevel.currentRound;
     
     if (!roundState) {
@@ -138,7 +138,7 @@ export class GameAPI {
   calculatePreviewScoring(
     gameState: GameState,
     selectedIndices: number[]
-  ): { isValid: boolean; points: number; combinations: string[] } {
+  ): { isValid: boolean; points: number; combinations: string[]; breakdown?: any } {
     const roundState = gameState.currentLevel.currentRound;
     if (!roundState) {
       return { isValid: false, points: 0, combinations: [] };
@@ -159,14 +159,16 @@ export class GameAPI {
       throw new Error('No active round to score dice');
     }
     
-    // Find combinations
-    const selectedValues = selectedIndices.map(i => roundState.diceHand[i].rolledValue);
-    const input = selectedValues.join('');
-    const context = { charms: gameState.charms || [] };
-    const selectedIndicesFromInput = validateDiceSelection(input, roundState.diceHand.map(die => die.rolledValue) as DieValue[]);
-    const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndicesFromInput, context);
+    // Calculate scoring breakdown using new system
+    const breakdown = calculateScoringBreakdown(
+      roundState.diceHand,
+      selectedIndices,
+      gameState,
+      roundState,
+      this.charmManager
+    );
     
-    if (allPartitionings.length === 0) {
+    if (!breakdown) {
       return {
         success: false,
         gameState,
@@ -176,64 +178,36 @@ export class GameAPI {
       };
     }
     
-    const bestPartitioningIndex = getHighestPointsPartitioning(allPartitionings);
-    const selectedPartitioning = allPartitionings[bestPartitioningIndex] || [];
-    let basePoints = selectedPartitioning.reduce((sum: number, c: any) => sum + c.points, 0);
+    // Extract final score from breakdown
+    const finalPoints = calculateFinalScore(breakdown.final);
     
-    // Apply charm effects
-    let filteredCombinations = selectedPartitioning;
-    const activeCharms = this.charmManager.getActiveCharms();
-    
-    // First, filter combinations if any charm has a filter method
-    for (const charm of activeCharms) {
-      if (charm.filterScoringCombinations) {
-        filteredCombinations = charm.filterScoringCombinations(filteredCombinations, {
-          gameState,
-          roundState,
-          basePoints,
-          combinations: filteredCombinations,
-          selectedIndices
-        });
+    // Extract combinations from breakdown
+    // Check if combinationTypes were stored in breakdown
+    let combinationTypes: string[] = [];
+    if ((breakdown as any).combinationTypes) {
+      combinationTypes = (breakdown as any).combinationTypes;
+    } else {
+      // Fallback: extract from description
+      const baseStep = breakdown.steps.find(s => s.step === 'baseCombinations');
+      if (baseStep) {
+        const match = baseStep.description.match(/Base combinations: (.+) =/);
+        if (match && match[1]) {
+          combinationTypes = match[1].split(', ').map(c => c.trim());
+        }
       }
     }
-    
-    // Recalculate base points with filtered combinations
-    const filteredBasePoints = filteredCombinations.reduce((sum: number, c: any) => sum + c.points, 0);
-    
-    // Apply charm bonuses
-    let charmBonusTotal = 0;
-    for (const charm of activeCharms) {
-      const bonus = charm.onScoring({
-        gameState,
-        roundState,
-        basePoints: filteredBasePoints,
-        combinations: filteredCombinations,
-        selectedIndices
-      });
-      if (bonus && bonus !== 0) {
-        charmBonusTotal += bonus;
-      }
-    }
-    
-    const modifiedPoints = filteredBasePoints + charmBonusTotal;
-    
-    // Apply material effects
-    const materialResult = applyMaterialEffects(
-      roundState.diceHand,
-      selectedIndices,
-      modifiedPoints,
-      gameState,
-      roundState,
-      this.charmManager
-    );
     
     let currentGameState = gameState;
     
-    // Remove dice from hand
-    currentGameState = removeDiceFromHand(currentGameState, selectedIndices);
+    // Remove dice from hand and check for hot dice (includes SwordInTheStone special case)
+    const { gameState: stateAfterRemoval, wasHotDice } = removeDiceAndCheckHotDice(
+      currentGameState,
+      selectedIndices,
+      this.charmManager
+    );
+    currentGameState = stateAfterRemoval;
     
     // Add points to round
-    const finalPoints = Math.ceil(materialResult.score);
     currentGameState = addPointsToRound(currentGameState, finalPoints);
     
     // Increment crystals scored
@@ -245,10 +219,6 @@ export class GameAPI {
     if (scoredCrystals > 0) {
       currentGameState = incrementCrystalsScored(currentGameState, scoredCrystals);
     }
-    
-    // Check for hot dice and process if needed
-    const remainingDice = currentGameState.currentLevel.currentRound!.diceHand;
-    const wasHotDice = shouldTriggerHotDice(remainingDice);
     
     if (wasHotDice) {
       currentGameState = processHotDice(currentGameState);
@@ -269,14 +239,13 @@ export class GameAPI {
       rollPoints: finalPoints,
       maxRollPoints: finalPoints,
       scoringSelection: selectedIndices,
-      combinations: selectedPartitioning.map((c: any) => c.type),
+      combinations: combinationTypes as any, // combinationTypes is string[], but RollState expects ScoringCombination[]
       isHotDice: wasHotDice,
       isFlop: false,
+      scoringBreakdown: breakdown, // Store breakdown in history
     };
     
     currentGameState = updateRollHistory(currentGameState, historyEntry);
-    
-    const combinationTypes = selectedPartitioning.map((c: any) => c.type);
     
     this.emit('diceScored', {
       selectedIndices,
@@ -304,8 +273,8 @@ export class GameAPI {
       throw new Error('No active round to bank points');
     }
     
-    // Use pure function to process banking
-    const result = processBankPoints(gameState, roundState);
+    // Use pure function to process banking (charm effects applied after banking)
+    const result = processBankPoints(gameState, roundState, this.charmManager);
     
     // Check if game should end (no banks remaining) - only if level not completed
     // If level is completed, player proceeds to tally/shop, not game over
@@ -497,8 +466,7 @@ export class GameAPI {
     const rollNumber = result.newRoundState.rollHistory[result.newRoundState.rollHistory.length - 1]?.rollNumber || 1;
     
     const isFlopResult = isFlop(result.newRoundState.diceHand);
-    const charmManager = this.getCharmManager();
-    const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState: newGameState, roundState: result.newRoundState });
+    const shieldCheck = this.charmManager.checkFlopShieldAvailable({ gameState: newGameState, roundState: result.newRoundState });
     
     this.emit('diceRolled', {
       rollNumber,
@@ -607,7 +575,7 @@ export class GameAPI {
    * Check if hot dice occurred
    */
   isHotDice(gameState: GameState): boolean {
-    return isHotDice(gameState);
+    return isHotDice(gameState, this.charmManager);
   }
 
   /**
@@ -689,7 +657,7 @@ export class GameAPI {
    * Advance to next level
    */
   async advanceToNextLevel(gameState: GameState): Promise<{ gameState: GameState }> {
-    const newGameState = advanceToNextLevel(gameState);
+    const newGameState = advanceToNextLevel(gameState, this.charmManager);
     
     this.emit('stateChanged', { gameState: newGameState });
     

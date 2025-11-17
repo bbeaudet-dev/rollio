@@ -79,7 +79,8 @@ export function processBankAction(
 export function updateGameStateAfterRound(
   gameState: GameState,
   roundState: any,
-  roundActionResult: RoundActionResult
+  roundActionResult: RoundActionResult,
+  charmManager?: any
 ): { levelCompleted?: boolean; levelAdvanced?: boolean } {
   let levelCompleted = false;
   let levelAdvanced = false;
@@ -103,7 +104,7 @@ export function updateGameStateAfterRound(
       if (completedLevelNumber >= MAX_LEVEL) {
         Object.assign(gameState, endGame(gameState, 'win'));
       } else {
-        Object.assign(gameState, advanceToNextLevel(gameState));
+        Object.assign(gameState, advanceToNextLevel(gameState, charmManager));
         levelAdvanced = true;
       }
     }

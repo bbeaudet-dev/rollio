@@ -23,7 +23,7 @@ export function isFlop(diceHand: Die[]): boolean {
  * Checks if hot dice occurred
  * Requires that we're in an active round with roll history (we've rolled before)
  */
-export function isHotDice(gameState: GameState): boolean {
+export function isHotDice(gameState: GameState, charmManager?: any): boolean {
   const roundState = gameState.currentLevel.currentRound;
   if (!roundState) return false;
   if (!roundState.isActive || !roundState.rollHistory || roundState.rollHistory.length === 0) {
@@ -31,7 +31,7 @@ export function isHotDice(gameState: GameState): boolean {
   }
   
   // Use material system to check for hot dice triggers
-  return shouldTriggerHotDice(roundState.diceHand);
+  return shouldTriggerHotDice(roundState.diceHand, charmManager);
 }
 
 /**
