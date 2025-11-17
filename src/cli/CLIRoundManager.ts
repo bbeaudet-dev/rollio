@@ -437,7 +437,7 @@ export class CLIRoundManager {
       const bankedPoints = charmManager.applyBankEffects({ gameState, roundState, bankedPoints: roundState.roundPoints });
       const bankResult = processBankAction(bankedPoints);
       
-      const updateResult = updateGameStateAfterRound(gameState, roundState, bankResult);
+      const updateResult = updateGameStateAfterRound(gameState, roundState, bankResult, charmManager);
       
       // Handle level completion: tallying and shop
       if (updateResult.levelCompleted) {

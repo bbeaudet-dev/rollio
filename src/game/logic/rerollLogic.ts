@@ -6,14 +6,38 @@ import { debugLog } from '../utils/debug';
  * Based on baseLevelRerolls + modifiers from charms/blessings
  * 
  * @param gameState The current game state
+ * @param charmManager Optional charm manager to check for reroll-modifying charms
  * @returns The number of rerolls available for this level
  */
-export function calculateRerollsForLevel(gameState: GameState): number {
+export function calculateRerollsForLevel(gameState: GameState, charmManager?: any): number {
   let baseRerolls = gameState.baseLevelRerolls;
   
-  // Apply multipliers from charms (e.g., "Double Rerolls" charm)
-  // TODO: Add charm multipliers when charms are implemented
-  // For now, just use base value
+  // Apply modifiers from charms in order: bonuses, multipliers, overrides
+  if (charmManager) {
+    const activeCharms = charmManager.getActiveCharms?.() || [];
+    
+    // First, check for overrides (Purist sets rerolls to 0, so it overrides everything)
+    const hasPurist = activeCharms.some((charm: any) => charm.id === 'purist');
+    if (hasPurist) {
+      baseRerolls = 0;
+    } else {
+      // Apply bonuses first
+      for (const charm of activeCharms) {
+        // Comeback Kid: +3 rerolls
+        if (charm.id === 'comebackKid') {
+          baseRerolls += 3;
+        }
+      }
+      
+      // Then apply multipliers
+      for (const charm of activeCharms) {
+        // Double Agent: Doubles rerolls
+        if (charm.id === 'doubleAgent') {
+          baseRerolls *= 2;
+        }
+      }
+    }
+  }
   
   // Apply bonuses from blessings (affects base value, already in baseLevelRerolls)
   // Blessings that modify baseLevelRerolls are permanent and already applied to gameState.baseLevelRerolls
@@ -28,14 +52,26 @@ export function calculateRerollsForLevel(gameState: GameState): number {
  * Based on baseLevelBanks + modifiers from charms/blessings
  * 
  * @param gameState The current game state
+ * @param charmManager Optional charm manager to check for bank-modifying charms
  * @returns The number of banks available for this level
  */
-export function calculateBanksForLevel(gameState: GameState): number {
+export function calculateBanksForLevel(gameState: GameState, charmManager?: any): number {
   let baseBanks = gameState.baseLevelBanks || 5;
   
-  // Apply bonuses from charms (e.g., "+2 Banks" charm)
-  // TODO: Add charm bonuses when charms are implemented
-  // For now, just use base value
+  // Apply bonuses and multipliers from charms
+  if (charmManager) {
+    const activeCharms = charmManager.getActiveCharms?.() || [];
+    for (const charm of activeCharms) {
+      // Hoarder: +2 banks
+      if (charm.id === 'hoarder') {
+        baseBanks += 2;
+      }
+      // Purist: Doubles banks
+      if (charm.id === 'purist') {
+        baseBanks *= 2;
+      }
+    }
+  }
   
   // Apply bonuses from blessings (affects base value, already in baseLevelBanks)
   // Blessings that modify baseLevelBanks are permanent and already applied to gameState.baseLevelBanks

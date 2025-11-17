@@ -1,10 +1,11 @@
 import { GameState, RoundState, DieValue, LevelState, RollState } from '../types';
 import { isFlop, canBankPoints, isLevelCompleted } from './gameLogic';
-import { getHighestPointsPartitioning, getAllPartitionings } from './scoring';
-import { applyMaterialEffects, getDiceIndicesToRemove } from './materialSystem';
+import { getHighestPointsPartitioning, getAllPartitionings, calculateScoringBreakdown } from './scoring';
+import { applyMaterialEffects, getDiceIndicesToRemove, handleMirrorDiceRolling, shouldTriggerHotDice } from './materialSystem';
 import { createInitialRoundState, createInitialLevelState, DEFAULT_GAME_CONFIG } from '../utils/factories';
 import { validateDiceSelection } from '../utils/effectUtils';
-import { getLevelConfig, MAX_LEVEL } from '../data/levels';
+import { getLevelConfig } from '../data/levels';
+import { calculateFinalScore } from './scoringElements';
 
 interface ScoringContext {
   charms: any[];
@@ -38,22 +39,28 @@ export function removeDiceFromHand(gameState: GameState, indices: number[]): Gam
 
 /**
  * Randomize selected dice values (for rerolling)
+ * Handles mirror dice: they copy a non-mirror die's value, or random if all are mirror
  */
 export function randomizeSelectedDice(gameState: GameState, indices: number[]): GameState {
   const roundState = gameState.currentLevel.currentRound!;
   const newGameState = { ...gameState };
   newGameState.currentLevel = { ...gameState.currentLevel };
+  
+  const diceHand = roundState.diceHand.map(d => ({ ...d }));
+  
+  // First, reroll all selected non-mirror dice
+  for (const i of indices) {
+    if (diceHand[i].material !== 'mirror') {
+      diceHand[i].rolledValue = diceHand[i].allowedValues[Math.floor(Math.random() * diceHand[i].allowedValues.length)];
+    }
+  }
+  
+  // Then, handle mirror dice (they copy non-mirror dice or all get same value if all are mirror)
+  handleMirrorDiceRolling(diceHand);
+  
   newGameState.currentLevel.currentRound = { 
     ...roundState,
-    diceHand: roundState.diceHand.map((die, i) => {
-      if (indices.includes(i)) {
-    return {
-          ...die,
-          rolledValue: die.allowedValues[Math.floor(Math.random() * die.allowedValues.length)]
-        };
-      }
-      return die;
-    })
+    diceHand
   };
   return newGameState;
 }
@@ -244,7 +251,7 @@ export function endGame(gameState: GameState, reason: 'lost' | 'win'): GameState
  * Advance to the next level
  * Resets level-specific state, applies level effects, moves completed level to history
  */
-export function advanceToNextLevel(gameState: GameState): GameState {
+export function advanceToNextLevel(gameState: GameState, charmManager?: any): GameState {
   const oldLevelNumber = gameState.currentLevel.levelNumber;
   const newLevelNumber = oldLevelNumber + 1;
   const levelConfig = getLevelConfig(newLevelNumber);
@@ -264,7 +271,7 @@ export function advanceToNextLevel(gameState: GameState): GameState {
   newGameState.history.levelHistory.push(completedLevel);
   
   // Create new level state (includes first round)
-  newGameState.currentLevel = createInitialLevelState(newLevelNumber, newGameState);
+  newGameState.currentLevel = createInitialLevelState(newLevelNumber, newGameState, charmManager);
   
   return newGameState;
 }
@@ -284,6 +291,39 @@ export function processHotDice(gameState: GameState): GameState {
   let newGameState = incrementHotDiceCounter(gameState);
   newGameState = resetDiceHandToFullSet(newGameState);
   return newGameState;
+}
+
+/**
+ * Remove dice from hand and check for hot dice
+ * This handles the complete flow of removing dice and determining if hot dice should trigger,
+ * including special cases like SwordInTheStone charm.
+ * 
+ * @param gameState - Current game state
+ * @param selectedIndices - Indices of dice to remove (score)
+ * @param charmManager - Charm manager to check for special charms
+ * @returns Object with updated gameState and whether hot dice occurred
+ */
+export function removeDiceAndCheckHotDice(
+  gameState: GameState,
+  selectedIndices: number[],
+  charmManager?: any
+): { gameState: GameState; wasHotDice: boolean } {
+  const roundState = gameState.currentLevel.currentRound!;
+  
+  // Check if all dice were scored (before removal) - needed for SwordInTheStone charm
+  const allDiceWereScored = selectedIndices.length === roundState.diceHand.length;
+  
+  // Remove dice from hand (Lead dice stay in hand normally)
+  let newGameState = removeDiceFromHand(gameState, selectedIndices);
+  
+  // Check for hot dice (includes SwordInTheStone special case)
+  const remainingDice = newGameState.currentLevel.currentRound!.diceHand;
+  const wasHotDice = shouldTriggerHotDice(remainingDice, charmManager, allDiceWereScored);
+  
+  return {
+    gameState: newGameState,
+    wasHotDice
+  };
 }
 
 /**
@@ -319,10 +359,15 @@ export function processRoll(
   // Simple roll number: just count entries in history + 1
   const currentRollNumber = (newRoundState.rollHistory?.length || 0) + 1;
   
-  // Roll the dice
+  // First, roll all dice (non-mirror dice get random values)
   for (const die of diceHand) {
-    die.rolledValue = die.allowedValues[Math.floor(Math.random() * die.allowedValues.length)];
+    if (die.material !== 'mirror') {
+      die.rolledValue = die.allowedValues[Math.floor(Math.random() * die.allowedValues.length)];
+    }
   }
+  
+  // Then, handle mirror dice (they copy non-mirror dice or all get same value if all are mirror)
+  handleMirrorDiceRolling(diceHand);
   
   // Update round state with new diceHand
   newRoundState.diceHand = diceHand;
@@ -355,14 +400,16 @@ export function processRoll(
  * Process banking points from current round
  * Pure function that handles all banking logic:
  * 1. Validates banks remaining
- * 2. Banks points (adds to level and total score)
- * 3. Decrements banks
- * 4. Ends the round
- * 5. Checks for level completion
+ * 2. Applies charm effects to banked points
+ * 3. Banks points (adds to level and total score)
+ * 4. Decrements banks
+ * 5. Ends the round
+ * 6. Checks for level completion
  */
 export function processBankPoints(
   gameState: GameState,
-  roundState: RoundState
+  roundState: RoundState,
+  charmManager?: any
 ): {
   success: boolean;
   newGameState: GameState;
@@ -375,12 +422,29 @@ export function processBankPoints(
     throw new Error('Cannot bank points - check banks remaining, round points, and round state');
   }
 
-  // Use atomic actions
-  let newGameState = addPointsToLevel(gameState, roundState.roundPoints);
+  // Bank the base round points first
+  const baseBankedPoints = roundState.roundPoints;
+  let newGameState = addPointsToLevel(gameState, baseBankedPoints);
   newGameState = decrementBanks(newGameState);
   newGameState = endRound(newGameState, 'banked');
   
-  const bankedPoints = roundState.roundPoints;
+  // Apply charm effects AFTER banking (as bonuses)
+  let finalBankedPoints = baseBankedPoints;
+  if (charmManager) {
+    const modifiedBankedPoints = charmManager.applyBankEffects({
+      gameState: newGameState,
+      roundState: newGameState.currentLevel.currentRound!,
+      bankedPoints: baseBankedPoints
+    });
+    
+    // Calculate the bonus from charm effects
+    const charmBonus = modifiedBankedPoints - baseBankedPoints;
+    if (charmBonus > 0) {
+      // Add the charm bonus to level
+      newGameState = addPointsToLevel(newGameState, charmBonus);
+      finalBankedPoints = modifiedBankedPoints;
+    }
+  }
   
   // Check if level is completed
   const levelCompleted = isLevelCompleted(newGameState);
@@ -389,7 +453,7 @@ export function processBankPoints(
     success: true,
     newGameState,
     newRoundState: newGameState.currentLevel.currentRound!,
-    bankedPoints,
+    bankedPoints: finalBankedPoints,
     levelCompleted
   };
 }
@@ -436,6 +500,7 @@ export function startNewRound(
 
 /**
  * Calculate preview scoring for selected dice (for UI display)
+ * Only returns combinations and validity - no score calculation
  */
 export function calculatePreviewScoring(
   gameState: GameState,
@@ -451,51 +516,33 @@ export function calculatePreviewScoring(
     return { isValid: false, points: 0, combinations: [] };
   }
 
-  const selectedValues = selectedIndices.map(i => roundState.diceHand[i].rolledValue);
-  const input = selectedValues.join('');
-  
-  // Validate selection and get scoring result
-  const context: ScoringContext = { charms: gameState.charms || [] };
-  const selectedIndicesFromInput = validateDiceSelection(input, roundState.diceHand.map(die => die.rolledValue) as DieValue[]);
-  const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndicesFromInput, context);
-  const combos = allPartitionings.length > 0 ? allPartitionings[0] : [];
-  const totalComboDice = combos.reduce((sum, c) => sum + c.dice.length, 0);
-  const valid = combos.length > 0 && totalComboDice === selectedIndicesFromInput.length;
-  const points = combos.reduce((sum, c) => sum + c.points, 0);
-  
-  const scoringResult = { valid, points, combinations: combos, allPartitionings };
-  
   try {
-    if (scoringResult.valid && scoringResult.allPartitionings.length > 0) {
-      const bestPartitioningIndex = getHighestPointsPartitioning(scoringResult.allPartitionings);
-      const bestPartitioning = scoringResult.allPartitionings[bestPartitioningIndex];
-      
-      let previewPoints = scoringResult.points;
-      const modifiedPoints = charmManager.applyCharmEffects({
-        gameState,
-        roundState,
-        basePoints: previewPoints,
-        combinations: bestPartitioning,
-        selectedIndices: selectedIndices
-      });
-      
-      const { score: finalPreviewPoints } = applyMaterialEffects(
-        roundState.diceHand,
-        selectedIndices,
-        modifiedPoints,
-        gameState,
-        roundState,
-        charmManager
-      );
-      
-      return {
-        isValid: true,
-        points: Math.ceil(finalPreviewPoints),
-        combinations: bestPartitioning.map((c: any) => c.type)
-      };
-    } else {
+    // Just find combinations - no scoring calculation
+    const selectedValues = selectedIndices.map(i => roundState.diceHand[i].rolledValue);
+    const input = selectedValues.join('');
+    
+    const context: ScoringContext = { charms: gameState.charms || [] };
+    const selectedIndicesFromInput = validateDiceSelection(input, roundState.diceHand.map(die => die.rolledValue) as DieValue[]);
+    const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndicesFromInput, context);
+    
+    if (allPartitionings.length === 0) {
       return { isValid: false, points: 0, combinations: [] };
     }
+    
+    // Get the best partitioning
+    const bestPartitioningIndex = getHighestPointsPartitioning(allPartitionings);
+    const bestPartitioning = allPartitionings[bestPartitioningIndex] || [];
+    const totalComboDice = bestPartitioning.reduce((sum, c) => sum + c.dice.length, 0);
+    const valid = bestPartitioning.length > 0 && totalComboDice === selectedIndicesFromInput.length;
+    
+    // Calculate base points only (for display purposes)
+    const basePoints = bestPartitioning.reduce((sum, c) => sum + c.points, 0);
+    
+    return {
+      isValid: valid,
+      points: basePoints, // Just base combination points, not final score
+      combinations: bestPartitioning.map((c: any) => c.type)
+    };
   } catch (error) {
     return { isValid: false, points: 0, combinations: [] };
   }

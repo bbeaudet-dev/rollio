@@ -9,6 +9,8 @@ import { Die, ScoringCombination } from '../types';
 import { ScoringCombinationType } from '../data/combinations';
 import { calculateCombinationPoints } from '../data/combinations';
 import { debugLog, getDebugMode } from '../utils/debug';
+import { shouldAllowSingleThrees } from './charms/charmUtils';
+import { expandDiceValuesForCombinations } from './pipEffectSystem';
 
 interface ScoringContext {
   charms?: any[];
@@ -61,15 +63,58 @@ export function findAllPossibleCombinations(
 ): ScoringCombination[] {
   const combinations: ScoringCombination[] = [];
   
-  // Generate combinations for all possible subsets of the dice
-  const allSubsets = generateAllSubsets(selectedIndices);
+  // Expand dice values based on pip effects (two-faced, wild)
+  // This handles the expansion before combination finding
+  const expandedValueArrays = expandDiceValuesForCombinations(diceHand, selectedIndices);
   
-  for (const subsetIndices of allSubsets) {
-    if (subsetIndices.length === 0) continue;
+  // For each possible expansion (important for wild dice which can have multiple interpretations)
+  for (const expandedValues of expandedValueArrays) {
+    // Generate combinations for all possible subsets of the dice
+    const allSubsets = generateAllSubsets(selectedIndices);
     
-    const subsetValues = subsetIndices.map(idx => diceHand[idx].rolledValue!);
-    const counts = countDice(subsetValues);
-    const subsetSize = subsetValues.length;
+    for (const subsetIndices of allSubsets) {
+      if (subsetIndices.length === 0) continue;
+      
+      // Map subset indices to expanded values
+      // For two-faced dice, we need to map one die index to potentially two values
+      // For wild dice, we use the value from the expanded array
+      const subsetExpandedValues: number[] = [];
+      let expandedIndex = 0;
+      
+      for (const idx of selectedIndices) {
+        const die = diceHand[idx];
+        if (!die || die.rolledValue === undefined) continue;
+        
+        const pipEffect = die.pipEffects?.[die.rolledValue] || 'none';
+        
+        if (subsetIndices.includes(idx)) {
+          if (pipEffect === 'twoFaced') {
+            // Two-faced: add both values from expansion
+            subsetExpandedValues.push(expandedValues[expandedIndex]);
+            expandedIndex++;
+            subsetExpandedValues.push(expandedValues[expandedIndex]);
+            expandedIndex++;
+          } else if (pipEffect === 'wild') {
+            // Wild: add the value from expansion
+            subsetExpandedValues.push(expandedValues[expandedIndex]);
+            expandedIndex++;
+          } else {
+            // Normal: add the value once
+            subsetExpandedValues.push(expandedValues[expandedIndex]);
+            expandedIndex++;
+          }
+        } else {
+          // Skip this die, but advance expandedIndex if needed
+          if (pipEffect === 'twoFaced') {
+            expandedIndex += 2;
+          } else {
+            expandedIndex++;
+          }
+        }
+      }
+      
+      const counts = countDice(subsetExpandedValues);
+      const subsetSize = subsetExpandedValues.length;
     
     // Generate N-of-a-kind combinations for each face value (algorithm-based)
     for (let i = 0; i < counts.length; i++) {
@@ -107,7 +152,7 @@ export function findAllPossibleCombinations(
     // Generate straights (algorithm-based: detect all straight lengths)
     // Check for straights of length 4, 5, 6, and longer
     if (subsetSize >= 4) {
-      const sorted = [...subsetValues].sort((a, b) => a - b);
+      const sorted = [...subsetExpandedValues].sort((a, b) => a - b);
       const unique = [...new Set(sorted)];
       
       // Check for all possible straight lengths
@@ -172,7 +217,7 @@ export function findAllPossibleCombinations(
     
     // Generate single combinations (singleN for 1s and 5s, and potentially 3s via charms)
     if (subsetSize === 1) {
-      const value = subsetValues[0];
+      const value = subsetExpandedValues[0];
       const dieIndex = subsetIndices[0];
       
       // Check if this die was already used in a larger combination
@@ -183,12 +228,22 @@ export function findAllPossibleCombinations(
       if (!usedInLargerCombo) {
         // Only 1s and 5s are valid singles by default
         // Charms can enable other values (e.g., Low Hanging Fruit for 3s)
-        if (value === 1 || value === 5 || value === 3) {
+        if (value === 1 || value === 5) {
           combinations.push({
             type: 'singleN',
             dice: subsetIndices,
             points: calculateCombinationPoints('singleN', { faceValue: value }),
           });
+        } else if (value === 3) {
+          // Single 3s only valid if Low Hanging Fruit charm is active
+          // Use the check function from the charm file
+          if (shouldAllowSingleThrees(context?.charmManager, context?.charms)) {
+            combinations.push({
+              type: 'singleN',
+              dice: subsetIndices,
+              points: calculateCombinationPoints('singleN', { faceValue: value }),
+            });
+          }
         }
       }
     }
@@ -272,7 +327,8 @@ export function findAllPossibleCombinations(
         points: calculateCombinationPoints('nDecuplets', { n: decupletCount }),
       });
     }
-  }
+    } // End of subsetIndices loop
+  } // End of expandedValues loop
   
   // Deduplicate combinations (same type and dice indices)
   const uniqueCombinations: ScoringCombination[] = [];
