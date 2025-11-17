@@ -1,3 +1,55 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+/* Remove default margins and padding */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Responsive design utilities */
+/* 
+  CSS clamp() syntax: clamp(min, preferred, max)
+  - Ensures value is at least 'min', at most 'max', ideally 'preferred'
+  - Example: clamp(10px, 2vw, 20px) means:
+    * Minimum: 10px (on very small screens)
+    * Preferred: 2vw (2% of viewport width, scales with screen)
+    * Maximum: 20px (on large screens)
+  - This creates fluid, responsive sizing without media queries
+*/
+
+@media (max-width: 768px) {
+  /* Ensure touch targets are at least 44px for mobile */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Reduce padding on mobile */
+  .game-container {
+    padding: 8px !important;
+  }
+  
+  /* Stack grids on mobile */
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+  }
+} 

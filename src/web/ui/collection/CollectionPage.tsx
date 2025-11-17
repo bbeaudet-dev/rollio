@@ -55,7 +55,7 @@ export const CollectionPage: React.FC = () => {
     fontFamily: 'Arial, sans-serif',
     maxWidth: '1400px',
     margin: '0 auto',
-    padding: '20px',
+    padding: '15px',
     position: 'relative'
   };
 
@@ -68,14 +68,14 @@ export const CollectionPage: React.FC = () => {
   };
 
   const headerStyle: React.CSSProperties = {
-    fontSize: '24px',
+    fontSize: '20px',
     fontWeight: 'bold',
-    marginBottom: '20px',
+    marginBottom: '15px',
     color: '#2c3e50'
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: '32px',
+    fontSize: '28px',
     fontWeight: 'bold',
     marginBottom: '8px',
     color: '#2c3e50',
@@ -96,20 +96,20 @@ export const CollectionPage: React.FC = () => {
   // Grid layouts
   const grid3ColStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '20px'
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '15px'
   };
 
   const grid2ColStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '20px'
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '15px'
   };
 
   const grid8ColStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(8, 1fr)',
-    gap: '15px'
+    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+    gap: '12px'
   };
 
   // Group blessings by type

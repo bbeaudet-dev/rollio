@@ -11,17 +11,19 @@ export const MenuButton: React.FC<MenuButtonProps> = ({ onClick, style }) => {
   
   const defaultStyle: React.CSSProperties = {
     position: 'fixed',
-    top: '20px',
-    left: '20px',
+    top: '10px',
+    left: '10px',
     zIndex: 100,
-    padding: '8px 16px',
+    padding: '8px 12px',
     backgroundColor: '#6c757d',
     color: 'white',
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500'
+    fontSize: '13px',
+    fontWeight: '500',
+    minHeight: '44px',
+    minWidth: '44px'
   };
 
   const handleClick = () => {

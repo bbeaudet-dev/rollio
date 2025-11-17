@@ -1,10 +1,13 @@
 import React from 'react';
 import { MATERIAL_COLORS } from '../../../../utils/colors';
+import { PipEffectIcon } from '../../../collection/PipEffectIcon';
+import { PipEffectType } from '../../../../../game/data/pipEffects';
 
 interface DiceFaceProps {
   value: number;
   size?: number;
   material?: string;
+  pipEffect?: PipEffectType | 'none'; // Pip effect for this specific side
 }
 
 // Get material colors from centralized colors.ts
@@ -13,7 +16,7 @@ const getMaterialColors = (material: string = 'plastic') => {
   return MATERIAL_COLORS[materialKey] || MATERIAL_COLORS.plastic;
 };
 
-export const DiceFace: React.FC<DiceFaceProps> = ({ value, size = 40, material = 'plastic' }) => {
+export const DiceFace: React.FC<DiceFaceProps> = ({ value, size = 40, material = 'plastic', pipEffect }) => {
   const pipSize = Math.max(size * 0.12, 3); // Slightly smaller pips
   const gap = size * 0.3; // Increased gap for more spacing
   const colors = getMaterialColors(material);
@@ -24,6 +27,80 @@ export const DiceFace: React.FC<DiceFaceProps> = ({ value, size = 40, material =
     backgroundColor: colors.pip,
     borderRadius: '50%',
     position: 'absolute' as const
+  };
+
+  // If there's a pip effect, render icons instead of pips
+  const renderPipEffectIcons = () => {
+    if (!pipEffect || pipEffect === 'none') {
+      return null;
+    }
+
+    const iconSize = Math.max(size * 0.15, 4);
+    const iconGap = size * 0.25;
+    const icons = [];
+
+    // Render the same number of icons as the value
+    const positions = getPipPositions(value, iconGap, size);
+    
+    return positions.map((pos, index) => (
+      <div
+        key={index}
+        style={{
+          position: 'absolute',
+          left: `${pos.x}px`,
+          top: `${pos.y}px`,
+          transform: 'translate(-50%, -50%)',
+          width: `${iconSize}px`,
+          height: `${iconSize}px`,
+          color: colors.pip,
+        }}
+      >
+        <PipEffectIcon type={pipEffect} size={iconSize} />
+      </div>
+    ));
+  };
+
+  const getPipPositions = (val: number, gap: number, size: number): Array<{ x: number; y: number }> => {
+    const center = size / 2;
+    const positions: Array<{ x: number; y: number }> = [];
+
+    switch (val) {
+      case 1:
+        positions.push({ x: center, y: center });
+        break;
+      case 2:
+        positions.push({ x: gap, y: gap });
+        positions.push({ x: size - gap, y: size - gap });
+        break;
+      case 3:
+        positions.push({ x: gap, y: gap });
+        positions.push({ x: center, y: center });
+        positions.push({ x: size - gap, y: size - gap });
+        break;
+      case 4:
+        positions.push({ x: gap, y: gap });
+        positions.push({ x: size - gap, y: gap });
+        positions.push({ x: gap, y: size - gap });
+        positions.push({ x: size - gap, y: size - gap });
+        break;
+      case 5:
+        positions.push({ x: gap, y: gap });
+        positions.push({ x: size - gap, y: gap });
+        positions.push({ x: center, y: center });
+        positions.push({ x: gap, y: size - gap });
+        positions.push({ x: size - gap, y: size - gap });
+        break;
+      case 6:
+        positions.push({ x: gap, y: gap });
+        positions.push({ x: size - gap, y: gap });
+        positions.push({ x: gap, y: center });
+        positions.push({ x: size - gap, y: center });
+        positions.push({ x: gap, y: size - gap });
+        positions.push({ x: size - gap, y: size - gap });
+        break;
+    }
+
+    return positions;
   };
 
   const renderPips = () => {
@@ -206,7 +283,7 @@ export const DiceFace: React.FC<DiceFaceProps> = ({ value, size = 40, material =
       borderRadius: '8px',
       display: 'inline-block'
     }}>
-      {renderPips()}
+      {pipEffect && pipEffect !== 'none' ? renderPipEffectIcons() : renderPips()}
     </div>
   );
 }; 

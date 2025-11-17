@@ -9,8 +9,8 @@ export const MainMenu: React.FC = () => {
     <div style={{
       fontFamily: 'Arial, sans-serif',
       maxWidth: '600px',
-      margin: '80px auto',
-      padding: '40px',
+      margin: '40px auto',
+      padding: '30px',
       backgroundColor: '#ffffff',
       borderRadius: '8px',
       border: '1px solid #e1e5e9',
@@ -19,7 +19,7 @@ export const MainMenu: React.FC = () => {
     }}>
       <h1 style={{
         fontFamily: 'Arial, sans-serif',
-        fontSize: '36px',
+        fontSize: '32px',
         fontWeight: 'bold',
         marginBottom: '8px',
         color: '#2c3e50'
@@ -29,9 +29,9 @@ export const MainMenu: React.FC = () => {
       
       <p style={{
         fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
+        fontSize: '15px',
         color: '#6c757d',
-        marginBottom: '40px'
+        marginBottom: '30px'
       }}>
         The dice-rolling roguelike
       </p>
@@ -39,8 +39,8 @@ export const MainMenu: React.FC = () => {
       <div style={{ 
         display: 'flex', 
         flexDirection: 'column', 
-        gap: '16px',
-        marginTop: '40px'
+        gap: '12px',
+        marginTop: '30px'
       }}>
         <button 
           onClick={() => navigate('/game')}
@@ -48,13 +48,14 @@ export const MainMenu: React.FC = () => {
             backgroundColor: '#007bff',
             color: '#fff',
             border: 'none',
-            padding: '16px 32px',
+            padding: '12px 24px',
             borderRadius: '6px',
-            fontSize: '16px',
+            fontSize: '15px',
             cursor: 'pointer',
             fontWeight: '500',
             transition: 'background-color 0.2s ease',
-            fontFamily: 'Arial, sans-serif'
+            fontFamily: 'Arial, sans-serif',
+            minHeight: '44px' // Touch target size
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = '#0056b3';
@@ -72,13 +73,14 @@ export const MainMenu: React.FC = () => {
             backgroundColor: '#6c757d',
             color: '#fff',
             border: 'none',
-            padding: '16px 32px',
+            padding: '12px 24px',
             borderRadius: '6px',
-            fontSize: '16px',
+            fontSize: '15px',
             cursor: 'pointer',
             fontWeight: '500',
             transition: 'background-color 0.2s ease',
-            fontFamily: 'Arial, sans-serif'
+            fontFamily: 'Arial, sans-serif',
+            minHeight: '44px' // Touch target size
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = '#5a6268';
@@ -96,13 +98,14 @@ export const MainMenu: React.FC = () => {
             backgroundColor: '#6c757d',
             color: '#fff',
             border: 'none',
-            padding: '16px 32px',
+            padding: '12px 24px',
             borderRadius: '6px',
-            fontSize: '16px',
+            fontSize: '15px',
             cursor: 'pointer',
             fontWeight: '500',
             transition: 'background-color 0.2s ease',
-            fontFamily: 'Arial, sans-serif'
+            fontFamily: 'Arial, sans-serif',
+            minHeight: '44px' // Touch target size
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = '#5a6268';

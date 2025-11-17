@@ -20,15 +20,16 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
     <>
       <div style={{
         position: 'absolute',
-        top: '10px',
+        top: '8px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 25,
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         color: 'white',
-        padding: '8px 16px',
+        padding: '6px 12px',
         borderRadius: '6px',
-        fontSize: '14px',
+        fontSize: '13px',
+        maxWidth: 'calc(100% - 20px)',
         fontWeight: 'bold',
         textAlign: 'center'
       }}>
@@ -42,7 +43,7 @@ export const PointsDisplay: React.FC<PointsDisplayProps> = ({
         {/* Round Points - RED and LARGE when not banked (unsafe), GREEN when banking */}
         <div style={{ 
           color: justBanked ? '#28a745' : '#dc3545',
-          fontSize: '24px',
+          fontSize: '20px',
           fontWeight: 'bold',
           marginTop: lastRollPoints > 0 && canReroll && !justBanked ? '8px' : '0'
         }}>
