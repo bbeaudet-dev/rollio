@@ -617,6 +617,25 @@ money earned cannot exceed number of dice, etc.
 
 ### Game Difficulty
 
+#### Names
+
+Plastic
+Copper
+Silver
+Gold
+Diamond
+
+Coins
+
+- Silver
+- Gold
+- Copper
+
+Gems
+
+- Ruby, Sapphire, Emerald
+- Diamond
+
 #### Available Scoring Combinations
 
 Honestly I think this might be the best place to handle which scoring combinations are available.
@@ -627,6 +646,7 @@ See Scoring section for more details
 #### Charm Modifiers
 
 Rental, Temporary, Eternal
+Materials from Cryptid? Astral, bugged, etc.
 
 ---
 
@@ -680,5 +700,103 @@ Inspiration from Cryptid mod's Code Cards
 Balatro Seals
 Balatro Editions
 Some equivalent for card suits, pip colors?
+
+---
+
+## Charm Implementation Tracking Systems
+
+The following charms require new tracking systems to be fully implemented. These systems should be added to support the charm functionality:
+
+### Round-Scoped Tracking (Instance Variables - Reset Each Round)
+
+- **Perfectionist** - Already implemented with instance variable `consecutiveAllDiceScored`
+
+### Persistent Tracking (GameState/RoundState - Persists Across Saves)
+
+#### Round Completion Tracking
+
+- **PennyPincher** (Common) - Needs to track rounds completed without flopping
+  - Track in `RoundState` or `GameState.history`
+  - Increment counter when round ends without flop
+  - Reset when flop occurs
+
+#### Level Completion Tracking
+
+- **OneSongGlory** (Common) - Needs to track level completion with bank count
+  - Track banks used when completing level
+  - Check if only 1 bank was used for the entire level
+
+#### World Completion Tracking
+
+- **DigitalNomad** (Common) - Needs to track world completion (every 5 levels)
+  - Track when level 5, 10, 15, etc. are completed
+  - Trigger bonus when world is completed
+
+#### Reroll Granting System
+
+- **SecondChance** (Common) - Needs reroll granting system
+  - Grant +1 reroll per level at level initialization
+  - Should be handled in `calculateRerollsForLevel` (already has charmManager support)
+
+#### Consumable Use Tracking
+
+- **WhimWhisperer** (Uncommon) - Needs consumable use tracking
+  - Track when whims are used
+  - 25% chance to not consume when used
+- **WhimWisher** (Rare) - Needs consumable use tracking
+  - Track when whims are used
+  - 10% chance to create random wish when whim is used
+
+#### Dice Removal Modification System
+
+- **LeadTitan** (Rare) - Needs dice removal modification system
+  - If at least one Lead die is scored, all scored dice remain in hand
+  - Modify `removeDiceFromHand` logic to check for this charm
+
+#### Hot Dice Trigger Tracking
+
+- **BodyDouble** (Rare) - Needs hot dice trigger tracking with ghost dice
+  - Track when hot dice is triggered with unscored Ghost die remaining
+  - Increment hot dice counter by +1 when condition is met
+
+#### Material Effect Guarantee Systems
+
+- **Inheritance** (Rare) - Needs rainbow effect guarantee system
+  - Guarantee one Rainbow effect triggers per Rainbow die scored
+  - Modify rainbow material effect application logic
+- **Resonance** (Rare) - Needs crystal bounce effect system
+  - 1 in 3 chance for crystal dice to bounce off each other
+  - Repeat effect until failure
+  - Modify crystal material effect application logic
+
+#### Counter Systems
+
+- **Bloom** (Rare) - Needs flower counter system
+  - Track flower counter in `RoundState` or `LevelState`
+  - Each flower die scored adds 3 to counter
+  - Counter persists across rounds/levels as needed
+
+#### Charm Position Tracking
+
+- **Paranoia** (Rare) - Needs charm position tracking
+  - Track position of charms in charm array
+  - Copy effect of charm to left/right, alternating each roll
+- **MustBeThisTallToRide** (Rare) - Needs charm position tracking
+  - Track position of charms in charm array
+  - Copy effect of charm above/below if level >= 10
+
+#### Dice Set Size Tracking
+
+- **QueensGambit** (Rare) - Needs dice set size tracking and dice removal tracking
+  - Track original dice set size
+  - Track current dice set size (after removals)
+  - Calculate multiplier based on difference
+
+### Implementation Notes
+
+- **Hybrid Approach**: Use instance variables for round-scoped tracking (like Perfectionist), and GameState/RoundState for persistent tracking
+- **Charm Access**: Charms should access tracking data via context objects (CharmScoringContext, CharmBankContext, etc.)
+- **State Management**: When adding new tracking fields, ensure they're properly serialized/deserialized for save/load functionality
+- **Initialization**: New tracking fields should be initialized in factory functions (`createInitialGameState`, `createInitialLevelState`, etc.)
 
 ---

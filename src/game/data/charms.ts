@@ -40,6 +40,8 @@ export type CharmType =
   | 'flopStrategist'
   | 'pipCollector'
   | 'digitalNomad'
+  | 'hoarder'
+  | 'comebackKid'
   // Uncommon charms
   | 'quadBoosters'
   | 'roundMultiplier'
@@ -61,6 +63,8 @@ export type CharmType =
   | 'hotPocket'
   | 'wildCard'
   | 'whimWhisperer'
+  | 'doubleAgent'
+  | 'purist'
   // Rare charms
   | 'whimWisher'
   | 'kingslayer'
@@ -79,7 +83,8 @@ export type CharmType =
   | 'bloom'
   | 'sizeMatters'
   | 'vesuvius'
-  | 'armadilloArmor';
+  | 'armadilloArmor'
+  | 'refinery';
 
 // Rarity price mapping
 export const CHARM_PRICES: Record<string, { buy: number; sell: number }> = {
@@ -322,6 +327,18 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     description: '+$10 when completing a world (every 5 levels)',
     rarity: 'common'
   },
+  {
+    id: 'hoarder',
+    name: 'Hoarder',
+    description: '+2 banks',
+    rarity: 'common'
+  },
+  {
+    id: 'comebackKid',
+    name: 'Comeback Kid',
+    description: '+3 rerolls',
+    rarity: 'common'
+  },
 
 
   // UNCOMMON CHARMS
@@ -446,6 +463,18 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     description: 'Whims have a 25% chance to not be consumed when used',
     rarity: 'uncommon'
   },
+  {
+    id: 'doubleAgent',
+    name: 'Double Agent',
+    description: 'Doubles rerolls',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'purist',
+    name: 'Purist',
+    description: 'Doubles banks, sets rerolls to 0',
+    rarity: 'uncommon'
+  },
 
 
   // RARE CHARMS
@@ -555,9 +584,34 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'armadilloArmor',
     name: 'Armadillo Armor',
-    description: 'Multiplies score by number of rerolls remaining',
+    description: '+1x multiplier for each reroll remaining',
     rarity: 'rare'
   },
+  {
+    id: 'queensGambit',
+    name: 'Queen\'s Gambit',
+    description: '+1x multiplier for each die below set\'s starting size in your full set',
+    rarity: 'rare'
+  },
+  {
+    id: 'refinery',
+    name: 'Refinery',
+    description: 'Multiplies round score by 1.25x when using a reroll',
+    rarity: 'rare'
+  },
+  {
+    id: 'paranoia',
+    name: 'Paranoia',
+    description: 'Copies the effect of the charm to the left/right of this charm, alternating each roll',
+    rarity: 'rare'
+  },
+  {
+    id: 'mustBeThisTallToRide',
+    name: 'Must Be This Tall to Ride',
+    description: 'Copies the effect of the charm to the left if current level is 10 or higher',
+    rarity: 'rare'
+  },
+
 ];
 
 
@@ -565,3 +619,6 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
 // doubles rerolls
 // play some combo in a row, gain mult
 // disabling boss battles and stuff
+
+// activation required, e.g. activates after level 20, after rerolling 100 times, etc.
+// sleeper agent

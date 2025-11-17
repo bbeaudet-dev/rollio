@@ -195,7 +195,7 @@ export const MIRROR_SET: DiceSetConfig = {
         { id: "d3", sides: 6, allowedValues: [1,2,3,4,5,6], material: "mirror" },
         { id: "d4", sides: 6, allowedValues: [1,2,3,4,5,6], material: "mirror" },
         { id: "d5", sides: 6, allowedValues: [1,2,3,4,5,6], material: "mirror" },
-        { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "mirror" }
+        { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "plastic" }
     ],
     startingMoney: 5,
     charmSlots: 4,
@@ -293,6 +293,109 @@ export const MIXED_MATERIAL_SET: DiceSetConfig = {
     setType: 'cheat',
 };
 
+// Test dice set with various pip effects for testing
+export const PIP_EFFECTS_TEST_SET: DiceSetConfig = {
+    name: "Pip Effects Test Set",
+    dice: [
+        // Die 1: Money pip effects on sides 1, 2, 3
+        { 
+            id: "d1", 
+            sides: 6, 
+            allowedValues: [1,2,3,4,5,6], 
+            material: "plastic",
+            pipEffects: {
+                1: 'money',
+                2: 'money',
+                3: 'money',
+                4: 'none',
+                5: 'none',
+                6: 'none'
+            }
+        },
+        // Die 2: Blank pip effects on sides 4, 5, 6
+        { 
+            id: "d2", 
+            sides: 6, 
+            allowedValues: [1,2,3,4,5,6], 
+            material: "plastic",
+            pipEffects: {
+                1: 'none',
+                2: 'none',
+                3: 'none',
+                4: 'blank',
+                5: 'blank',
+                6: 'blank'
+            }
+        },
+        // Die 3: Mix of money and blank
+        { 
+            id: "d3", 
+            sides: 6, 
+            allowedValues: [1,2,3,4,5,6], 
+            material: "plastic",
+            pipEffects: {
+                1: 'money',
+                2: 'money',
+                3: 'blank',
+                4: 'blank',
+                5: 'none',
+                6: 'none'
+            }
+        },
+        // Die 4: Two-faced on sides 1-3, wild on sides 4-6
+        { 
+            id: "d4", 
+            sides: 6, 
+            allowedValues: [1,2,3,4,5,6], 
+            material: "plastic",
+            pipEffects: {
+                1: 'twoFaced',
+                2: 'twoFaced',
+                3: 'twoFaced',
+                4: 'wild',
+                5: 'wild',
+                6: 'wild'
+            }
+        },
+        // Die 5: All money
+        { 
+            id: "d5", 
+            sides: 6, 
+            allowedValues: [1,2,3,4,5,6], 
+            material: "plastic",
+            pipEffects: {
+                1: 'money',
+                2: 'money',
+                3: 'money',
+                4: 'money',
+                5: 'money',
+                6: 'money'
+            }
+        },
+        // Die 6: All blank
+        { 
+            id: "d6", 
+            sides: 6, 
+            allowedValues: [1,2,3,4,5,6], 
+            material: "plastic",
+            pipEffects: {
+                1: 'blank',
+                2: 'blank',
+                3: 'blank',
+                4: 'blank',
+                5: 'blank',
+                6: 'blank'
+            }
+        }
+    ],
+    startingMoney: 20,
+    charmSlots: 4,
+    consumableSlots: 2,
+    baseLevelRerolls: 3,
+    baseLevelBanks: 3,
+    setType: 'cheat',
+};
+
 // Static dice sets (for display/collection purposes)
 export const STATIC_DICE_SETS: DiceSetConfig[] = [
     BASIC_DICE_SET,
@@ -308,6 +411,7 @@ export const STATIC_DICE_SETS: DiceSetConfig[] = [
     GHOST_SET,
     LEAD_SET,
     MIXED_MATERIAL_SET,
+    PIP_EFFECTS_TEST_SET,
 ];
 
 // All dice sets including dynamic ones (for game selection)
@@ -325,5 +429,6 @@ export const ALL_DICE_SETS: (DiceSetConfig | (() => DiceSetConfig))[] = [
     GHOST_SET,
     LEAD_SET,
     MIXED_MATERIAL_SET,
+    PIP_EFFECTS_TEST_SET,
     RANDOM_SET,
 ]; 

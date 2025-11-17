@@ -48,7 +48,7 @@ export const MATERIAL_COLORS = {
     pip: '#fff' 
   },
   ghost: { background: '#1a1a2e', border: '#0a0a0f', pip: '#7fffd4' },
-  lead: { background: '#4a4a4a', border: '#5a5a6a', pip: '#2a2a2a' },
+  lead: { background: '#4a4a4a', border: '#5a5a6a', pip: '#1a1a1a' }, // Darker pips for lead
 } as const;
 
 /**
