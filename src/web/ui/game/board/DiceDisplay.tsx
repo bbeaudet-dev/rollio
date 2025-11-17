@@ -53,8 +53,8 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
             onClick={() => canSelect && onDiceSelect(originalIndex)}
             disabled={!canSelect}
             style={{
-              width: '70px',
-              height: '70px',
+              width: '95px',
+              height: '95px',
               border: isSelected ? '3px solid rgba(0, 123, 255, 0.3)' : '3px solid transparent',
               borderRadius: '8px',
               backgroundColor: isSelected ? 'rgba(227, 242, 253, 0.3)' : 'transparent',
@@ -71,7 +71,7 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
           >
             <DiceFace 
               value={die.rolledValue || 0} 
-              size={55}
+              size={80}
               material={die.material}
               pipEffect={die.pipEffects?.[die.rolledValue || 0]}
             />

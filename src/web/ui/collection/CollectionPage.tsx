@@ -146,7 +146,7 @@ export const CollectionPage: React.FC = () => {
               alignItems: 'center',
               gap: '15px'
             }}>
-              <DiceFace value={6} size={80} material={material.id} />
+              <DiceFace value={3} size={80} material={material.id} />
               <div>
                 <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '8px' }}>
                   {material.name}
@@ -188,7 +188,7 @@ export const CollectionPage: React.FC = () => {
                 {set.dice.map((die, idx) => (
                   <DiceFace 
                     key={`${set.name}-${die.id}-${idx}`}
-                    value={1} 
+                    value={3} 
                     size={45} 
                     material={die.material} 
                   />
@@ -342,8 +342,30 @@ export const CollectionPage: React.FC = () => {
       
       {/* Pip Effects */}
       <div style={sectionStyle}>
-        <h2 style={headerStyle}>Pip Effects ({PIP_EFFECTS.length})</h2>
+        <h2 style={headerStyle}>Pip Effects ({PIP_EFFECTS.length + 1})</h2>
         <div style={grid3ColStyle}>
+          <div style={{
+            padding: '20px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '2px solid #dee2e6',
+            textAlign: 'center'
+          }}>
+            <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80px' }}>
+              <DiceFace 
+                value={3} 
+                size={80} 
+                material="plastic"
+                pipEffect="none"
+              />
+            </div>
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>
+              Normal
+            </div>
+            <div style={{ fontSize: '14px', color: '#6c757d' }}>
+              Standard die face with no special effects
+            </div>
+          </div>
           {PIP_EFFECTS.map((effect) => (
             <div key={effect.id} style={{
               padding: '20px',
@@ -352,8 +374,13 @@ export const CollectionPage: React.FC = () => {
               border: '2px solid #dee2e6',
               textAlign: 'center'
             }}>
-              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '36px' }}>
-                <PipEffectIcon type={effect.type} size={36} />
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80px' }}>
+                <DiceFace 
+                  value={3} 
+                  size={80} 
+                  material="plastic"
+                  pipEffect={effect.type}
+                />
               </div>
               <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>
                 {effect.name}

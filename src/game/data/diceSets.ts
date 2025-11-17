@@ -386,6 +386,34 @@ export const PIP_EFFECTS_TEST_SET: DiceSetConfig = {
                 5: 'blank',
                 6: 'blank'
             }
+        },
+        { 
+            id: "d7", 
+            sides: 6, 
+            allowedValues: [1,2,3,4,5,6], 
+            material: "plastic",
+            pipEffects: {
+                1: 'upgradeCombo',
+                2: 'upgradeCombo',
+                3: 'upgradeCombo',
+                4: 'createConsumable',
+                5: 'createConsumable',
+                6: 'createConsumable'
+            }
+        },
+        { 
+            id: "d8", 
+            sides: 6, 
+            allowedValues: [1,2,3,4,5,6], 
+            material: "plastic",
+            pipEffects: {
+                1: 'money',
+                2: 'blank',
+                3: 'twoFaced',
+                4: 'wild',
+                5: 'upgradeCombo',
+                6: 'createConsumable'
+            }
         }
     ],
     startingMoney: 20,
