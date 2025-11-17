@@ -74,12 +74,25 @@ export const GameControls: React.FC<GameControlsProps> = ({
     <div style={{ marginTop: '15px' }}>
       
       {/* Regular Game Controls */}
-      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-        <Button onClick={handleRollClick} disabled={!isRollButtonEnabled}>
+      <div style={{ 
+        display: 'flex', 
+        gap: '8px', 
+        justifyContent: 'center',
+        flexWrap: 'wrap'
+      }}>
+        <Button onClick={handleRollClick} disabled={!isRollButtonEnabled} style={{
+          minHeight: '44px',
+          padding: '10px 16px',
+          fontSize: '14px'
+        }}>
           {getRollButtonText()}
         </Button>
         
-        <Button onClick={onBank} disabled={!canBank}>
+        <Button onClick={onBank} disabled={!canBank} style={{
+          minHeight: '44px',
+          padding: '10px 16px',
+          fontSize: '14px'
+        }}>
           Bank Points
         </Button>
       </div>

@@ -2,11 +2,13 @@ import React from 'react';
 import { CharmInventory } from './inventory/CharmInventory';
 import { ConsumableInventory } from './inventory/ConsumableInventory';
 import { BlessingInventory } from './inventory/BlessingInventory';
+import { MoneyDisplay } from './MoneyDisplay';
 
 interface InventoryProps {
   charms: any[];
   consumables: any[];
   blessings: any[];
+  money?: number;
   onConsumableUse?: (index: number) => void;
 }
 
@@ -14,6 +16,7 @@ export const Inventory: React.FC<InventoryProps> = ({
   charms, 
   consumables, 
   blessings,
+  money,
   onConsumableUse 
 }) => {
   return (
@@ -28,18 +31,28 @@ export const Inventory: React.FC<InventoryProps> = ({
       padding: '8px',
       marginTop: '0'
     }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
-        gap: '10px'
-      }}>
+      <div 
+        className="responsive-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '8px'
+        }}
+      >
         <CharmInventory charms={charms} />
         <ConsumableInventory 
           consumables={consumables}
-          onConsumableUse={onConsumableUse}
+          onConsumableUse={onConsumableUse || (() => {})}
         />
         <BlessingInventory blessings={blessings} />
       </div>
+      
+      {/* Money display */}
+      {money !== undefined && (
+        <div style={{ marginTop: '8px' }}>
+          <MoneyDisplay money={money} />
+        </div>
+      )}
     </div>
   );
 };

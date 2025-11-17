@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Game, GameLog } from '../game';
+import { Game } from '../game';
 import { GameConfigSelector } from '../setup';
 import { useGameState } from '../../hooks/useGameState';
 
@@ -34,9 +34,9 @@ export const SinglePlayerGame: React.FC = () => {
   // Root container with consistent font
   const rootStyle = {
     fontFamily: 'Arial, sans-serif',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '20px'
+    width: '100%',
+    margin: '0',
+    padding: '0'
   };
 
   if (showConfigSelector) {
@@ -64,8 +64,6 @@ export const SinglePlayerGame: React.FC = () => {
         showTallyModal={game.showTallyModal}
         pendingRewards={game.pendingRewards}
       />
-      
-      <GameLog messages={game.messages} />
     </div>
   );
 }; 

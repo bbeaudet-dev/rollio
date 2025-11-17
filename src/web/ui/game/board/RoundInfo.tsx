@@ -16,14 +16,14 @@ export const RoundInfo: React.FC<RoundInfoProps> = ({
       {/* Round and Roll numbers overlay */}
       <div style={{
         position: 'absolute',
-        top: '15px',
-        left: '15px',
+        top: '10px',
+        left: '10px',
         zIndex: 20,
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
         color: 'white',
-        padding: '8px 12px',
+        padding: '6px 10px',
         borderRadius: '6px',
-        fontSize: '14px',
+        fontSize: '13px',
         fontWeight: 'bold'
       }}>
         <div>Round {roundNumber}</div>
@@ -34,16 +34,16 @@ export const RoundInfo: React.FC<RoundInfoProps> = ({
       {consecutiveFlops > 0 && (
         <div style={{
           position: 'absolute',
-          bottom: '15px',
-          left: '15px',
+          bottom: '10px',
+          left: '10px',
           zIndex: 20,
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           color: 'white',
-          padding: '8px 16px',
+          padding: '6px 12px',
           borderRadius: '6px',
-          fontSize: '14px',
+          fontSize: '13px',
           fontWeight: 'bold',
-          maxWidth: '150px'
+          maxWidth: '140px'
         }}>
           ⚠️ Consecutive flops: {consecutiveFlops}/3
           {consecutiveFlops >= 3 && (

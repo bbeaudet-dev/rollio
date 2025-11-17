@@ -5,7 +5,6 @@ import { LevelSummary } from './LevelSummary';
 import { Inventory } from './Inventory';
 import { HotDiceCounter } from './board/HotDiceCounter';
 import { GameShopView } from './GameShopView';
-import { GameEmptyBoardView } from './GameEmptyBoardView';
 import { SettingsButton, MenuButton } from '../components';
 import { SettingsModal } from '../menu';
 import { TallyModal } from './TallyModal';
@@ -107,17 +106,13 @@ export const Game: React.FC<GameProps> = ({
     // Show the game board in the background with tally modal overlay
     return (
       <>
-        <MenuButton />
-        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
         <SettingsModal 
           isOpen={isSettingsOpen} 
           onClose={() => setIsSettingsOpen(false)} 
         />
         {gameState && (
           <div style={{ 
-            maxWidth: '1200px', 
-            margin: '0 auto', 
-            padding: '20px',
+            width: '100%',
             display: 'flex',
             flexDirection: 'column',
             gap: '0'
@@ -151,6 +146,7 @@ export const Game: React.FC<GameProps> = ({
               charms={inventory.charms}
               consumables={inventory.consumables}
               blessings={gameState.blessings || []}
+              money={gameState.money}
               onConsumableUse={() => {}}
             />
           </div>
@@ -162,6 +158,21 @@ export const Game: React.FC<GameProps> = ({
           banksRemaining={gameState.currentLevel.banksRemaining || 0}
           onContinue={gameActions.handleConfirmTally}
         />
+        {/* Menu and Settings buttons below inventory in tally view */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '10px',
+          padding: '10px',
+          backgroundColor: '#f8f9fa',
+          borderTop: '1px solid #dee2e6'
+        }}>
+          <MenuButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+          <SettingsButton 
+            onClick={() => setIsSettingsOpen(true)} 
+            style={{ position: 'relative', top: 'auto', right: 'auto' }}
+          />
+        </div>
       </>
     );
   }
@@ -170,19 +181,30 @@ export const Game: React.FC<GameProps> = ({
   if (!gameState) {
     return (
       <>
-        <MenuButton />
-        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
         <SettingsModal 
           isOpen={isSettingsOpen} 
           onClose={() => setIsSettingsOpen(false)} 
         />
       <div style={{ 
-        maxWidth: '1200px', 
-        margin: '0 auto', 
+        width: '100%',
         padding: '20px',
         textAlign: 'center'
       }}>
         <div>Loading game...</div>
+      </div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '10px',
+        padding: '10px',
+        backgroundColor: '#f8f9fa',
+        borderTop: '1px solid #dee2e6'
+      }}>
+        <MenuButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+        <SettingsButton 
+          onClick={() => setIsSettingsOpen(true)} 
+          style={{ position: 'relative', top: 'auto', right: 'auto' }}
+        />
       </div>
       </>
     );
@@ -213,28 +235,8 @@ export const Game: React.FC<GameProps> = ({
   }
   
   const hasRolledDice = !!(roundState.rollHistory && roundState.rollHistory.length > 0);
-  if (!hasRolledDice && roundState.diceHand.length === 0) {
-    return (
-      <>
-        <MenuButton />
-        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
-        <SettingsModal 
-          isOpen={isSettingsOpen} 
-          onClose={() => setIsSettingsOpen(false)} 
-        />
-        <GameEmptyBoardView
-          gameState={gameState}
-          roundState={roundState}
-          inventory={inventory}
-          board={board}
-          rollActions={rollActions}
-          gameActions={gameActions}
-          inventoryActions={inventoryActions}
-          canPlay={canPlay}
-        />
-      </>
-    );
-  }
+  // No need for separate empty board view - just show the normal game view with empty dice
+  // The Board component handles empty dice just fine
 
   // Get last roll points from the actual round state
   const lastRollPoints = roundState.rollHistory && roundState.rollHistory.length > 0 ? 
@@ -242,16 +244,12 @@ export const Game: React.FC<GameProps> = ({
 
   return (
     <>
-      <MenuButton />
-      <SettingsButton onClick={() => setIsSettingsOpen(true)} />
       <SettingsModal 
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
       />
     <div style={{ 
-      maxWidth: '1200px', 
-      margin: '0 auto', 
-      padding: '20px',
+      width: '100%',
       display: 'flex',
       flexDirection: 'column',
       gap: '0' // No gap between sections
@@ -292,7 +290,11 @@ export const Game: React.FC<GameProps> = ({
           zIndex: 25,
           display: 'flex',
           gap: '10px',
-          alignItems: 'center'
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          width: 'calc(100% - 40px)',
+          maxWidth: '500px'
         }}>
           <GameControls 
             onRoll={() => {
@@ -332,10 +334,26 @@ export const Game: React.FC<GameProps> = ({
             charms={inventory.charms}
             consumables={inventory.consumables}
           blessings={gameState.blessings || []}
+            money={gameState.money}
             onConsumableUse={inventoryActions.handleConsumableUse}
           />
       </div>
       
+      {/* Menu and Settings buttons below inventory */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '10px',
+        padding: '10px',
+        backgroundColor: '#f8f9fa',
+        borderTop: '1px solid #dee2e6'
+      }}>
+        <MenuButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+        <SettingsButton 
+          onClick={() => setIsSettingsOpen(true)} 
+          style={{ position: 'relative', top: 'auto', right: 'auto' }}
+        />
+      </div>
     </>
   );
 }; 

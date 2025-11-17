@@ -24,15 +24,15 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
       flexWrap: 'wrap',
       justifyContent: 'center',
       alignItems: 'center',
-      gap: '15px',
-      padding: '20px',
+      gap: '10px',
+      padding: '10px',
       minHeight: '100px',
       position: 'absolute',
       top: '55%',
       left: '50%',
       transform: 'translate(-50%, -50%)',
       width: '100%',
-      maxWidth: 'calc(100% - 40px)',
+      maxWidth: 'calc(100% - clamp(20px, 4vw, 40px))',
       boxSizing: 'border-box'
     }}>
       {rolledDice.map((die) => {
@@ -53,8 +53,8 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
             onClick={() => canSelect && onDiceSelect(originalIndex)}
             disabled={!canSelect}
             style={{
-              width: '70px',
-              height: '70px',
+              width: '60px',
+              height: '60px',
               border: isSelected ? '3px solid rgba(0, 123, 255, 0.3)' : '3px solid transparent',
               borderRadius: '8px',
               backgroundColor: isSelected ? 'rgba(227, 242, 253, 0.3)' : 'transparent',
@@ -71,8 +71,9 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
           >
             <DiceFace 
               value={die.rolledValue || 0} 
-              size={55}
-              material={material}
+              size={45}
+              material={die.material}
+              pipEffect={die.pipEffects?.[die.rolledValue || 0]}
             />
           </button>
         );
