@@ -428,7 +428,7 @@ export class CLIRoundManager {
     charmManager: CharmManager,
     useConsumable: (idx: number, gameState: any, roundState: any) => Promise<void>
   ): Promise<{ result: 'banked' | 'reroll' | 'end'; levelCompleted: boolean }> {
-    const action = await (gameInterface as any).askForBankOrReroll(
+      const action = await (gameInterface as any).askForBankOrRoll(
       roundState.diceHand.length,
       gameState.consumables,
       async (idx: number) => await useConsumable(idx, gameState, roundState)

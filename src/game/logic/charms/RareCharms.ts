@@ -254,8 +254,25 @@ export class ResonanceCharm extends BaseCharm {
 export class BloomCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // Each flower die scored adds 3 to flower dice counter
-    // TODO: Needs flower counter system
-    // This would need to track a flower counter in roundState
+    // Track in roundState (resets each round, not per level)
+    const roundState = context.roundState;
+    const currentFlowerCounter = roundState.flowerCounter || 0;
+    
+    // Count flower dice in this scoring selection
+    const flowerDiceScored = context.selectedIndices.filter(idx => {
+      const die = roundState.diceHand[idx];
+      return die && die.material === 'flower';
+    }).length;
+    
+    // Calculate new counter value (will be persisted by the caller)
+    const newFlowerCounter = currentFlowerCounter + (flowerDiceScored * 3);
+    
+    // Update roundState immutably (this will be handled by the scoring system)
+    // For now, we just track it - the actual state update happens in the scoring flow
+    // TODO: Apply multiplier based on newFlowerCounter
+    // The multiplier should be based on the counter value after this scoring
+    // For now, just track the counter - multiplier logic can be added later
+    
     return {};
   }
 }
@@ -281,8 +298,16 @@ export class MustBeThisTallToRideCharm extends BaseCharm {
 export class QueensGambitCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // +1x multiplier for each die below set's starting size in your full set
-    // TODO: Needs dice set size tracking and dice removal tracking
-    // This would need to track the original dice set size and current dice set size
+    const originalDiceSetSize = context.gameState.config.diceSetConfig.dice.length;
+    const currentDiceSetSize = context.gameState.diceSet.length;
+    const diceRemoved = originalDiceSetSize - currentDiceSetSize;
+    
+    if (diceRemoved > 0) {
+      return {
+        multiplierAdd: diceRemoved
+      };
+    }
+    
     return {};
   }
 }

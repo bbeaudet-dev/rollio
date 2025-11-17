@@ -12,30 +12,34 @@ import { debugLog } from '../utils/debug';
 export function calculateRerollsForLevel(gameState: GameState, charmManager?: any): number {
   let baseRerolls = gameState.baseLevelRerolls;
   
-  // Apply modifiers from charms in order: bonuses, multipliers, overrides
+  // Apply modifiers from charms in order: overrides, bonuses, multipliers
   if (charmManager) {
     const activeCharms = charmManager.getActiveCharms?.() || [];
     
-    // First, check for overrides (Purist sets rerolls to 0, so it overrides everything)
-    const hasPurist = activeCharms.some((charm: any) => charm.id === 'purist');
-    if (hasPurist) {
-      baseRerolls = 0;
+    // Collect all modifiers from charms
+    const modifiers = { add: 0, multiply: 1, override: null as number | null };
+    
+    for (const charm of activeCharms) {
+      if (charm.getRerollBonus) {
+        const bonus = charm.getRerollBonus(gameState);
+        if (bonus.override !== undefined) {
+          modifiers.override = bonus.override;
+        }
+        if (bonus.add !== undefined) {
+          modifiers.add += bonus.add;
+        }
+        if (bonus.multiply !== undefined) {
+          modifiers.multiply *= bonus.multiply;
+        }
+      }
+    }
+    
+    // Apply in order: override, add, multiply
+    if (modifiers.override !== null) {
+      baseRerolls = modifiers.override;
     } else {
-      // Apply bonuses first
-      for (const charm of activeCharms) {
-        // Comeback Kid: +3 rerolls
-        if (charm.id === 'comebackKid') {
-          baseRerolls += 3;
-        }
-      }
-      
-      // Then apply multipliers
-      for (const charm of activeCharms) {
-        // Double Agent: Doubles rerolls
-        if (charm.id === 'doubleAgent') {
-          baseRerolls *= 2;
-        }
-      }
+      baseRerolls += modifiers.add;
+      baseRerolls *= modifiers.multiply;
     }
   }
   
@@ -61,16 +65,25 @@ export function calculateBanksForLevel(gameState: GameState, charmManager?: any)
   // Apply bonuses and multipliers from charms
   if (charmManager) {
     const activeCharms = charmManager.getActiveCharms?.() || [];
+    
+    // Collect all modifiers from charms
+    const modifiers = { add: 0, multiply: 1 };
+    
     for (const charm of activeCharms) {
-      // Hoarder: +2 banks
-      if (charm.id === 'hoarder') {
-        baseBanks += 2;
-      }
-      // Purist: Doubles banks
-      if (charm.id === 'purist') {
-        baseBanks *= 2;
+      if (charm.getBankBonus) {
+        const bonus = charm.getBankBonus(gameState);
+        if (bonus.add !== undefined) {
+          modifiers.add += bonus.add;
+        }
+        if (bonus.multiply !== undefined) {
+          modifiers.multiply *= bonus.multiply;
+        }
       }
     }
+    
+    // Apply modifiers: add first, then multiply
+    baseBanks += modifiers.add;
+    baseBanks *= modifiers.multiply;
   }
   
   // Apply bonuses from blessings (affects base value, already in baseLevelBanks)

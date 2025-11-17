@@ -31,7 +31,6 @@ import {
   SureShotCharm,
   FlopStrategistCharm,
   SecondChanceCharm,
-  PennyPincherCharm,
   RoundRobinCharm,
   OneSongGloryCharm,
   DigitalNomadCharm,
@@ -133,7 +132,6 @@ export function registerCharms(): void {
   registry.register(SureShotCharm, 'sureShot');
   registry.register(FlopStrategistCharm, 'flopStrategist');
   registry.register(SecondChanceCharm, 'secondChance');
-  registry.register(PennyPincherCharm, 'pennyPincher');
   registry.register(RoundRobinCharm, 'roundRobin');
   registry.register(OneSongGloryCharm, 'oneSongGlory');
   registry.register(DigitalNomadCharm, 'digitalNomad');

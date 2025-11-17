@@ -42,13 +42,6 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
         gap: '0'
       }}>
         <LevelSummary gameState={gameState} roundState={roundState} />
-        <Inventory 
-          charms={inventory.charms}
-          consumables={inventory.consumables}
-          blessings={gameState.blessings || []}
-          money={gameState.money}
-          onConsumableUse={inventoryActions.handleConsumableUse}
-        />
         
         <ShopDisplay
           shopState={shopState}
@@ -58,6 +51,14 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
           onPurchaseConsumable={shopActions.handlePurchaseConsumable}
           onPurchaseBlessing={shopActions.handlePurchaseBlessing}
           onContinue={shopActions.handleExitShop}
+        />
+        
+        <Inventory 
+          charms={inventory.charms}
+          consumables={inventory.consumables}
+          blessings={gameState.blessings || []}
+          money={gameState.money}
+          onConsumableUse={inventoryActions.handleConsumableUse}
         />
         
         {/* Menu and Settings buttons below shop */}

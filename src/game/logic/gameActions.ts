@@ -176,6 +176,7 @@ export function endRound(gameState: GameState, reason: 'banked' | 'flopped'): Ga
     endReason: reason,
     ...(reason === 'banked' ? { banked: true } : { flopped: true })
   };
+  
   return newGameState;
 }
 
@@ -224,6 +225,24 @@ export function resetConsecutiveFlops(gameState: GameState): GameState {
 }
 
 /**
+ * Increment consecutive banks counter
+ */
+export function incrementConsecutiveBanks(gameState: GameState): GameState {
+  const newGameState = { ...gameState };
+  newGameState.consecutiveBanks = (newGameState.consecutiveBanks || 0) + 1;
+  return newGameState;
+}
+
+/**
+ * Reset consecutive banks counter to 0
+ */
+export function resetConsecutiveBanks(gameState: GameState): GameState {
+  const newGameState = { ...gameState };
+  newGameState.consecutiveBanks = 0;
+  return newGameState;
+}
+
+/**
  * Set forfeited points on round
  */
 export function setForfeitedPoints(gameState: GameState, points: number): GameState {
@@ -238,12 +257,66 @@ export function setForfeitedPoints(gameState: GameState, points: number): GameSt
 }
 
 /**
+ * Get the round points that were just banked
+ * Returns the roundPoints from the most recently banked round
+ */
+export function getBankedRoundPoints(gameState: GameState): number {
+  const currentRound = gameState.currentLevel.currentRound;
+  if (currentRound && !currentRound.isActive && currentRound.banked) {
+    return currentRound.roundPoints || 0;
+  }
+  return 0;
+}
+
+/**
+ * Get the level points before the most recent banking
+ * Calculates by subtracting the banked round points from current level points
+ */
+export function getLevelPointsBeforeBanking(gameState: GameState): number {
+  const currentPointsBanked = gameState.currentLevel.pointsBanked || 0;
+  const bankedRoundPoints = getBankedRoundPoints(gameState);
+  return currentPointsBanked - bankedRoundPoints;
+}
+
+/**
  * End the game with a specific reason
  */
 export function endGame(gameState: GameState, reason: 'lost' | 'win'): GameState {
   const newGameState = { ...gameState };
   newGameState.isActive = false;
   newGameState.endReason = reason;
+  return newGameState;
+}
+
+/**
+ * Handle world completion (every 5 levels: 5, 10, 15, etc.)
+ * Called when completing a level that ends a world
+ */
+export function advanceToNextWorld(
+  gameState: GameState,
+  completedLevelNumber: number,
+  charmManager?: any
+): GameState {
+  const newGameState = { ...gameState };
+  
+  // Apply world completion bonuses from charms
+  if (charmManager) {
+    const activeCharms = charmManager.getActiveCharms?.() || [];
+    for (const charm of activeCharms) {
+      if (charm.calculateWorldCompletionBonus) {
+        const bonus = charm.calculateWorldCompletionBonus(completedLevelNumber, gameState.currentLevel, gameState);
+        if (bonus > 0) {
+          newGameState.money = (newGameState.money || 0) + bonus;
+        }
+      }
+    }
+  }
+  
+  // TODO: Add more world-specific logic here as needed
+  // - World completion rewards
+  // - World-specific state updates
+  // - World transition effects
+  
   return newGameState;
 }
 
@@ -257,7 +330,7 @@ export function advanceToNextLevel(gameState: GameState, charmManager?: any): Ga
   const levelConfig = getLevelConfig(newLevelNumber);
   
   const newGameState = { ...gameState };
-  newGameState.history = { ...gameState.history };
+  newGameState.history = { ...newGameState.history };
   newGameState.history.levelHistory = [...gameState.history.levelHistory];
   
   // Move completed level to history 
@@ -269,6 +342,14 @@ export function advanceToNextLevel(gameState: GameState, charmManager?: any): Ga
       : [],
   };
   newGameState.history.levelHistory.push(completedLevel);
+  
+  // Check if we completed a world (every 5 levels: 5, 10, 15, etc.)
+  if (oldLevelNumber % 5 === 0) {
+    const worldCompletedState = advanceToNextWorld(newGameState, oldLevelNumber, charmManager);
+    // Merge world completion changes back into newGameState
+    newGameState.money = worldCompletedState.money;
+    // Add any other world completion state updates here as needed
+  }
   
   // Create new level state (includes first round)
   newGameState.currentLevel = createInitialLevelState(newLevelNumber, newGameState, charmManager);
@@ -426,23 +507,29 @@ export function processBankPoints(
   const baseBankedPoints = roundState.roundPoints;
   let newGameState = addPointsToLevel(gameState, baseBankedPoints);
   newGameState = decrementBanks(newGameState);
+  
+  // Track banks used for OneSongGlory charm (increment before ending round)
+  newGameState.currentLevel = { ...newGameState.currentLevel };
+  newGameState.currentLevel.banksUsed = (newGameState.currentLevel.banksUsed || 0) + 1;
+  
+  // Track consecutive banks
+  newGameState = incrementConsecutiveBanks(newGameState);
+  
   newGameState = endRound(newGameState, 'banked');
   
   // Apply charm effects AFTER banking (as bonuses)
   let finalBankedPoints = baseBankedPoints;
   if (charmManager) {
-    const modifiedBankedPoints = charmManager.applyBankEffects({
+    finalBankedPoints = charmManager.applyBankEffects({
       gameState: newGameState,
       roundState: newGameState.currentLevel.currentRound!,
       bankedPoints: baseBankedPoints
     });
     
-    // Calculate the bonus from charm effects
-    const charmBonus = modifiedBankedPoints - baseBankedPoints;
+    // Add bonus points if any
+    const charmBonus = finalBankedPoints - baseBankedPoints;
     if (charmBonus > 0) {
-      // Add the charm bonus to level
       newGameState = addPointsToLevel(newGameState, charmBonus);
-      finalBankedPoints = modifiedBankedPoints;
     }
   }
   

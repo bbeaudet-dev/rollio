@@ -26,7 +26,7 @@ export interface DisplayInterface {
 export interface InputInterface {
   ask(question: string): Promise<string>;
   askForDiceSelection(dice: Die[], consumables?: any[], useCallback?: (idx: number) => Promise<void>, gameState?: any): Promise<string>;
-  askForBankOrReroll(diceToReroll: number): Promise<string>;
+  askForBankOrRoll(diceToReroll: number): Promise<string>;
   askForReroll(dice: Die[], rerollsRemaining: number): Promise<string>;
   askForNextRound(gameState?: any): Promise<string>;
   askForPartitioningChoice(numPartitionings: number): Promise<string>;

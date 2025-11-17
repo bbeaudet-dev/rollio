@@ -27,7 +27,13 @@ interface BoardProps {
   roundPoints?: number;
   gameScore?: number;
   justBanked?: boolean;
-  canContinueFlop?: boolean;
+  justFlopped?: boolean;
+  canBank?: boolean;
+  bankingDisplayInfo?: {
+    pointsJustBanked: number;
+    previousTotal: number;
+    newTotal: number;
+  } | null;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -48,7 +54,9 @@ export const Board: React.FC<BoardProps> = ({
   roundPoints = 0,
   gameScore = 0,
   justBanked = false,
-  canContinueFlop = false
+  justFlopped = false,
+  canBank = false,
+  bankingDisplayInfo
 }) => {
   // Get level color (memoized to avoid recalculating on every render)
   const levelColor = useMemo(() => getLevelColor(levelNumber), [levelNumber]);
@@ -119,11 +127,11 @@ export const Board: React.FC<BoardProps> = ({
       />
 
       <PointsDisplay
-        lastRollPoints={lastRollPoints}
         roundPoints={roundPoints}
-        gameScore={gameScore}
-        canReroll={canSelect && selectedIndices.length === 0}
         justBanked={justBanked}
+        canSelectDice={canSelect}
+        canBank={canBank}
+        bankingDisplayInfo={bankingDisplayInfo}
       />
 
       {/* Selected Dice Preview - bottom right */}
@@ -133,14 +141,16 @@ export const Board: React.FC<BoardProps> = ({
           bottom: '15px',
           right: '15px',
           zIndex: 20,
-          backgroundColor: previewScoring.isValid ? 'rgba(227, 242, 253, 0.9)' : 'rgba(255, 235, 238, 0.9)',
-          border: `2px solid ${previewScoring.isValid ? '#007bff' : '#f44336'}`,
+          backgroundColor: previewScoring.isValid ? 'rgba(227, 242, 253, 0.85)' : 'rgba(255, 235, 238, 0.85)',
+          border: `1px solid ${previewScoring.isValid ? '#007bff' : '#f44336'}`,
           borderRadius: '8px',
           padding: '12px',
           fontSize: '14px',
-          fontWeight: 'bold',
+          fontWeight: 500, // Less bold - informational display
           maxWidth: '200px',
-          minWidth: '150px'
+          minWidth: '150px',
+          pointerEvents: 'none', // Not clickable
+          userSelect: 'none' // Can't select text
         }}>
           <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>
             Combos:
@@ -166,7 +176,7 @@ export const Board: React.FC<BoardProps> = ({
           rolledDice={rolledDice}
           selectedIndices={selectedIndices}
           onDiceSelect={onDiceSelect}
-          canSelect={canSelect}
+          canSelect={canSelect && !justFlopped}
           animatingDiceIds={animatingDiceIds}
         />
       )}
@@ -178,8 +188,7 @@ export const Board: React.FC<BoardProps> = ({
         canSelectDice={canSelect}
         selectedDiceCount={selectedIndices.length}
         previewScoring={previewScoring}
-        onScoreSelectedDice={onScoreSelectedDice}
-        canContinueFlop={canContinueFlop}
+        justFlopped={justFlopped}
       />
     </div>
   );

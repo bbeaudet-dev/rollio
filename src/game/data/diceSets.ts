@@ -161,7 +161,7 @@ export const GOLDEN_SET: DiceSetConfig = {
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
-    startingCharms: ['goldenGuard'],
+    startingCharms: ['goldenGuard', 'moneyMagnet'],
     startingConsumables: ['moneyDoubler'],
     startingBlessings: ['discountTier1', 'discountTier2', 'discountTier3'],
 };

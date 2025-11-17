@@ -22,7 +22,8 @@ export interface LevelRewards {
 export function calculateLevelRewards(
   levelNumber: number,
   levelState: LevelState,
-  gameState: GameState
+  gameState: GameState,
+  charmManager?: any
 ): LevelRewards {
   const levelConfig = getLevelConfig(levelNumber);
   
@@ -42,8 +43,23 @@ export function calculateLevelRewards(
   
   const banksBonus = banksRemaining * moneyPerBank;
   
-  // Charm bonuses (for now, no charms give money at level end - can add onLevelEnd hook later)
-  const charmBonuses = 0;
+  // Charm bonuses (charms that give money at level end)
+  // Note: World completion bonuses (every 5 levels) are handled in advanceToNextWorld
+  // Level-specific bonuses (like OneSongGlory) are handled here for all level completions
+  let charmBonuses = 0;
+  if (charmManager) {
+    const activeCharms = charmManager.getActiveCharms?.() || [];
+    
+    // Call charm-specific level completion bonus functions
+    for (const charm of activeCharms) {
+      if (charm.calculateLevelCompletionBonus) {
+        const bonus = charm.calculateLevelCompletionBonus(levelNumber, levelState, gameState);
+        if (bonus > 0) {
+          charmBonuses += bonus;
+        }
+      }
+    }
+  }
   
   // Blessing bonuses (blessings that give money at level end)
   let blessingBonuses = 0;
@@ -79,14 +95,14 @@ export function applyLevelRewards(gameState: GameState, rewards: LevelRewards): 
  * This is the "cashing out" phase - applies rewards and prepares for shop
  * Pure function - returns updated game state with rewards stored
  */
-export function tallyLevel(gameState: GameState, completedLevelNumber: number): {
+export function tallyLevel(gameState: GameState, completedLevelNumber: number, charmManager?: any): {
   gameState: GameState;
   rewards: LevelRewards;
 } {
   const newGameState = { ...gameState };
   
   // Calculate rewards
-  const rewards = calculateLevelRewards(completedLevelNumber, newGameState.currentLevel, newGameState);
+  const rewards = calculateLevelRewards(completedLevelNumber, newGameState.currentLevel, newGameState, charmManager);
   
   // Apply rewards (add money)
   applyLevelRewards(newGameState, rewards);

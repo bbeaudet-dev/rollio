@@ -7,7 +7,6 @@ import { getPipEffectForDie } from '../pipEffectSystem';
  * 
  * NOTE: Some charms are skipped because they require systems not yet implemented:
  * - secondChance: Needs reroll granting system
- * - pennyPincher: Needs round completion tracking without flops
  * - roundRobin: Needs "repeated hands" tracking in round
  * - oneSongGlory: Needs level completion tracking with bank count
  * - digitalNomad: Needs world completion tracking (every 5 levels)
@@ -630,19 +629,13 @@ export class ConsumableGeneratorCharm extends BaseCharm {
 
 export class SecondChanceCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Grants one extra reroll per level
-    // TODO: Needs reroll granting system
-    // This would need to hook into level initialization
+    // No scoring effect - reroll bonus is handled in getRerollBonus
     return {};
   }
-}
-
-export class PennyPincherCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +$1 for each round completed without flopping
-    // TODO: Needs round completion tracking without flops
-    // This would need to track rounds completed without flops
-    return {};
+  
+  getRerollBonus(gameState: any): { add?: number; multiply?: number; override?: number } {
+    // +1 reroll per level
+    return { add: 1 };
   }
 }
 
@@ -686,33 +679,60 @@ export class RoundRobinCharm extends BaseCharm {
 
 export class OneSongGloryCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +$5 for completing a level with a single bank
-    // TODO: Needs level completion tracking with bank count
-    // This would need to hook into level completion logic
+    // No scoring effect - money is added on level completion
     return {};
+  }
+  
+  /**
+   * Calculate level completion bonus for this charm
+   * Called from tallying system when calculating level rewards
+   */
+  calculateLevelCompletionBonus(levelNumber: number, levelState: any, gameState: any): number {
+    // +$5 for completing a level with a single bank
+    if (levelState.banksUsed === 1) {
+      return 5;
+    }
+    return 0;
   }
 }
 
 export class DigitalNomadCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +$10 when completing a world (every 5 levels)
-    // TODO: Needs world completion tracking (every 5 levels)
-    // This would need to hook into world completion logic
+    // No scoring effect - money is added on world completion
     return {};
+  }
+  
+  /**
+   * Calculate world completion bonus for this charm
+   * Called from advanceToNextWorld when completing a world (every 5 levels: 5, 10, 15, etc.)
+   */
+  calculateWorldCompletionBonus(completedLevelNumber: number, levelState: any, gameState: any): number {
+    // +$10 when completing a world (every 5 levels: 5, 10, 15, etc.)
+    return 10;
   }
 }
 
 export class HoarderCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +2 banks - handled in calculateBanksForLevel
+    // No scoring effect - bank bonus is handled in getBankBonus
     return {};
+  }
+  
+  getBankBonus(gameState: any): { add?: number; multiply?: number } {
+    // +2 banks
+    return { add: 2 };
   }
 }
 
 export class ComebackKidCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +3 rerolls - handled in calculateRerollsForLevel
+    // No scoring effect - reroll bonus is handled in getRerollBonus
     return {};
+  }
+  
+  getRerollBonus(gameState: any): { add?: number; multiply?: number; override?: number } {
+    // +3 rerolls
+    return { add: 3 };
   }
 }
 

@@ -129,9 +129,6 @@ export const CollectionPage: React.FC = () => {
     <div style={containerStyle}>
       <MenuButton />
       <h1 style={titleStyle}>Collection</h1>
-      <button style={backButtonStyle} onClick={() => navigate('/')}>
-        ← Back to Menu
-      </button>
 
       {/* Materials */}
       <div style={sectionStyle}>
@@ -149,7 +146,7 @@ export const CollectionPage: React.FC = () => {
               alignItems: 'center',
               gap: '15px'
             }}>
-              <DiceFace value={3} size={80} material={material.id} />
+              <DiceFace value={6} size={80} material={material.id} />
               <div>
                 <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '8px' }}>
                   {material.name}

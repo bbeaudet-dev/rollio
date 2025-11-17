@@ -16,7 +16,10 @@ import {
   randomizeSelectedDice,
   decrementRerolls,
   incrementConsecutiveFlops,
-  setForfeitedPoints
+  resetConsecutiveBanks,
+  setForfeitedPoints,
+  getBankedRoundPoints,
+  getLevelPointsBeforeBanking
 } from '../logic/gameActions';
 import { isGameOver, isFlop, isHotDice, isLevelCompleted, canBankPoints as canBankPointsLogic } from '../logic/gameLogic';
 import { endGame, advanceToNextLevel } from '../logic/gameActions';
@@ -328,7 +331,7 @@ export class GameAPI {
    */
   async tallyLevel(gameState: GameState): Promise<{ gameState: GameState; rewards: LevelRewards }> {
     const completedLevelNumber = gameState.currentLevel.levelNumber;
-    const result = tallyLevelFunction(gameState, completedLevelNumber);
+    const result = tallyLevelFunction(gameState, completedLevelNumber, this.charmManager);
     
     this.emit('levelTallied', {
       levelNumber: completedLevelNumber,
@@ -355,6 +358,7 @@ export class GameAPI {
     const forfeitedPoints = roundState.roundPoints;
     
     let newGameState = incrementConsecutiveFlops(gameState);
+    newGameState = resetConsecutiveBanks(newGameState);
     newGameState = setForfeitedPoints(newGameState, forfeitedPoints);
     newGameState = endRound(newGameState, 'flopped');
     
@@ -415,7 +419,14 @@ export class GameAPI {
       throw new Error('No active round to reroll dice');
     }
     
-    // Use atomic actions
+    // Special case: skip reroll
+    // Doesn't consume a reroll.If no scoring combinations, it's a flop - return isFlop: true
+    // If there are scoring combinations, return isFlop: false and wait for dice selection)
+    if (diceToReroll.length === 0) {
+      const isFlopResult = isFlop(roundState.diceHand);
+      return { gameState, isFlop: isFlopResult };
+    }
+    
     let newGameState = randomizeSelectedDice(gameState, diceToReroll);
     newGameState = decrementRerolls(newGameState);
     
@@ -552,6 +563,65 @@ export class GameAPI {
   }
 
   /**
+   * Get the number of dice that will be rolled on the next roll
+   * Handles hot dice, empty dice hand, and ended round cases
+   */
+  getDiceToRollCount(gameState: GameState): number {
+    const roundState = gameState.currentLevel.currentRound;
+    if (!roundState) {
+      // No round state - use full dice set
+      return gameState.diceSet.length;
+    }
+
+    // If round is ended (e.g., after flop or banking), next roll will start a new round with full dice set
+    if (!roundState.isActive) {
+      return gameState.diceSet.length;
+    }
+
+    // If dice hand is empty, roll full set (for both hot dice and new round/level cases)
+    if (roundState.diceHand.length === 0) {
+      return gameState.diceSet.length;
+    }
+    
+    // Otherwise, use remaining dice count
+    return roundState.diceHand.length;
+  }
+
+  /**
+   * Get banking display information for UI
+   * Returns the points that were just banked and totals for display
+   */
+  getBankingDisplayInfo(gameState: GameState, justBanked: boolean): {
+    pointsJustBanked: number;
+    previousTotal: number;
+    newTotal: number;
+  } | null {
+    if (!justBanked || !gameState?.currentLevel) {
+      return null;
+    }
+    
+    const currentPointsBanked = gameState.currentLevel.pointsBanked || 0;
+    
+    // When we bank, the previous round is stored in currentLevel.currentRound with isActive=false
+    // The roundPoints from that round is what was just banked
+    const currentRound = gameState.currentLevel.currentRound;
+    if (currentRound && !currentRound.isActive && currentRound.banked) {
+      // This is the round that was just banked
+      const pointsJustBanked = currentRound.roundPoints || 0;
+      const previousTotal = currentPointsBanked - pointsJustBanked;
+      
+      return {
+        pointsJustBanked,
+        previousTotal,
+        newTotal: currentPointsBanked
+      };
+    }
+    
+    // Fallback: if we can't find it, return null (don't show wrong data)
+    return null;
+  }
+
+  /**
    * Check if player can roll
    */
   canRoll(gameState: GameState): boolean {
@@ -607,7 +677,7 @@ export class GameAPI {
    * Calculate level rewards (without applying them)
    */
   calculateLevelRewards(levelNumber: number, gameState: GameState): LevelRewards {
-    return calculateLevelRewards(levelNumber, gameState.currentLevel, gameState);
+    return calculateLevelRewards(levelNumber, gameState.currentLevel, gameState, this.charmManager);
   }
 
   /**

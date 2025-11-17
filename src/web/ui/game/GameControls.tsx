@@ -1,101 +1,130 @@
 import React from 'react';
-import { Button } from '../components/Button';
+import { GameControlButton } from '../components/GameControlButton';
 
 interface GameControlsProps {
-  // Regular controls
-  onRoll: () => void;
-  onBank: () => void;
-  onContinue?: () => void; // For continuing after flop
-  canRoll: boolean;
-  canBank: boolean;
-  canReroll: boolean; // After scoring - can roll remaining dice
-  isWaitingForReroll?: boolean; // Before scoring - can reroll any dice
-  canRerollSelected?: boolean; // Before scoring - can reroll selected dice
-  canContinueFlop?: boolean; // After flop - can continue
-  diceToReroll: number;
-  selectedDiceCount?: number; // Number of dice selected for reroll
-  hasRoundState?: boolean; // Whether a round state exists (to differentiate "Start New Round" vs "Roll")
+  // Button handlers
+  onReroll: () => void; // Left button - only rerolling
+  onRollOrScore: () => void; // Middle button - rolling or scoring
+  onBank: () => void; // Right button - banking
+  
+  // State flags
+  canReroll: boolean; // Can reroll (after scoring, before scoring)
+  canRoll: boolean; // Can start a new roll (at start, after scoring)
+  canScore: boolean; // Can score selected dice (dice selected and valid)
+  canBank: boolean; // Can bank points
+  
+  // Display info
+  diceToRoll: number; // Number of dice to roll
+  selectedDiceCount: number; // Number of dice selected
+  previewScoring?: {
+    isValid: boolean;
+    points: number;
+    combinations: string[];
+  } | null;
+  
 }
 
 export const GameControls: React.FC<GameControlsProps> = ({
-  onRoll,
+  onReroll,
+  onRollOrScore,
   onBank,
-  onContinue,
-  canRoll,
-  canBank,
   canReroll,
-  isWaitingForReroll = false,
-  canRerollSelected = false,
-  canContinueFlop = false,
-  diceToReroll,
-  selectedDiceCount = 0,
-  hasRoundState = false
+  canRoll,
+  canScore,
+  canBank,
+  diceToRoll,
+  selectedDiceCount,
+  previewScoring = null
 }) => {
-  // Determine roll button text based on context
-  const getRollButtonText = () => {
-    if (canContinueFlop) {
-      return '-1 Life';
-    } else if (canReroll) {
-      // After scoring - rolling remaining dice (or hot dice full set)
-      return `Roll (${diceToReroll} dice)`;
-    } else if (isWaitingForReroll) {
-      // Before scoring - can reroll any dice (including 0 dice)
-      if (selectedDiceCount > 0) {
-        return `Reroll (${selectedDiceCount} dice)`;
-      }
-      return 'Reroll (0 dice)';
-    } else if (canRoll) {
-      // Starting a new round OR first roll of a round
-      if (hasRoundState) {
-        // Round exists but no dice rolled - show "Roll X dice" where X is the dice set size
-        return `Roll (${diceToReroll} dice)`;
-      } else {
-        // No round state - show "Start New Round"
-        return 'Start New Round';
-      }
-    }
-    // Fallback
-    return 'Roll Dice';
-  };
-
-  // Determine if roll button should be enabled
-  const isRollButtonEnabled = canRoll || canReroll || canRerollSelected || canContinueFlop;
+  // Determine if middle button should show "Roll" or "Score"
+  // In scoring mode if we can select dice (after rolling, before banking, canRoll is false)
+  const isScoringMode = !canRoll;
+  const isValidSelection = previewScoring?.isValid || false;
   
-  // Determine which handler to use
-  const handleRollClick = () => {
-    if (canContinueFlop && onContinue) {
-      onContinue();
-    } else {
-      onRoll();
+  // Reroll Button (left)
+  const getRerollButtonText = () => {
+    if (canReroll) {
+      if (selectedDiceCount === 0) {
+        return 'Skip Reroll';
+      }
+      return `Reroll ${selectedDiceCount} ${selectedDiceCount === 1 ? 'Die' : 'Dice'}`;
     }
+    return 'Reroll';
+  };
+  
+  // Allow reroll when canReroll is true, even with 0 dice selected
+  // This allows "Skip Reroll" to trigger flop checks
+  const isRerollEnabled = canReroll;
+  
+  // Roll/Score Button (middle)
+  const getRollOrScoreButtonText = () => {
+    if (isScoringMode) {
+      // Show "Score X Dice" or "Score 1 Die"
+      if (selectedDiceCount === 1) {
+        return 'Score 1 Die';
+      }
+      return `Score ${selectedDiceCount} Dice`;
+    } else {
+      // Show "Roll X Dice"
+      return `Roll ${diceToRoll} Dice`;
+    }
+  };
+  
+  // After scoring, canRoll should be true (to roll remaining dice)
+  // In scoring mode, enable if valid selection OR if we're just waiting (Score 0 Dice grayed)
+  const isRollOrScoreEnabled = canRoll || (isScoringMode && isValidSelection);
+  
+  // Determine button color for Roll/Score button
+  const getMiddleButtonColor = () => {
+    if (isScoringMode) {
+      // Yellow/orange when scoring
+      return '#ff9800';
+    } else {
+      // Red when rolling
+      return '#dc3545';
+    }
+  };
+  
+  const handleMiddleButtonClick = () => {
+    onRollOrScore();
   };
 
   return (
     <div style={{ marginTop: '15px' }}>
-      
-      {/* Regular Game Controls */}
       <div style={{ 
         display: 'flex', 
-        gap: '8px', 
+        gap: 'clamp(8px, 1.5vw, 12px)', 
         justifyContent: 'center',
-        flexWrap: 'wrap'
+        alignItems: 'center',
+        flexWrap: 'nowrap'
       }}>
-        <Button onClick={handleRollClick} disabled={!isRollButtonEnabled} style={{
-          minHeight: '44px',
-          padding: '10px 16px',
-          fontSize: '14px'
-        }}>
-          {getRollButtonText()}
-        </Button>
+        {/* Left Button - Reroll (Blue) */}
+        <GameControlButton
+          onClick={onReroll}
+          disabled={!isRerollEnabled}
+          backgroundColor="#007bff"
+          text={getRerollButtonText()}
+          size="normal"
+        />
         
-        <Button onClick={onBank} disabled={!canBank} style={{
-          minHeight: '44px',
-          padding: '10px 16px',
-          fontSize: '14px'
-        }}>
-          Bank Points
-        </Button>
+        {/* Roll/Score Button (middle) */}
+        <GameControlButton
+          onClick={handleMiddleButtonClick}
+          disabled={!isRollOrScoreEnabled}
+          backgroundColor={getMiddleButtonColor()}
+          text={getRollOrScoreButtonText()}
+          size="large"
+        />
+        
+        {/* Right Button - Bank (Green) */}
+        <GameControlButton
+          onClick={onBank}
+          disabled={!canBank}
+          backgroundColor="#28a745"
+          text="Bank Points"
+          size="normal"
+        />
       </div>
     </div>
   );
-}; 
+};
