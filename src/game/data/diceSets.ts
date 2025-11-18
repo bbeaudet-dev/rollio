@@ -34,6 +34,9 @@ export const LOW_BALLER_SET: DiceSetConfig = {
   baseLevelRerolls: 0,
   baseLevelBanks: 4,
   setType: 'standard',
+  startingCharms: ['lowHangingFruit'],
+  startingConsumables: [],
+  startingBlessings: [],
 };
 
 export const COLLECTOR_SET: DiceSetConfig = {
@@ -54,6 +57,9 @@ export const COLLECTOR_SET: DiceSetConfig = {
     baseLevelRerolls: 2,
     baseLevelBanks: 4,
     setType: 'standard',
+    startingCharms: [],
+    startingConsumables: [],
+    startingBlessings: [],
 };
 
 export function RANDOM_SET(): DiceSetConfig {
@@ -119,9 +125,9 @@ export const CRYSTAL_SET: DiceSetConfig = {
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
-    startingCharms: ['crystalClear'],
+    startingCharms: ['crystalClear', 'resonance'],
     startingConsumables: [],
-    startingBlessings: ['rerollTier1', 'rerollTier2', 'rerollTier3', 'banksTier1', 'banksTier2', 'banksTier3'],
+    startingBlessings: ['banksTier1', 'banksTier2', 'banksTier3'],
 };
 
 export const FLOWER_SET: DiceSetConfig = {
@@ -140,9 +146,9 @@ export const FLOWER_SET: DiceSetConfig = {
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
-    startingCharms: ['flowerWonder'],
+    startingCharms: ['flowerPower', 'bloom'],
     startingConsumables: [],
-  startingBlessings: ['banksTier1', 'banksTier2', 'banksTier3', 'rerollAbilityTier1', 'rerollAbilityTier2', 'rerollAbilityTier3'],
+    startingBlessings: ['rerollTier1', 'rerollTier2', 'rerollTier3', 'rerollAbilityTier1', 'rerollAbilityTier2', 'rerollAbilityTier3', 'flopSubversionTier1', 'flopSubversionTier2', 'flopSubversionTier3'],
 };
 
 export const GOLDEN_SET: DiceSetConfig = {
@@ -155,15 +161,15 @@ export const GOLDEN_SET: DiceSetConfig = {
         { id: "d5", sides: 6, allowedValues: [1,2,3,4,5,6], material: "golden" },
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "golden" }
     ],
-    startingMoney: 5,
+    startingMoney: 20,
     charmSlots: 4,
     consumableSlots: 2,
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
-    startingCharms: ['goldenGuard', 'moneyMagnet'],
+    startingCharms: ['goldenTouch', 'moneyMagnet', 'hedgeFund'],
     startingConsumables: ['moneyDoubler'],
-    startingBlessings: ['discountTier1', 'discountTier2', 'discountTier3'],
+    startingBlessings: ['discountTier1', 'discountTier2', 'discountTier3', 'moneyTier1', 'moneyTier2', 'moneyTier3'],
 };
 
 export const VOLCANO_SET: DiceSetConfig = {
@@ -182,9 +188,9 @@ export const VOLCANO_SET: DiceSetConfig = {
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
-    startingCharms: ['volcanoAmplifier'],
+    startingCharms: ['vesuvius', 'hotDiceHero', 'hotPocket', 'perfectionist'],
     startingConsumables: [],
-    startingBlessings: ['rerollAbilityTier1', 'rerollAbilityTier2', 'rerollAbilityTier3', 'rerollBlessingTier1', 'rerollBlessingTier2', 'rerollBlessingTier3'],
+    startingBlessings: ['rerollTier1', 'rerollTier2', 'rerollTier3', 'rerollAbilityTier1', 'rerollAbilityTier2', 'rerollAbilityTier3', 'flopSubversionTier1', 'flopSubversionTier2', 'flopSubversionTier3'],
 };
 
 export const MIRROR_SET: DiceSetConfig = {
@@ -203,8 +209,8 @@ export const MIRROR_SET: DiceSetConfig = {
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
-    startingCharms: ['mirrorMage'],
-    startingConsumables: ['copyMaterial'],
+    startingCharms: [],
+    startingConsumables: [],
     startingBlessings: ['slotTier1', 'slotTier2', 'slotTier3'],
 };
 
@@ -224,8 +230,8 @@ export const RAINBOW_SET: DiceSetConfig = {
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
-    startingCharms: ['rainbowRider'],
-    startingConsumables: ['addStandardDie'],
+    startingCharms: ['weightedDice', 'rabbitsFoot', 'inheritance'],
+    startingConsumables: ['freebie'],
     startingBlessings: ['flopSubversionTier1', 'flopSubversionTier2', 'flopSubversionTier3'],
 };
 
@@ -245,8 +251,9 @@ export const GHOST_SET: DiceSetConfig = {
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
+    startingCharms: ['ghostWhisperer', 'bodyDouble'],
     startingConsumables: ['createLastConsumable', 'createTwoConsumables'],
-    startingBlessings: ['rerollAbilityTier1'],
+    startingBlessings: ['rerollTier1', 'rerollTier2', 'rerollTier3', 'rerollAbilityTier1', 'rerollAbilityTier2', 'rerollAbilityTier3'],
 };
 
 export const LEAD_SET: DiceSetConfig = {
@@ -265,8 +272,9 @@ export const LEAD_SET: DiceSetConfig = {
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
-    startingConsumables: ['deleteDieAddCharmSlot'],
-    startingBlessings: ['banksTier1', 'banksTier2', 'banksTier3', 'rerollAbilityTier1', 'rerollAbilityTier2', 'rerollAbilityTier3'],
+    startingCharms: ['ironFortress', 'leadTitan', 'swordInTheStone'],
+    startingConsumables: ['sacrifice'],
+    startingBlessings: ['banksTier1', 'banksTier2', 'banksTier3', 'rerollTier1', 'rerollTier2', 'rerollTier3'],
 };
 
 /**
@@ -291,6 +299,9 @@ export const MIXED_MATERIAL_SET: DiceSetConfig = {
     baseLevelRerolls: 3,
     baseLevelBanks: 4,
     setType: 'cheat',
+    startingCharms: ['tasteTheRainbow'],
+    startingConsumables: [],
+    startingBlessings: [],
 };
 
 // Test dice set with various pip effects for testing

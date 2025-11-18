@@ -13,7 +13,7 @@ interface GameConfigSelectorProps {
     diceSetIndex: number;
     selectedCharms: number[];
     selectedConsumables: number[];
-    difficulty: DifficultyLevel;
+    difficulty: string; // Pass as string to avoid coupling frontend to DifficultyLevel type
   }) => void;
 }
 
@@ -30,7 +30,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
     diceSetIndex: 0,
     selectedCharms: [],
     selectedConsumables: [],
-    difficulty: 'normal',
+    difficulty: 'plastic',
     cheatMode: false
   });
   

@@ -1,8 +1,8 @@
 import { GameState, RoundState, DieValue, LevelState, RollState } from '../types';
 import { isFlop, canBankPoints, isLevelCompleted } from './gameLogic';
-import { getHighestPointsPartitioning, getAllPartitionings, calculateScoringBreakdown } from './scoring';
-import { applyMaterialEffects, getDiceIndicesToRemove, handleMirrorDiceRolling, shouldTriggerHotDice } from './materialSystem';
-import { createInitialRoundState, createInitialLevelState, DEFAULT_GAME_CONFIG } from '../utils/factories';
+import { getHighestPointsPartitioning, getAllPartitionings } from './scoring';
+import { getDiceIndicesToRemove, handleMirrorDiceRolling, shouldTriggerHotDice } from './materialSystem';
+import { createInitialRoundState, createInitialLevelState } from '../utils/factories';
 import { validateDiceSelection } from '../utils/effectUtils';
 import { getLevelConfig } from '../data/levels';
 import { calculateFinalScore } from './scoringElements';
@@ -327,7 +327,6 @@ export function advanceToNextWorld(
 export function advanceToNextLevel(gameState: GameState, charmManager?: any): GameState {
   const oldLevelNumber = gameState.currentLevel.levelNumber;
   const newLevelNumber = oldLevelNumber + 1;
-  const levelConfig = getLevelConfig(newLevelNumber);
   
   const newGameState = { ...gameState };
   newGameState.history = { ...newGameState.history };

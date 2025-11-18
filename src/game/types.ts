@@ -157,6 +157,7 @@ export interface GameSettings {
 // Game configuration - set at start, rarely changes
 export interface GameConfig {
   diceSetConfig: DiceSetConfig;
+  difficulty: import('./logic/difficulty').DifficultyLevel;
   penalties: {
     consecutiveFlopLimit: number;
   };

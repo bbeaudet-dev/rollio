@@ -15,11 +15,12 @@ interface RollActions {
   handleRollDice: () => void;
   scoreSelectedDice: () => void;
   handleRerollSelection: (selectedIndices: number[]) => void;
+  handleCompleteBreakdown: () => void;
 }
 
 interface GameActions {
   handleBank: () => void;
-  startNewGame: (diceSetIndex: number, selectedCharms: number[], selectedConsumables: number[]) => void;
+  startNewGame: (diceSetIndex: number, difficulty: string) => void;
   handleFlopShieldChoice: (useShield: boolean) => void;
   handleConfirmTally: () => void;
   getDiceToRollCount: (gameState: any) => number;
@@ -47,6 +48,8 @@ interface GameBoardData {
     previousTotal: number;
     newTotal: number;
   } | null;
+  scoringBreakdown?: any;
+  breakdownState?: 'hidden' | 'animating' | 'complete';
 }
 
 interface ShopActions {
@@ -283,6 +286,9 @@ export const Game: React.FC<GameProps> = ({
           justFlopped={board.justFlopped}
           canBank={board.canBank && canPlay}
           bankingDisplayInfo={board.bankingDisplayInfo}
+          scoringBreakdown={board.scoringBreakdown}
+          breakdownState={board.breakdownState}
+          onCompleteBreakdown={rollActions.handleCompleteBreakdown}
         />
 
         {/* Game Controls - Bottom Center Overlay */}
@@ -326,6 +332,7 @@ export const Game: React.FC<GameProps> = ({
             diceToRoll={gameActions.getDiceToRollCount(gameState)}
             selectedDiceCount={board.selectedDice.length}
             previewScoring={board.previewScoring}
+            breakdownState={board.breakdownState}
           />
         </div>
       </div>

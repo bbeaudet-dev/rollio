@@ -14,11 +14,11 @@ export function useGameState() {
   }, []);
 
   // Initialize a new game
-  const startNewGame = useCallback(async (diceSetIndex?: number, selectedCharms?: number[], selectedConsumables?: number[]) => {
+  const startNewGame = useCallback(async (diceSetIndex: number, difficulty: string) => {
     setIsLoading(true);
     try {
       gameManagerRef.current = new WebGameManager(addMessage);
-      const initialState = await gameManagerRef.current.initializeGame(diceSetIndex, selectedCharms, selectedConsumables);
+      const initialState = await gameManagerRef.current.initializeGame(diceSetIndex, difficulty);
       setWebState(initialState);
       setMessages([]);
     } catch (error) {
@@ -45,6 +45,18 @@ export function useGameState() {
   // Unified roll/reroll action
   const handleRollDice = useCallback(async () => {
     if (!webState || !gameManagerRef.current) return;
+    
+    // If breakdown is showing, complete it first
+    if (webState.breakdownState !== 'hidden') {
+      const completedState = gameManagerRef.current.completeBreakdownAnimation(webState);
+      setWebState(completedState);
+      // Continue with roll after completing breakdown
+      if (gameManagerRef.current) {
+        const rollState = await gameManagerRef.current.rollDice(completedState);
+        setWebState(rollState);
+      }
+      return;
+    }
     
     // Check if this is the first roll of a round
     const hasRolledDice = !!(webState.roundState?.rollHistory && webState.roundState.rollHistory.length > 0);
@@ -104,6 +116,13 @@ export function useGameState() {
     }
   }, [webState]);
 
+  const handleCompleteBreakdown = useCallback(() => {
+    if (!webState || !gameManagerRef.current) return;
+    
+    const newState = gameManagerRef.current.completeBreakdownAnimation(webState);
+    setWebState(newState);
+  }, [webState]);
+
   const handleBank = useCallback(async () => {
     if (!webState || !gameManagerRef.current) return;
     
@@ -152,6 +171,7 @@ export function useGameState() {
       handleRollDice,
       scoreSelectedDice,
       handleRerollSelection,
+      handleCompleteBreakdown,
     },
     
     gameActions: {
@@ -216,6 +236,8 @@ export function useGameState() {
       canChooseFlopShield: webState?.canChooseFlopShield || false, // Can choose whether to use flop shield
       justBanked: webState?.justBanked || false,
       justFlopped: webState?.justFlopped || false,
+      scoringBreakdown: webState?.scoringBreakdown || null,
+      breakdownState: webState?.breakdownState || 'hidden',
     },
     
 

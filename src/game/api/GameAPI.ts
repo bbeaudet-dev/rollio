@@ -40,7 +40,7 @@ import {
   BankPointsResult,
   FlopResult
 } from './types';
-import { createInitialGameState, createInitialLevelState } from '../utils/factories';
+import { createInitialGameState, createInitialLevelState, registerStartingCharms } from '../utils/factories';
 import { registerCharms } from '../logic/charms/index';
 
 /**
@@ -94,11 +94,17 @@ export class GameAPI {
   /**
    * Initialize a new game
    */
-  async initializeGame(config: GameConfig): Promise<InitializeGameResult> {
-    const gameState = createInitialGameState(config.diceSetConfig);
+  async initializeGame(
+    diceSetIndex: number,
+    difficulty: string
+  ): Promise<InitializeGameResult> {
+    const { ALL_DICE_SETS } = await import('../data/diceSets');
+    const selectedSet = ALL_DICE_SETS[diceSetIndex];
+    const diceSetConfig = typeof selectedSet === 'function' ? selectedSet() : selectedSet;
     
-    // Don't create level/round here - that's done by initializeLevel
-    // The game state will have an empty level state that needs to be initialized
+    // Initialize game - all logic is in factories
+    const { initializeNewGame } = await import('../utils/factories');
+    const gameState = initializeNewGame(diceSetConfig, difficulty as any, this.charmManager);
     
     this.emit('stateChanged', { gameState });
     
@@ -177,7 +183,8 @@ export class GameAPI {
         gameState,
         points: 0,
         combinations: [],
-        hotDice: false
+        hotDice: false,
+        breakdown: undefined
       };
     }
     
@@ -263,7 +270,8 @@ export class GameAPI {
       gameState: currentGameState,
       points: finalPoints,
       combinations: combinationTypes,
-      hotDice: wasHotDice
+      hotDice: wasHotDice,
+      breakdown
     };
   }
 

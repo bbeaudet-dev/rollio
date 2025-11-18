@@ -3,6 +3,7 @@
  * Defines point thresholds, base money rewards, and special effects/boss mechanics for each level
  */
 import { isMinibossLevel, isMainBossLevel } from './worlds';
+import { DifficultyLevel, getDifficultyConfig } from '../logic/difficulty';
 
 export interface LevelEffect {
   id: string;
@@ -85,14 +86,27 @@ export const MAX_LEVEL = 5;
  * Calculate level threshold using a formula
  * Formula: 500 + (level - 1) * 250 * level
  * This creates a progressive scaling: 500, 750, 1000, 1500, 2000 for levels 1-5
+ * Applies difficulty modifier (e.g., Silver = 1.5x)
  */
-export function calculateLevelThreshold(levelNumber: number): number {
+export function calculateLevelThreshold(levelNumber: number, difficulty?: DifficultyLevel): number {
+  let baseThreshold: number;
   if (levelNumber <= 5) {
     const config = LEVEL_CONFIGS.find(c => c.levelNumber === levelNumber);
-    if (config) return config.pointThreshold;
+    baseThreshold = config ? config.pointThreshold : 500 + (levelNumber - 1) * 250 * levelNumber;
+  } else {
+    // For levels beyond 5, use formula: 500 + (level - 1) * 250 * level
+    baseThreshold = 500 + (levelNumber - 1) * 250 * levelNumber;
   }
-  // For levels beyond 5, use formula: 500 + (level - 1) * 250 * level
-  return 500 + (levelNumber - 1) * 250 * levelNumber;
+  
+  // Apply difficulty modifier (Silver = 1.5x)
+  if (difficulty) {
+    const difficultyConfig = getDifficultyConfig(difficulty);
+    if (difficultyConfig.pointThresholdModifier) {
+      return Math.floor(baseThreshold * difficultyConfig.pointThresholdModifier);
+    }
+  }
+  
+  return baseThreshold;
 }
 
 /**
@@ -154,11 +168,11 @@ export function shouldHaveBoss(levelNumber: number): boolean {
  * Handles boss selection and effect application
  * Uses formula-based approach for all levels
  */
-export function getLevelConfig(levelNumber: number): LevelConfig {
+export function getLevelConfig(levelNumber: number, difficulty?: DifficultyLevel): LevelConfig {
   // Use formula for all levels
   const baseConfig: Omit<LevelConfig, 'boss' | 'effects'> = {
     levelNumber,
-    pointThreshold: calculateLevelThreshold(levelNumber),
+    pointThreshold: calculateLevelThreshold(levelNumber, difficulty),
     baseMoney: getLevelBaseMoney(levelNumber),
   };
 

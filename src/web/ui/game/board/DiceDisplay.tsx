@@ -8,6 +8,7 @@ interface DiceDisplayProps {
   onDiceSelect: (index: number) => void;
   canSelect: boolean;
   animatingDiceIds: Set<string>; // Dice IDs that should animate
+  highlightedDiceIndices?: number[]; // Dice indices to highlight during breakdown
 }
 
 export const DiceDisplay: React.FC<DiceDisplayProps> = ({
@@ -16,7 +17,8 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
   selectedIndices,
   onDiceSelect,
   canSelect,
-  animatingDiceIds
+  animatingDiceIds,
+  highlightedDiceIndices = []
 }) => {
   return (
     <div style={{
@@ -46,6 +48,7 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
         const isSelected = selectedIndices.includes(originalIndex);
         const material = die.material || 'plastic';
         const isAnimating = animatingDiceIds.has(die.id);
+        const isHighlighted = highlightedDiceIndices.includes(originalIndex);
         
         return (
           <button
@@ -55,18 +58,27 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
             style={{
               width: '95px',
               height: '95px',
-              border: isSelected ? '3px solid rgba(0, 123, 255, 0.3)' : '3px solid transparent',
+              border: isHighlighted 
+                ? '4px solid #ffc107' 
+                : isSelected 
+                  ? '3px solid rgba(0, 123, 255, 0.3)' 
+                  : '3px solid transparent',
               borderRadius: '8px',
-              backgroundColor: isSelected ? 'rgba(227, 242, 253, 0.3)' : 'transparent',
+              backgroundColor: isHighlighted 
+                ? 'rgba(255, 193, 7, 0.2)' 
+                : isSelected 
+                  ? 'rgba(227, 242, 253, 0.3)' 
+                  : 'transparent',
               cursor: !canSelect ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               opacity: !canSelect ? 0.6 : 1,
               padding: '4px',
-              transition: isAnimating ? 'transform 0.3s ease-in-out' : 'none',
-              transform: isAnimating ? 'rotate(360deg) scale(1.1)' : 'none',
-              zIndex: isSelected ? 10 : 1
+              transition: isAnimating ? 'transform 0.3s ease-in-out' : isHighlighted ? 'all 0.3s ease' : 'none',
+              transform: isAnimating ? 'rotate(360deg) scale(1.1)' : isHighlighted ? 'scale(1.1)' : 'none',
+              zIndex: isHighlighted ? 15 : isSelected ? 10 : 1,
+              boxShadow: isHighlighted ? '0 0 15px rgba(255, 193, 7, 0.6)' : 'none'
             }}
           >
             <DiceFace 

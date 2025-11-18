@@ -8,6 +8,7 @@ import { CLIDisplayFormatter } from './display/cliDisplay';
 import { SetupManager } from './SetupManager';
 import { CLIRoundManager } from './CLIRoundManager';
 import { TutorialSystem } from './tutorialSystem';
+import { registerStartingCharms } from '../game/utils/factories';
 
 /*
  * =============================
@@ -68,6 +69,8 @@ export class CLIGameEngine {
     if (gameMode === 'new') {
       debugAction('gameFlow', 'Setting up default game');
       ({ gameState, diceSetConfig } = await this.setupManager.setupDefaultGame(this.interface));
+      // Register starting charms with the charm manager (for default game setup)
+      registerStartingCharms(gameState, this.charmManager);
     } else if (gameMode === 'tutorial') {
       debugAction('gameFlow', 'Starting tutorial system');
       // Show tutorial system

@@ -8,8 +8,6 @@ export const SinglePlayerGame: React.FC = () => {
   const navigate = useNavigate();
   const [showConfigSelector, setShowConfigSelector] = useState(true);
   const [selectedDiceSetIndex, setSelectedDiceSetIndex] = useState(0);
-  const [selectedCharms, setSelectedCharms] = useState<number[]>([]);
-  const [selectedConsumables, setSelectedConsumables] = useState<number[]>([]);
 
   const game = useGameState();
 
@@ -20,11 +18,8 @@ export const SinglePlayerGame: React.FC = () => {
     difficulty: string;
   }) => {
     setSelectedDiceSetIndex(config.diceSetIndex);
-    setSelectedCharms(config.selectedCharms);
-    setSelectedConsumables(config.selectedConsumables);
     setShowConfigSelector(false);
-    // TODO: Pass difficulty to startNewGame when it's implemented
-    game.gameActions.startNewGame(config.diceSetIndex, config.selectedCharms, config.selectedConsumables);
+    game.gameActions.startNewGame(config.diceSetIndex, config.difficulty);
   };
 
   const handleBackToConfig = () => {
