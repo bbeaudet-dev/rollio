@@ -78,6 +78,7 @@ export const COMBINATION_CATEGORIES: Record<CombinationCategory, ScoringCombinat
  * Minimum N values for each combination type at each difficulty level
  */
 export interface CombinationMinValues {
+  singleN: number;       // Minimum face value for singleN (0 = disabled, 1 = 1s allowed, 5 = 5s allowed, etc.)
   nPairs: number;        // Minimum number of pairs required
   nOfAKind: number;      // Minimum count for N-of-a-kind
   nTriplets: number;     // Minimum number of triplets required
@@ -86,38 +87,87 @@ export interface CombinationMinValues {
   pyramidOfN: number;    // Minimum pyramid size
 }
 
-export const DIFFICULTY_MIN_VALUES: Record<'easy' | 'normal' | 'hard' | 'extreme', CombinationMinValues> = {
-  easy: {
+export const DIFFICULTY_MIN_VALUES: Record<'plastic' | 'copper' | 'silver' | 'gold' | 'platinum' | 'sapphire' | 'emerald' | 'ruby' | 'diamond', CombinationMinValues> = {
+  plastic: {
+    singleN: 1,       // Singles of 1 and 5 allowed (1 = minimum, allows 1s and 5s)
     nPairs: 1,        // One pair or more
     nOfAKind: 3,      // Three of a kind or more
     nTriplets: 2,     // Two triplets or more
     nQuadruplets: 2,  // Two quadruplets or more
-    straightOfN: 4,   // Small straight (4) or more
+    straightOfN: 4,   // Straight of (4) or more
     pyramidOfN: 6,    // Pyramid of 6 or more
   },
-  normal: {
-    nPairs: 1,        // One pair or more
-    nOfAKind: 3,      // Three of a kind or more
-    nTriplets: 2,     // Two triplets or more
-    nQuadruplets: 2,  // Two quadruplets or more
-    straightOfN: 4,   // Small straight (4) or more
-    pyramidOfN: 6,    // Pyramid of 6 or more
+  copper: {
+    singleN: 1,
+    nPairs: 1,       
+    nOfAKind: 3,
+    nTriplets: 2,
+    nQuadruplets: 2,
+    straightOfN: 4, 
+    pyramidOfN: 6,  
   },
-  hard: {
-    nPairs: 2,        // Two pairs or more
+  silver: {
+    singleN: 1,    
+    nPairs: 3,        // Three pairs or more 
+    nOfAKind: 3,
+    nTriplets: 2,
+    nQuadruplets: 2,
+    straightOfN: 5,   // Straight of (5) or more
+    pyramidOfN: 6,
+  },
+  gold: {
+    singleN: 1,
+    nPairs: 3,
+    nOfAKind: 3,
+    nTriplets: 2,
+    nQuadruplets: 2,
+    straightOfN: 5,
+    pyramidOfN: 6,
+  },
+  platinum: {
+    singleN: 1,
+    nPairs: 3,
+    nOfAKind: 3,
+    nTriplets: 2,
+    nQuadruplets: 2,
+    straightOfN: 5,
+    pyramidOfN: 6,
+  },
+  sapphire: {
+    singleN: 1,
+    nPairs: 3,
+    nOfAKind: 3,
+    nTriplets: 2,
+    nQuadruplets: 2,
+    straightOfN: 5,
+    pyramidOfN: 6,
+  },
+  emerald: {
+    singleN: 1,
+    nPairs: 3,
+    nOfAKind: 3,
+    nTriplets: 2,
+    nQuadruplets: 2,
+    straightOfN: 5,
+    pyramidOfN: 6,
+  },
+  ruby: {
+    singleN: 1,
+    nPairs: 3,
+    nOfAKind: 3,
+    nTriplets: 2,
+    nQuadruplets: 2,
+    straightOfN: 5,
+    pyramidOfN: 6,
+  },
+  diamond: {
+    singleN: 1,
+    nPairs: 3,
     nOfAKind: 4,      // Four of a kind or more
-    nTriplets: 2,     // Two triplets or more
-    nQuadruplets: 2,  // Two quadruplets or more
-    straightOfN: 5,   // Small straight (5) or more
-    pyramidOfN: 6,    // Pyramid of 6 or more
-  },
-  extreme: {
-    nPairs: 3,        // Three pairs or more
-    nOfAKind: 5,      // Five of a kind or more
-    nTriplets: 3,     // Triple triplets or more
-    nQuadruplets: 2,  // Two quadruplets or more
+    nTriplets: 2,
+    nQuadruplets: 2, 
     straightOfN: 6,   // Large straight (6) or more
-    pyramidOfN: 6,    // Pyramid of 6 or more
+    pyramidOfN: 10,   // Pyramid of 10 or more
   },
 };
 

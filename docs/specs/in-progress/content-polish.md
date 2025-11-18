@@ -617,24 +617,34 @@ money earned cannot exceed number of dice, etc.
 
 ### Game Difficulty
 
-#### Names
+#### Names / Themes
 
-Plastic
-Copper
-Silver
-Gold
-Diamond
+Coins: Silver, Gold, Copper
+Gems: Ruby, Sapphire, Emerald, Diamond
 
-Coins
+#### Plastic
 
-- Silver
-- Gold
-- Copper
+All scoring combinations available
+No restrictions / debuffs on rerolls, banks, etc. (maybe even added rerolls, banks, etc.)
+Standard level progression / point thresholds
 
-Gems
+#### Copper
 
-- Ruby, Sapphire, Emerald
-- Diamond
+Beginner scoring combinations not available
+
+#### Silver
+
+Higher level threshold scaling
+
+#### Gold
+
+Level completion bonus is only for miniboss and boss levels
+
+#### Diamond
+
+-1 banks/rerolls/charmslot/consumableslot
+
+
 
 #### Available Scoring Combinations
 
@@ -654,52 +664,12 @@ Materials from Cryptid? Astral, bugged, etc.
 
 Players can get infinite points by never flopping. There's no real constraint on how many rounds they can play, so we should replace the Lives system with a limited number of Banks. However, if they are only limited by number of banks, then players could continue flopping indefinitely until the "perfect round" comes up, so we should keep some kind of constraint where "3 consecutive flops" ends the game.
 
-**Design**:
+Instead of having 3 lives that get decremented on flops, players have a limited number of banks (e.g., 3-5 banks per level). Each time a player banks points, they consume one bank. This incentivizes players to go for higher scoring per bank (since banks are limited). Higher scoring attempts = more risk of flops
 
-- Instead of having 3 lives that get decremented on flops, players have a limited number of banks (e.g., 3-5 banks per level)
-- Each time a player banks points, they consume one bank
-- This incentivizes players to go for higher scoring per bank (since banks are limited)
-- Higher scoring attempts = more risk of flops
-
-**Flop Penalty Changes**:
-
-- Instead of "3 flops in a row = -1000 points", change to "3 flops in a row = game over"
-- This creates a strategic tension:
+Instead of "3 flops in a row = -1000 points", change to "3 flops in a row = game over"?
+This creates a strategic tension:
   - Players can use flops strategically to extend their chances at getting a good hand
   - But they can't flop forever - only 2 flops before game over
-  - Forces players to balance risk vs reward
-
-**Benefits**:
-
-- Creates meaningful constraints on gameplay
-- Incentivizes higher-risk, higher-reward play
-- Makes flops more strategic (you can flop once or twice to try for better hands, but not infinitely)
-- Prevents infinite point accumulation
-- Makes each bank decision more meaningful
-
-**Implementation Considerations**:
-
-- Need to track banks remaining per level
-- Need to update UI to show banks instead of lives
-- Need to update game over conditions and warnings
-- Need to update level completion logic
-- May need to adjust level thresholds if banks are limited
-- Need to update shop/rewards if lives are removed
-
-**Open Questions**:
-
-- How many banks per level? (Suggested: 3-5, maybe varies by difficulty) Answer: 5 is good, then difficulties can change this later on
-- Should banks reset each level or carry over? Answer: Banks reset each level
-- Should there be ways to earn extra banks (charms, consumables)? How does this interact with existing charms/consumables that affect lives? Answer: Yes, let's modify the Extra Lives blessing to be extra banks instead, and there can also be charms that increase banks while in inventory
-
----
-
-### Other Content Ideas
-
-Inspiration from Cryptid mod's Code Cards
-Balatro Seals
-Balatro Editions
-Some equivalent for card suits, pip colors?
 
 ---
 
@@ -817,9 +787,13 @@ add Angelic (rerolls/flops/banks) and Lunar (points, polarity) essences (is this
 New charms for angelic - increase odds, 
 New charms for lunar - more points, different triggers
 
+Rename hoarder charm to frequentFlyer or Regular, something with like someone who comes to the bank often
+New charm for multiplier based on dice set size (do we have this already?)
+
 Could use more dice sets, but not sure how to balance
 Different Essences would make for the coolest looking sets, but might be overpowered. Balatro has no decks focused on enhancements/seals, only values, discards, hands, scoring, starting items/blessings, special abilities like double Tags
 
+Add achievements
 
 Move to new Spec:
 - "View Dice Set" modal

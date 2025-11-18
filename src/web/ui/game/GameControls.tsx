@@ -21,7 +21,7 @@ interface GameControlsProps {
     points: number;
     combinations: string[];
   } | null;
-  
+  breakdownState?: 'hidden' | 'animating' | 'complete';
 }
 
 export const GameControls: React.FC<GameControlsProps> = ({
@@ -34,7 +34,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
   canBank,
   diceToRoll,
   selectedDiceCount,
-  previewScoring = null
+  previewScoring = null,
+  breakdownState = 'hidden'
 }) => {
   // Determine if middle button should show "Roll" or "Score"
   // In scoring mode if we can select dice (after rolling, before banking, canRoll is false)
@@ -54,7 +55,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
   
   // Allow reroll when canReroll is true, even with 0 dice selected
   // This allows "Skip Reroll" to trigger flop checks
-  const isRerollEnabled = canReroll;
+  // Disable during breakdown animation
+  const isRerollEnabled = canReroll && breakdownState !== 'animating';
   
   // Roll/Score Button (middle)
   const getRollOrScoreButtonText = () => {
@@ -72,7 +74,11 @@ export const GameControls: React.FC<GameControlsProps> = ({
   
   // After scoring, canRoll should be true (to roll remaining dice)
   // In scoring mode, enable if valid selection OR if we're just waiting (Score 0 Dice grayed)
-  const isRollOrScoreEnabled = canRoll || (isScoringMode && isValidSelection);
+  // Disable during breakdown animation
+  const isRollOrScoreEnabled = (canRoll || (isScoringMode && isValidSelection)) && breakdownState !== 'animating';
+  
+  // Disable bank button during breakdown animation
+  const isBankEnabled = canBank && breakdownState !== 'animating';
   
   // Determine button color for Roll/Score button
   const getMiddleButtonColor = () => {
@@ -119,7 +125,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
         {/* Right Button - Bank (Green) */}
         <GameControlButton
           onClick={onBank}
-          disabled={!canBank}
+          disabled={!isBankEnabled}
           backgroundColor="#28a745"
           text="Bank Points"
           size="normal"

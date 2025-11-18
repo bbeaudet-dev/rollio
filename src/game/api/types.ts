@@ -1,4 +1,4 @@
-import { GameState } from '../types';
+import { GameState, ScoringBreakdown } from '../types';
 
 /**
  * GameAPI-specific types
@@ -28,6 +28,7 @@ export interface ScoreDiceResult {
   points: number;
   combinations: string[];
   hotDice: boolean;
+  breakdown?: ScoringBreakdown;
 }
 
 export interface BankPointsResult {

@@ -1,7 +1,7 @@
 import { ReactGameInterface, PendingAction } from './ReactGameInterface';
 import { resetLevelColors } from '../utils/levelColors';
 import { GameAPI } from '../../game/api';
-import { GameState, RoundState, GameConfig, ShopState } from '../../game/types';
+import { GameState, RoundState, ShopState, ScoringBreakdown } from '../../game/types';
 
 export interface WebGameState {
   gameState: GameState | null;
@@ -24,6 +24,12 @@ export interface WebGameState {
     previousTotal: number;
     newTotal: number;
   } | null;
+  scoringBreakdown: ScoringBreakdown | null;
+  // Breakdown state machine:
+  // - 'hidden': No breakdown shown (default state)
+  // - 'animating': Breakdown animation is playing (buttons/dice selection disabled)
+  // - 'complete': Animation finished, breakdown still visible (buttons enabled, breakdown stays on screen until roll/bank)
+  breakdownState: 'hidden' | 'animating' | 'complete';
   // Derived flags for compatibility
   canRoll: boolean;
   canBank: boolean;
@@ -86,6 +92,8 @@ export class WebGameManager {
     justFlopped: boolean,
     isProcessing: boolean = false,
     justSkippedReroll: boolean = false,
+    scoringBreakdown: ScoringBreakdown | null = null,
+    breakdownState: 'hidden' | 'animating' | 'complete' = 'hidden',
   ): WebGameState {
     const messages = this.gameInterface.getMessages();
     const pendingAction = this.gameInterface.getPendingAction();
@@ -97,15 +105,17 @@ export class WebGameManager {
     // Also need to check pendingAction for UI state (player has rolled and scored)
     const canBank = this.gameAPI.canBankPoints(gameState) && pendingAction.type === 'bankOrRoll';
     const hasBanksRemaining = (gameState.currentLevel.banksRemaining || 0) > 0;
+    // canRoll: Can roll when starting new round, or after scoring (bankOrRoll state), or after flop
     const canRoll: boolean = (!roundState && !isProcessing && gameState.isActive && hasBanksRemaining) ||
       !!(roundState?.isActive && !hasRolledDice && pendingAction.type === 'none' && hasBanksRemaining) ||
+      !!(roundState?.isActive && pendingAction.type === 'bankOrRoll' && hasBanksRemaining) ||
       !!(justFlopped && hasBanksRemaining);
     const hasHotDice = !!(roundState?.rollHistory && roundState.rollHistory.length > 0 && 
       roundState.rollHistory[roundState.rollHistory.length - 1]?.isHotDice);
     // canReroll: Allow reroll when in bankOrRoll state (after scoring, you can Bank or Roll)
     const canReroll = !!(roundState?.isActive && pendingAction.type === 'bankOrRoll' && 
       (roundState.diceHand.length > 0 || hasHotDice));
-    const canSelectDice = !!(gameState.isActive && roundState?.isActive && (pendingAction.type === 'diceSelection' || pendingAction.type === 'reroll') && !justBanked && !justFlopped);
+    const canSelectDice = !!(gameState.isActive && roundState?.isActive && (pendingAction.type === 'diceSelection' || pendingAction.type === 'reroll') && !justBanked && !justFlopped && breakdownState !== 'animating');
     // isWaitingForReroll: Show reroll button when waiting for reroll, but disable if we just clicked "Skip Reroll"
     const isWaitingForReroll = !!(roundState?.isActive && pendingAction.type === 'reroll' && gameState.currentLevel.rerollsRemaining && gameState.currentLevel.rerollsRemaining > 0 && !justSkippedReroll);
     const canRerollSelected = !!(isWaitingForReroll && gameState.currentLevel.rerollsRemaining && gameState.currentLevel.rerollsRemaining > 0);
@@ -126,6 +136,8 @@ export class WebGameManager {
       justSkippedReroll,
       isProcessing,
       bankingDisplayInfo,
+      scoringBreakdown,
+      breakdownState,
       canRoll,
       canBank,
       canReroll,
@@ -141,49 +153,12 @@ export class WebGameManager {
     };
   }
 
-  async initializeGame(diceSetIndex?: number, selectedCharms?: number[], selectedConsumables?: number[]): Promise<WebGameState> {
+  async initializeGame(diceSetIndex: number, difficulty: string): Promise<WebGameState> {
     resetLevelColors();
     
-    const { ALL_DICE_SETS } = await import('../../game/data/diceSets');
-    const selectedSet = ALL_DICE_SETS[diceSetIndex || 0];
-    const diceSetConfig = typeof selectedSet === 'function' ? selectedSet() : selectedSet;
-    
-    const gameConfig: GameConfig = {
-      diceSetConfig,
-      penalties: {
-        consecutiveFlopLimit: 3,
-      }
-    };
-
-    const result = await this.gameAPI.initializeGame(gameConfig);
+    // Pass selections to GameAPI - no logic here
+    const result = await this.gameAPI.initializeGame(diceSetIndex, difficulty);
     let gameState = result.gameState;
-
-    // Add selected charms
-    if (selectedCharms && selectedCharms.length > 0) {
-      const { CHARMS } = await import('../../game/data/charms');
-      const charmManager = this.gameAPI.getCharmManager();
-      selectedCharms.forEach(charmIndex => {
-        if (charmIndex >= 0 && charmIndex < CHARMS.length) {
-          const charmData = CHARMS[charmIndex];
-          charmManager.addCharm({ ...charmData, active: true });
-          gameState.charms.push({ ...charmData, active: true });
-        }
-      });
-    }
-
-    // Add selected consumables
-    if (selectedConsumables && selectedConsumables.length > 0) {
-      const { CONSUMABLES } = await import('../../game/data/consumables');
-      selectedConsumables.forEach(consumableIndex => {
-        if (consumableIndex >= 0 && consumableIndex < CONSUMABLES.length) {
-          const consumableData = CONSUMABLES[consumableIndex];
-          gameState.consumables.push({ 
-            ...consumableData, 
-            uses: consumableData.uses || 1
-          });
-        }
-      });
-    }
 
     // Initialize level 1 (creates level state and first round)
     const levelResult = await this.gameAPI.initializeLevel(gameState, 1);
@@ -215,6 +190,10 @@ export class WebGameManager {
     // Don't allow scoring if game is over
     if (!state.gameState.isActive) return state;
 
+    // Store selected dice indices and dice snapshot before scoring (needed for breakdown highlighting)
+    const selectedIndicesForBreakdown = [...state.selectedDice];
+    const scoredDiceSnapshot = state.selectedDice.map(idx => state.roundState!.diceHand[idx]).filter(Boolean);
+
     const result = await this.gameAPI.scoreDice(state.gameState, state.selectedDice);
 
     if (!result.success) {
@@ -222,10 +201,75 @@ export class WebGameManager {
     }
 
     const roundState = result.gameState.currentLevel.currentRound;
+    
+    // Store breakdown and show animation - don't proceed to bankOrRoll yet
+    // Store selected indices and dice snapshot in breakdown for highlighting
+    if (result.breakdown) {
+      const breakdownWithIndices = {
+        ...result.breakdown,
+        selectedIndices: selectedIndicesForBreakdown,
+        scoredDice: scoredDiceSnapshot
+      } as any;
+      
+      // Create a temporary round state with the scored dice still visible for the breakdown
+      // The scored dice are at the beginning of the array, so their indices are 0, 1, 2, etc.
+      const tempRoundState = roundState ? {
+        ...roundState,
+        diceHand: [...scoredDiceSnapshot, ...(roundState.diceHand || [])]
+      } : null;
+      
+      // Remap selected indices to new positions (scored dice are now at 0, 1, 2, etc.)
+      const remappedSelectedIndices = scoredDiceSnapshot.map((_, idx) => idx);
+      
+      return this.createWebGameState(
+        result.gameState, 
+        tempRoundState, 
+        remappedSelectedIndices, // Remapped indices for highlighting
+        null, 
+        false, 
+        false, 
+        false,
+        false,
+        breakdownWithIndices,
+        'animating' // Animation is starting
+      );
+    }
+
+    // No breakdown available, proceed normally
     const diceToReroll = roundState?.diceHand.length || 0;
     this.gameInterface.askForBankOrRoll(diceToReroll);
 
     return this.createWebGameState(result.gameState, roundState || null, [], null, false, false, false);
+  }
+
+  completeBreakdownAnimation(state: WebGameState): WebGameState {
+    if (!state.gameState) {
+      return state;
+    }
+
+    // Use the actual round state from gameState (dice already removed from scoring)
+    const roundState = state.gameState.currentLevel.currentRound;
+    if (!roundState) {
+      return state;
+    }
+
+    // Clear selected dice and proceed to bankOrRoll state
+    // Keep breakdown visible until player clicks Roll, but animation is done
+    const diceToReroll = roundState.diceHand.length || 0;
+    this.gameInterface.askForBankOrRoll(diceToReroll);
+
+    return this.createWebGameState(
+      state.gameState,
+      roundState, // Use actual roundState (dice removed)
+      [], // Clear selected dice
+      null, // Clear preview scoring
+      false, // justBanked
+      false, // justFlopped
+      false, // isProcessing
+      false, // justSkippedReroll
+      state.scoringBreakdown, // Keep breakdown data
+      'complete' // Animation is complete, breakdown still visible, buttons re-enabled
+    );
   }
 
   async bankPoints(state: WebGameState): Promise<WebGameState> {
@@ -238,8 +282,9 @@ export class WebGameManager {
     // Keep roundState so board still shows with Game Over overlay
     if (!gameState.isActive && gameState.endReason === 'lost') {
       // Keep the roundState so the board still displays with the Game Over overlay
+      // Clear breakdown state when banking
       const finalRoundState = gameState.currentLevel.currentRound || null;
-      return this.createWebGameState(gameState, finalRoundState, [], null, false, false, false);
+      return this.createWebGameState(gameState, finalRoundState, [], null, false, false, false, false, null, 'hidden');
     }
 
     if (result.levelCompleted) {
@@ -247,7 +292,8 @@ export class WebGameManager {
       // Calculate rewards (but don't apply yet - wait for tally modal confirmation)
       const rewards = this.gameAPI.calculateLevelRewards(completedLevelNumber, gameState);
       
-      const webState = this.createWebGameState(gameState, null, [], null, false, false, false);
+      // Clear breakdown state when banking
+      const webState = this.createWebGameState(gameState, null, [], null, false, false, false, false, null, 'hidden');
       return {
         ...webState,
         showTallyModal: true,
@@ -263,7 +309,8 @@ export class WebGameManager {
     if (!newRoundState) return state;
     
     // Set justBanked to true so dice are hidden until first roll
-    return this.createWebGameState(newGameState, newRoundState, [], null, true, false, false);
+    // Clear breakdown state when banking (starting new round)
+    return this.createWebGameState(newGameState, newRoundState, [], null, true, false, false, false, null, 'hidden');
   }
 
   async rollDice(state: WebGameState): Promise<WebGameState> {
@@ -290,7 +337,8 @@ export class WebGameManager {
     if (this.gameAPI.canReroll(finalGameState)) {
       this.gameInterface.askForReroll(newRoundState.diceHand, finalGameState.currentLevel.rerollsRemaining || 0);
       // Reset justSkippedReroll when we roll - button should be available again
-      return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false);
+      // Clear breakdown state when starting a new roll
+      return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
     }
 
     // Check for flop
@@ -303,14 +351,16 @@ export class WebGameManager {
           canPrevent: true,
           log: shieldCheck.log
         };
-        return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false);
+        // Clear breakdown state when starting a new roll
+        return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
       }
       
       return await this.handleFlop(finalGameState, newRoundState);
     } else {
       this.gameInterface.askForDiceSelection(newRoundState.diceHand, finalGameState.consumables);
       // Reset justSkippedReroll when we roll - button should be available again
-      return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false);
+      // Clear breakdown state when starting a new roll
+      return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
     }
   }
 

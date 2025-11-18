@@ -5,17 +5,27 @@
  */
 
 import { ScoringCombinationType, DIFFICULTY_MIN_VALUES } from '../data/combinations';
+import { GameState } from '../types';
 
-export type DifficultyLevel = 'easy' | 'normal' | 'hard' | 'extreme';
+export type DifficultyLevel = 'plastic' | 'copper' | 'silver' | 'gold' | 'platinum' | 'sapphire' | 'emerald' | 'ruby' | 'diamond';
+
+/**
+ * Get difficulty from game state
+ */
+export function getDifficulty(gameState: GameState): DifficultyLevel {
+  return gameState.config.difficulty;
+}
 
 export interface DifficultyConfig {
   id: DifficultyLevel;
   name: string;
   description: string;
-  minValues: typeof DIFFICULTY_MIN_VALUES.easy; // Minimum N values for each combination type
-  // Other difficulty modifiers (for future use)
+  minValues: typeof DIFFICULTY_MIN_VALUES.plastic; // Minimum N values for each combination type
+  // Other difficulty modifiers
   banksModifier?: number; // Modifier for banks per level
   rerollsModifier?: number; // Modifier for rerolls per level
+  charmSlotsModifier?: number; // Modifier for charm slots
+  consumableSlotsModifier?: number; // Modifier for consumable slots
   moneyModifier?: number; // Multiplier for money rewards
   pointThresholdModifier?: number; // Multiplier for level thresholds
 }
@@ -24,29 +34,72 @@ export interface DifficultyConfig {
  * Difficulty configurations
  */
 export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
-  easy: {
-    id: 'easy',
-    name: 'Easy',
-    description: 'Beginner-friendly with basic combinations available',
-    minValues: DIFFICULTY_MIN_VALUES.easy,
+  plastic: {
+    id: 'plastic',
+    name: 'Plastic',
+    description: 'All scoring combinations available. Standard level progression.',
+    minValues: DIFFICULTY_MIN_VALUES.plastic,
+    pointThresholdModifier: 1.0,
   },
-  normal: {
-    id: 'normal',
-    name: 'Normal',
-    description: 'Standard difficulty with all standard combinations',
-    minValues: DIFFICULTY_MIN_VALUES.normal,
+  copper: {
+    id: 'copper',
+    name: 'Copper',
+    description: '-1 reroll per level.',
+    minValues: DIFFICULTY_MIN_VALUES.copper,
+    pointThresholdModifier: 1.0,
+    rerollsModifier: -1,
   },
-  hard: {
-    id: 'hard',
-    name: 'Hard',
-    description: 'No beginner combinations - only intermediate and advanced',
-    minValues: DIFFICULTY_MIN_VALUES.hard,
+  silver: {
+    id: 'silver',
+    name: 'Silver',
+    description: 'Beginner scoring combinations not available.',
+    minValues: DIFFICULTY_MIN_VALUES.silver,
+    pointThresholdModifier: 1.0,
   },
-  extreme: {
-    id: 'extreme',
-    name: 'Extreme',
-    description: 'Only advanced combinations available',
-    minValues: DIFFICULTY_MIN_VALUES.extreme,
+  gold: {
+    id: 'gold',
+    name: 'Gold',
+    description: '-1 bank per level.',
+    minValues: DIFFICULTY_MIN_VALUES.gold,
+    pointThresholdModifier: 1.0,
+    banksModifier: -1,
+  },
+  platinum: {
+    id: 'platinum',
+    name: 'Platinum',
+    description: 'Faster level threshold scaling (1.5x).',
+    minValues: DIFFICULTY_MIN_VALUES.platinum,
+    pointThresholdModifier: 1.5, // 1.5x level thresholds
+  },
+  sapphire: {
+    id: 'sapphire',
+    name: 'Sapphire',
+    description: 'Level completion bonus only for miniboss and boss levels.',
+    minValues: DIFFICULTY_MIN_VALUES.sapphire,
+    pointThresholdModifier: 1.5,
+  },
+  emerald: {
+    id: 'emerald',
+    name: 'Emerald',
+    description: '-1 consumable slot.',
+    minValues: DIFFICULTY_MIN_VALUES.emerald,
+    pointThresholdModifier: 1.5,
+    consumableSlotsModifier: -1,
+  },
+  ruby: {
+    id: 'ruby',
+    name: 'Ruby',
+    description: '-1 charm slot.',
+    minValues: DIFFICULTY_MIN_VALUES.ruby,
+    pointThresholdModifier: 1.5,
+    charmSlotsModifier: -1,
+  },
+  diamond: {
+    id: 'diamond',
+    name: 'Diamond',
+    description: 'Stricter combination requirements (4-of-a-kind, 6 straight, 10 pyramid).',
+    minValues: DIFFICULTY_MIN_VALUES.diamond,
+    pointThresholdModifier: 1.5,
   },
 };
 
@@ -64,7 +117,7 @@ export function getDifficultyConfig(difficulty: DifficultyLevel): DifficultyConf
 export function isCombinationAvailable(
   combination: ScoringCombinationType,
   difficulty: DifficultyLevel,
-  params?: { n?: number; count?: number; length?: number }
+  params?: { n?: number; count?: number; length?: number; faceValue?: number }
 ): boolean {
   const config = getDifficultyConfig(difficulty);
   const minValues = config.minValues;
@@ -96,8 +149,13 @@ export function isCombinationAvailable(
       return params.n >= minValues.pyramidOfN;
     
     case 'singleN':
-      // SingleN is always available (1s and 5s)
-      return true;
+      // Check if singleN is enabled and if the face value meets the minimum
+      // singleN: 0 = disabled, 1 = allows 1s and 5s (both >= 1), 5 = only 5s, etc.
+      // faceValue can be passed as 'count' or 'faceValue' parameter
+      if (minValues.singleN === 0) return false;
+      const faceValue = params?.count ?? params?.faceValue;
+      if (faceValue === undefined) return false;
+      return faceValue >= minValues.singleN;
     
     // Other types (nQuintuplets, etc.) are always available if they can be formed
     default:

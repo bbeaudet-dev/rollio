@@ -6,6 +6,8 @@
 import { GameState, LevelState, Blessing } from '../types';
 import { getLevelConfig } from '../data/levels';
 import { debugLog } from '../utils/debug';
+import { isMinibossLevel, isMainBossLevel } from '../data/worlds';
+import { getDifficulty } from '../logic/difficulty';
 
 export interface LevelRewards {
   baseReward: number;
@@ -25,10 +27,14 @@ export function calculateLevelRewards(
   gameState: GameState,
   charmManager?: any
 ): LevelRewards {
-  const levelConfig = getLevelConfig(levelNumber);
+  const difficulty = getDifficulty(gameState);
+  const levelConfig = getLevelConfig(levelNumber, difficulty);
   
-  // Base level completion reward
-  const baseReward = levelConfig.baseMoney;
+  // Base level completion reward (skip for Sapphire except miniboss/boss)
+  let baseReward = 0;
+  if (difficulty !== 'sapphire' || isMinibossLevel(levelNumber) || isMainBossLevel(levelNumber)) {
+    baseReward = levelConfig.baseMoney;
+  }
   
   // Unused banks bonus (default $1 per bank, can be modified by blessings)
   const banksRemaining = levelState.banksRemaining || 0;

@@ -1,6 +1,6 @@
 import { GameInterface } from './interfaces';
 import { CharmManager } from '../game/logic/charmSystem';
-import { DEFAULT_GAME_CONFIG, createInitialGameState } from '../game/utils/factories';
+import { DEFAULT_GAME_CONFIG, createInitialGameState, registerStartingCharms } from '../game/utils/factories';
 import { ALL_DICE_SETS } from '../game/data/diceSets';
 import { CHARMS } from '../game/data/charms';
 import { CONSUMABLES, WHIMS, WISHES } from '../game/data/consumables';
@@ -24,8 +24,7 @@ export class SetupManager {
   /*
    * setupDefaultGame
    * -----------------
-   * Sets up a default game: only dice set selection, all dice are plastic,
-   * no charms, no consumables, and default rules.
+   * Sets up a default game: only dice set selection, no charms, no consumables, and default rules.
    */
   async setupDefaultGame(gameInterface: GameInterface): Promise<{ gameState: any, diceSetConfig: any }> {
     // Only allow dice set selection
@@ -34,10 +33,18 @@ export class SetupManager {
     const selectedSet = ALL_DICE_SETS[diceSetIdx];
     const diceSetConfig = typeof selectedSet === 'function' ? selectedSet() : selectedSet;
     await gameInterface.log(`Selected Dice Set: ${diceSetConfig.name}`);
-    // No custom materials, no charms, no consumables, no custom rules
-    let gameState = createInitialGameState(diceSetConfig);
-    gameState.charms = [];
-    gameState.consumables = [];
+    // Create game state (starting items are already included from createInitialGameState)
+    // CLI defaults to 'plastic' difficulty since it doesn't have difficulty selection
+    let gameState = createInitialGameState(diceSetConfig, 'plastic');
+    
+    // If no starting items were specified, clear the arrays (for default game behavior)
+    if (!diceSetConfig.startingCharms || diceSetConfig.startingCharms.length === 0) {
+      gameState.charms = [];
+    }
+    if (!diceSetConfig.startingConsumables || diceSetConfig.startingConsumables.length === 0) {
+      gameState.consumables = [];
+    }
+    
     gameState.config.penalties.consecutiveFlopLimit = DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit;
     return { gameState, diceSetConfig };
   }
@@ -74,7 +81,8 @@ export class SetupManager {
     });
     const selectedConsumableIndices = await gameInterface.askForConsumableSelection(availableConsumables, consumableSlots);
     // Create game state with selected charms, materials, and consumables
-    let gameState = createInitialGameState(diceSetConfig);
+    // CLI defaults to 'plastic' difficulty since it doesn't have difficulty selection
+    let gameState = createInitialGameState(diceSetConfig, 'plastic');
     gameState.config.penalties.consecutiveFlopLimit = consecutiveFlopLimit;
     // Assign materials to dice
     gameState.diceSet = gameState.diceSet.map((die: any, index: number) => ({
@@ -82,8 +90,12 @@ export class SetupManager {
       material: MATERIALS[assignedMaterialIndices[index]].id as DiceMaterialType,
       abbreviation: MATERIALS[assignedMaterialIndices[index]].abbreviation
     }));
-    // Add selected charms to game state and charm manager
-    gameState.charms = selectedCharmIndices
+    
+    // Register starting charms with the charm manager (starting items are already in game state from createInitialGameState)
+    registerStartingCharms(gameState, charmManager);
+    
+    // Add selected charms to game state and charm manager (in addition to starting charms)
+    const selectedCharms = selectedCharmIndices
       .filter(index => index < CHARMS.length) // Filter out "Empty" selections
       .map(index => {
         const charm = CHARMS[index];
@@ -94,10 +106,14 @@ export class SetupManager {
         charmManager.addCharm(runtimeCharm);
         return runtimeCharm;
       });
-    // Add selected consumables to game state
-    gameState.consumables = selectedConsumableIndices
+    gameState.charms.push(...selectedCharms);
+    
+    // Add selected consumables to game state (in addition to starting consumables)
+    const selectedConsumables = selectedConsumableIndices
       .filter(index => index < CONSUMABLES.length) // Filter out "Empty" selections
       .map((index: number) => CONSUMABLES[index]);
+    gameState.consumables.push(...selectedConsumables);
+    
     return { gameState, diceSetConfig };
   }
 } 

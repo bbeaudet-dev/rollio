@@ -4,6 +4,8 @@ import { DiceDisplay } from './DiceDisplay';
 import { RoundInfo } from './RoundInfo';
 import { GameAlerts } from './GameAlerts';
 import { PointsDisplay } from './PointsDisplay';
+import { ScoringBreakdownComponent } from './ScoringBreakdown';
+import { ScoringBreakdown } from '../../../../game/types';
 
 interface BoardProps {
   dice: any[];
@@ -34,6 +36,9 @@ interface BoardProps {
     previousTotal: number;
     newTotal: number;
   } | null;
+  scoringBreakdown?: ScoringBreakdown | null;
+  breakdownState?: 'hidden' | 'animating' | 'complete';
+  onCompleteBreakdown?: () => void;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -56,7 +61,10 @@ export const Board: React.FC<BoardProps> = ({
   justBanked = false,
   justFlopped = false,
   canBank = false,
-  bankingDisplayInfo
+  bankingDisplayInfo,
+  scoringBreakdown = null,
+  breakdownState = 'hidden',
+  onCompleteBreakdown = () => {}
 }) => {
   // Get level color (memoized to avoid recalculating on every render)
   const levelColor = useMemo(() => getLevelColor(levelNumber), [levelNumber]);
@@ -65,6 +73,14 @@ export const Board: React.FC<BoardProps> = ({
   const [animatingDiceIds, setAnimatingDiceIds] = useState<Set<string>>(new Set());
   const [lastRollNumber, setLastRollNumber] = useState<number>(rollNumber);
   const [lastSelectedDiceIds, setLastSelectedDiceIds] = useState<Set<string>>(new Set());
+  const [highlightedDiceIndices, setHighlightedDiceIndices] = useState<number[]>([]);
+  
+  // Clear highlights when breakdown is no longer showing
+  useEffect(() => {
+    if (breakdownState === 'hidden' && highlightedDiceIndices.length > 0) {
+      setHighlightedDiceIndices([]);
+    }
+  }, [breakdownState, highlightedDiceIndices.length]);
   
   // Filter dice to only show rolled dice (have rolledValue), sorted by dice id
   const rolledDice = useMemo(() => {
@@ -134,8 +150,22 @@ export const Board: React.FC<BoardProps> = ({
         bankingDisplayInfo={bankingDisplayInfo}
       />
 
-      {/* Selected Dice Preview - bottom right */}
-      {previewScoring && (
+      {/* Scoring Breakdown - shows when scoring */}
+      {breakdownState !== 'hidden' && scoringBreakdown && (
+        <ScoringBreakdownComponent
+          breakdown={scoringBreakdown}
+          selectedDiceIndices={selectedIndices}
+          onComplete={() => {
+            setHighlightedDiceIndices([]);
+            onCompleteBreakdown();
+          }}
+          onHighlightDice={(indices) => setHighlightedDiceIndices(indices)}
+        />
+      )}
+      
+
+      {/* Selected Dice Preview - bottom right (hidden when showing breakdown) */}
+      {previewScoring && breakdownState === 'hidden' && (
         <div style={{
           position: 'absolute',
           bottom: '15px',
@@ -146,11 +176,11 @@ export const Board: React.FC<BoardProps> = ({
           borderRadius: '8px',
           padding: '12px',
           fontSize: '14px',
-          fontWeight: 500, // Less bold - informational display
+          fontWeight: 500,
           maxWidth: '200px',
           minWidth: '150px',
-          pointerEvents: 'none', // Not clickable
-          userSelect: 'none' // Can't select text
+          pointerEvents: 'none',
+          userSelect: 'none'
         }}>
           <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>
             Combos:
@@ -176,8 +206,9 @@ export const Board: React.FC<BoardProps> = ({
           rolledDice={rolledDice}
           selectedIndices={selectedIndices}
           onDiceSelect={onDiceSelect}
-          canSelect={canSelect && !justFlopped}
+          canSelect={canSelect && !justFlopped && breakdownState !== 'animating'}
           animatingDiceIds={animatingDiceIds}
+          highlightedDiceIndices={highlightedDiceIndices}
         />
       )}
 
