@@ -10,6 +10,8 @@ export interface ApiResponse<T = any> {
   error?: string;
   user?: any;
   token?: string;
+  gameState?: any; // For game load responses
+  savedAt?: string; // For game load responses
 }
 
 export interface ApiError {
@@ -126,6 +128,37 @@ export const authApi = {
    */
   async getCurrentUser(): Promise<ApiResponse> {
     return apiRequest('/api/auth/me');
+  },
+};
+
+/**
+ * Game-specific API functions
+ */
+export const gameApi = {
+  /**
+   * Save game state
+   */
+  async saveGame(gameState: any): Promise<ApiResponse> {
+    return apiRequest('/api/game/save', {
+      method: 'POST',
+      body: JSON.stringify({ gameState }),
+    });
+  },
+
+  /**
+   * Load saved game
+   */
+  async loadGame(): Promise<ApiResponse> {
+    return apiRequest('/api/game/save');
+  },
+
+  /**
+   * Delete saved game
+   */
+  async deleteGame(): Promise<ApiResponse> {
+    return apiRequest('/api/game/save', {
+      method: 'DELETE',
+    });
   },
 };
 

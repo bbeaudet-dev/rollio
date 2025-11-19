@@ -29,6 +29,25 @@ export function useGameState() {
     }
   }, [addMessage]);
 
+  // Load a saved game
+  const loadGame = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      if (!gameManagerRef.current) {
+        gameManagerRef.current = new WebGameManager(addMessage);
+      }
+      const loadedState = await gameManagerRef.current.loadGame();
+      setWebState(loadedState);
+      setMessages([]);
+      addMessage('Game loaded successfully');
+    } catch (error) {
+      console.error('Failed to load game:', error);
+      addMessage(error instanceof Error ? error.message : 'Failed to load game');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addMessage]);
+
   // Handle dice selection
   const handleDiceSelect = useCallback((index: number) => {
     if (!webState || !gameManagerRef.current) return;
@@ -177,6 +196,7 @@ export function useGameState() {
     gameActions: {
       handleBank,
       startNewGame,
+      loadGame,
       handleFlopShieldChoice,
       getDiceToRollCount: useCallback((gameState: any) => {
         if (!gameManagerRef.current) return 0;

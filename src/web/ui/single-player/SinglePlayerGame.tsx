@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Game } from '../game';
 import { GameConfigSelector } from '../setup';
 import { useGameState } from '../../hooks/useGameState';
 
 export const SinglePlayerGame: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showConfigSelector, setShowConfigSelector] = useState(true);
   const [selectedDiceSetIndex, setSelectedDiceSetIndex] = useState(0);
 
   const game = useGameState();
+
+  // Check if we should load a saved game
+  useEffect(() => {
+    const shouldLoad = searchParams.get('load') === 'true';
+    if (shouldLoad && showConfigSelector) {
+      setShowConfigSelector(false);
+      game.gameActions.loadGame();
+    }
+  }, [searchParams]);
 
   const handleConfigComplete = (config: {
     diceSetIndex: number;

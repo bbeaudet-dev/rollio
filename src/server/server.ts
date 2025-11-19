@@ -5,6 +5,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { runMigrations } from './migrations/runMigrations';
 import authRoutes from './routes/auth';
+import gameRoutes from './routes/game';
 
 dotenv.config();
 
@@ -57,6 +58,7 @@ async function initializeDatabase() {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/game', gameRoutes);
 
 // Room management
 interface Room {
