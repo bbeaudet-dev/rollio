@@ -19,6 +19,20 @@ function formatStepDescription(step: ScoringBreakdownStep): string {
   return step.description;
 }
 
+/**
+ * Format a number to remove unnecessary decimal places
+ * Shows whole numbers without decimals, but keeps decimals when needed
+ */
+function formatNumber(value: number): string {
+  // Check if it's effectively a whole number (within floating point precision)
+  const rounded = Math.round(value * 100) / 100;
+  if (Math.abs(rounded - Math.round(rounded)) < 0.001) {
+    return Math.round(rounded).toString();
+  }
+  // Remove trailing zeros from decimal representation
+  return rounded.toString().replace(/\.?0+$/, '');
+}
+
 function getStepIcon(step: ScoringBreakdownStep): string {
   const stepId = step.step;
   
@@ -93,6 +107,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [currentElements, setCurrentElements] = useState<ScoringElements | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [showFinalScore, setShowFinalScore] = useState(false); // Track when to show final score after squish
   const [animatingValues, setAnimatingValues] = useState<{ basePoints: boolean; multiplier: boolean; exponent: boolean }>({
     basePoints: false,
     multiplier: false,
@@ -124,7 +139,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
     const breakdownId = `${breakdown.steps.length}-${calculateFinalScore(breakdown.final)}`;
     const isNewBreakdown = breakdownIdRef.current !== breakdownId;
 
-    // If this is a different breakdown, reset everything
+      // If this is a different breakdown, reset everything
     if (isNewBreakdown) {
       // Clear any existing timeouts from previous breakdown
       if (stepTimeoutsRef.current.length > 0) {
@@ -139,6 +154,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
         finalScore: calculateFinalScore(breakdown.final)
       };
       setIsComplete(false);
+      setShowFinalScore(false);
       setCurrentStepIndex(-1);
       setCurrentElements(null);
       previousElementsRef.current = null;
@@ -245,6 +261,15 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
         onHighlightDiceRef.current([]);
       }
       
+      // Show elements briefly, then squish together
+      setTimeout(() => {
+        // Start squishing animation
+        // After squish animation completes (0.5s), show final score
+        setTimeout(() => {
+          setShowFinalScore(true);
+        }, 500); // Reduced from 800ms to 500ms
+      }, 200); // Reduced from 1000ms to 200ms
+      
       // Call onComplete to transition to proper state (dice removed, bankOrRoll state)
       // But keep breakdown visible - onComplete will update the state properly
       // Use requestAnimationFrame to ensure this happens after React has processed state updates
@@ -275,41 +300,28 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
   return (
     <div style={{
       position: 'absolute',
-      bottom: '15px',
-      right: '15px',
+      top: '10px',
+      left: '50%',
+      transform: 'translateX(-50%)',
       zIndex: 30,
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       border: '2px solid #007bff',
-      borderRadius: '12px',
-      padding: '16px',
-      minWidth: '320px',
-      maxWidth: '400px',
+      borderRadius: '8px',
+      padding: '10px',
+      minWidth: '280px',
+      maxWidth: '360px',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
       pointerEvents: 'none',
       userSelect: 'none'
     }}>
+      {/* Combinations */}
       <div style={{
-        fontSize: '16px',
-        fontWeight: 'bold',
-        marginBottom: '12px',
-        color: '#2c3e50',
-        borderBottom: '2px solid #e1e5e9',
-        paddingBottom: '8px'
-      }}>
-        Scoring Breakdown
-      </div>
-
-      {/* Base Combinations */}
-      <div style={{
-        marginBottom: '12px',
-        padding: '8px',
+        marginBottom: '8px',
+        padding: '6px',
         backgroundColor: '#f8f9fa',
-        borderRadius: '6px'
+        borderRadius: '4px'
       }}>
-        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '4px' }}>
-          Base Combinations
-        </div>
-        <div style={{ fontSize: '13px', fontWeight: '500' }}>
+        <div style={{ fontSize: '11px', fontWeight: '500' }}>
           {baseStep.description.split('=')[0].trim()}
         </div>
       </div>
@@ -317,103 +329,125 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
       {/* Current Step */}
       {currentStep && currentStepIndex >= 0 && !isComplete && (
         <div style={{
-          marginBottom: '12px',
-          padding: '10px',
+          marginBottom: '8px',
+          padding: '6px',
           backgroundColor: '#e3f2fd',
-          borderRadius: '6px',
-          border: '2px solid #2196f3'
+          borderRadius: '4px',
+          border: '1px solid #2196f3'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '18px' }}>{getStepIcon(currentStep)}</span>
-            <div style={{ fontSize: '12px', color: '#1976d2', fontWeight: '600' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '14px' }}>{getStepIcon(currentStep)}</span>
+            <div style={{ fontSize: '10px', color: '#1976d2', fontWeight: '600' }}>
               Step {currentStepIndex + 1} of {breakdown.steps.length}
             </div>
           </div>
-          <div style={{ fontSize: '13px', color: '#424242' }}>
+          <div style={{ fontSize: '11px', color: '#424242' }}>
             {formatStepDescription(currentStep)}
           </div>
         </div>
       )}
 
-      {/* Three Component Boxes */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '12px'
-      }}>
-        {/* Base Points - Green */}
+      {/* Three Component Boxes - Show until squished into final score */}
+      {!showFinalScore && (
         <div style={{
-          flex: 1,
-          padding: '10px',
-          backgroundColor: '#c8e6c9',
-          borderRadius: '6px',
-          border: '2px solid #4caf50',
-          textAlign: 'center',
-          animation: animatingValues.basePoints ? 'valueChange 0.6s ease-out' : 'none'
+          display: 'flex',
+          gap: isComplete ? '0px' : '6px',
+          marginBottom: '8px',
+          transition: 'gap 0.5s ease-in-out',
+          overflow: 'hidden'
         }}>
-          <div style={{ fontSize: '11px', color: '#2e7d32', marginBottom: '4px', fontWeight: '600' }}>
-            Score
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2e7d32' }}>
-            {displayElements.basePoints}
-          </div>
-        </div>
-
-        {/* Multiplier - Magenta */}
-        <div style={{
-          flex: 1,
-          padding: '10px',
-          backgroundColor: '#f8bbd0',
-          borderRadius: '6px',
-          border: '2px solid #e91e63',
-          textAlign: 'center',
-          animation: animatingValues.multiplier ? 'valueChange 0.6s ease-out' : 'none'
-        }}>
-          <div style={{ fontSize: '11px', color: '#c2185b', marginBottom: '4px', fontWeight: '600' }}>
-            Multiplier
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#c2185b' }}>
-            {displayElements.multiplier.toFixed(2)}x
-          </div>
-        </div>
-
-        {/* Exponent - Dark Purple */}
-        <div style={{
-          flex: 1,
-          padding: '10px',
-          backgroundColor: '#ce93d8',
-          borderRadius: '6px',
-          border: '2px solid #9c27b0',
-          textAlign: 'center',
-          animation: animatingValues.exponent ? 'valueChange 0.6s ease-out' : 'none'
-        }}>
-          <div style={{ fontSize: '11px', color: '#7b1fa2', marginBottom: '4px', fontWeight: '600' }}>
-            Exponent
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#7b1fa2' }}>
-            {displayElements.exponent.toFixed(2)}
-          </div>
-        </div>
-      </div>
-
-      {/* Final Score Calculation - Only show when complete */}
-      {isComplete && (
-        <div style={{
-          padding: '12px',
-          backgroundColor: '#e8f5e9',
-          borderRadius: '6px',
-          border: '2px solid #4caf50',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '12px', color: '#2e7d32', marginBottom: '6px', fontWeight: '600' }}>
-            Final Score
-          </div>
+          {/* Base Points - Green */}
           <div style={{
-            fontSize: '24px',
-            fontWeight: 'bold',
-            color: '#2e7d32'
+            flex: isComplete ? '0 0 0' : 1,
+            padding: '6px',
+            backgroundColor: '#c8e6c9',
+            borderRadius: isComplete ? '4px 0 0 4px' : '4px',
+            border: '1px solid #4caf50',
+            textAlign: 'center',
+            animation: animatingValues.basePoints ? 'valueChange 0.6s ease-out' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: isComplete ? 0 : 1,
+            transform: isComplete ? 'scale(0)' : 'scale(1)',
+            transition: 'all 0.5s ease-in-out',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap'
           }}>
-            {calculateFinalScore(breakdown.final)}
+            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e7d32' }}>
+              {displayElements.basePoints}
+            </div>
+          </div>
+
+          {/* Multiplier - Magenta */}
+          <div style={{
+            flex: isComplete ? '0 0 0' : 1,
+            padding: '6px',
+            backgroundColor: '#f8bbd0',
+            borderRadius: '4px',
+            border: '1px solid #e91e63',
+            textAlign: 'center',
+            animation: animatingValues.multiplier ? 'valueChange 0.6s ease-out' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: isComplete ? 0 : 1,
+            transform: isComplete ? 'scale(0)' : 'scale(1)',
+            transition: 'all 0.5s ease-in-out',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap'
+          }}>
+            <div style={{ fontSize: '16px', color: '#c2185b' }}>
+              <span style={{ fontWeight: 'normal' }}>x</span>
+              <span style={{ fontWeight: 'bold' }}>{formatNumber(displayElements.multiplier)}</span>
+            </div>
+          </div>
+
+          {/* Exponent - Dark Purple */}
+          <div style={{
+            flex: isComplete ? '0 0 0' : 1,
+            padding: '6px',
+            backgroundColor: '#ce93d8',
+            borderRadius: isComplete ? '0 4px 4px 0' : '4px',
+            border: '1px solid #9c27b0',
+            textAlign: 'center',
+            animation: animatingValues.exponent ? 'valueChange 0.6s ease-out' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: isComplete ? 0 : 1,
+            transform: isComplete ? 'scale(0)' : 'scale(1)',
+            transition: 'all 0.5s ease-in-out',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap'
+          }}>
+            <div style={{ fontSize: '16px', color: '#7b1fa2' }}>
+              <span style={{ fontWeight: 'normal' }}>^</span>
+              <span style={{ fontWeight: 'bold' }}>{formatNumber(displayElements.exponent)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Final Score Calculation - Show after squish animation */}
+      {showFinalScore && (
+        <div style={{
+          padding: '8px',
+          backgroundColor: '#e3f2fd',
+          borderRadius: '4px',
+          border: '1px solid #2196f3',
+          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'fadeInScale 0.3s ease-out'
+        }}>
+          <div style={{
+            fontSize: '18px',
+            color: '#1976d2'
+          }}>
+            <span style={{ fontWeight: 'normal' }}>+</span>
+            <span style={{ fontWeight: 'bold' }}>{calculateFinalScore(breakdown.final)}</span>
           </div>
         </div>
       )}
@@ -431,6 +465,16 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
           100% {
             transform: scale(1);
             box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+          }
+        }
+        @keyframes fadeInScale {
+          0% {
+            opacity: 0;
+            transform: scale(0.8);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
           }
         }
       `}</style>

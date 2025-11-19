@@ -169,10 +169,10 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
         🎲 Choose Your Loadout
       </h1>
 
-      {/* Cheat Mode Toggle and Difficulty Selector */}
+      {/* Cheat Mode Toggle */}
       <div style={{
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         alignItems: 'center',
         marginBottom: '20px',
         padding: '15px',
@@ -183,11 +183,6 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
         <CheatModeToggle
           cheatMode={config.cheatMode}
           onToggle={handleCheatModeToggle}
-        />
-
-        <DifficultySelector
-          difficulty={config.difficulty}
-          onChange={handleDifficultyChange}
         />
       </div>
 
@@ -201,13 +196,18 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
       {/* All sections in one view */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: config.cheatMode ? '1fr 1fr 1fr' : '1fr', 
+        gridTemplateColumns: config.cheatMode ? '1fr 1fr 1fr' : '1fr 1fr', 
         gap: '20px' 
       }}>
         <DiceSetSelector
           diceSets={availableDiceSets}
           selectedIndex={config.diceSetIndex}
           onDiceSetSelect={handleDiceSetSelect}
+        />
+
+        <DifficultySelector
+          difficulty={config.difficulty}
+          onChange={handleDifficultyChange}
         />
 
         {config.cheatMode && (

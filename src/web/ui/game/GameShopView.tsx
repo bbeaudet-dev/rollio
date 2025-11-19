@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ShopDisplay } from './shop/ShopDisplay';
-import { LevelSummary } from './LevelSummary';
 import { Inventory } from './Inventory';
 import { SettingsButton, MenuButton } from '../components';
 import { SettingsModal } from '../menu';
@@ -41,8 +40,6 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
         flexDirection: 'column',
         gap: '0'
       }}>
-        <LevelSummary gameState={gameState} roundState={roundState} />
-        
         <ShopDisplay
           shopState={shopState}
           playerMoney={gameState.money || 0}
