@@ -9,18 +9,16 @@ export const HotDiceCounter: React.FC<HotDiceCounterProps> = ({ count }) => {
 
   return (
     <div style={{
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      color: 'white',
-      padding: '6px 12px',
-      borderRadius: '8px',
-      fontSize: '13px',
-      fontWeight: 500, // Less bold - informational display
+      color: '#ffa500',
+      fontSize: '14px',
+      fontWeight: 600,
       whiteSpace: 'nowrap',
       textAlign: 'center',
-      pointerEvents: 'none', // Not clickable
-      userSelect: 'none' // Can't select text
+      pointerEvents: 'none',
+      userSelect: 'none',
+      textShadow: '0 0 8px rgba(255, 165, 0, 0.8)'
     }}>
-      {'🔥'.repeat(count)} Hot dice! x{count}
+      x{count}
     </div>
   );
 };

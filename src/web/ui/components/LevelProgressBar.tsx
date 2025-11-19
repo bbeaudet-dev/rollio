@@ -62,7 +62,9 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
             backgroundColor: 'rgba(255, 255, 255, 0.3)',
             borderRadius: '9px',
             overflow: 'hidden',
-            border: '1px solid rgba(255, 255, 255, 0.5)'
+            border: '1px solid rgba(255, 255, 255, 0.5)',
+            display: 'flex',
+            justifyContent: 'flex-end'
           }}>
             <div style={{
               width: `${potPercentage}%`,

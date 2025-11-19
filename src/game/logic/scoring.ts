@@ -18,7 +18,7 @@ import { findAllPossibleCombinations, hasAnyScoringCombination, countDice } from
 import { findAllValidPartitionings, getHighestPointsPartitioning } from './partitioning';
 import { applyMaterialEffects } from './materialSystem';
 import { applyAllPipEffects } from './pipEffectSystem';
-import { ScoringElements, createScoringElementsFromPoints, calculateFinalScore } from './scoringElements';
+import { ScoringElements, createScoringElementsFromPoints, calculateFinalScore, multiplyMultiplier } from './scoringElements';
 import { createBreakdownBuilder } from './scoringBreakdown';
 import { CharmManager } from './charmSystem';
 
@@ -183,6 +183,18 @@ export function calculateScoringBreakdown(
   const charmValues = charmManager.applyCharmEffects(charmContext, breakdown); // Pass breakdown builder
   
   scoringElements = charmValues;
+
+  // Step 6: Apply hot dice base multiplier (0.1x per hot dice counter)
+  const hotDiceCounter = roundState.hotDiceCounter || 0;
+  if (hotDiceCounter > 0) {
+    const hotDiceMultiplier = 1 + (hotDiceCounter * 0.1);
+    scoringElements = multiplyMultiplier(scoringElements, hotDiceMultiplier);
+    breakdown.addStep(
+      'hotDiceMultiplier',
+      scoringElements,
+      `Hot Dice (${hotDiceCounter}): ×${hotDiceMultiplier.toFixed(1)} multiplier`
+    );
+  }
 
   // Build and return final breakdown
   const finalBreakdown = breakdown.build();

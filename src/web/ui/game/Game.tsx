@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Board } from './board/Board';
 import { GameControls } from './GameControls';
 import { Inventory } from './Inventory';
-import { HotDiceCounter } from './board/HotDiceCounter';
 import { GameShopView } from './GameShopView';
 import { SettingsButton, MenuButton } from '../components';
 import { SettingsModal } from '../menu';
@@ -280,6 +279,7 @@ export const Game: React.FC<GameProps> = ({
           scoringBreakdown={board.scoringBreakdown}
           breakdownState={board.breakdownState}
           onCompleteBreakdown={rollActions.handleCompleteBreakdown}
+          diceSet={gameState.diceSet}
         />
 
         {/* Game Controls - Bottom Center Overlay */}
@@ -297,11 +297,6 @@ export const Game: React.FC<GameProps> = ({
           width: 'calc(100% - 40px)',
           maxWidth: '500px'
         }}>
-          {/* Hot Dice Counter - only show during active rounds */}
-          {roundState.isActive && roundState.hotDiceCounter > 0 && (
-            <HotDiceCounter count={roundState.hotDiceCounter} />
-          )}
-          
           <GameControls 
             onReroll={() => {
               // Reroll Button (left)
@@ -327,6 +322,7 @@ export const Game: React.FC<GameProps> = ({
             levelPoints={gameState.currentLevel?.pointsBanked || 0}
             levelThreshold={gameState.currentLevel?.levelThreshold || 0}
             roundPoints={roundState?.roundPoints || 0}
+            hotDiceCounter={roundState?.isActive && roundState.hotDiceCounter > 0 ? roundState.hotDiceCounter : 0}
             previewScoring={board.previewScoring}
             breakdownState={board.breakdownState}
           />

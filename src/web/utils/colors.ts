@@ -51,6 +51,58 @@ export const MATERIAL_COLORS = {
   lead: { background: '#4a4a4a', border: '#5a5a6a', pip: '#1a1a1a' }, // Darker pips for lead
 } as const;
 
+// Difficulty level colors for d20 display
+// Progressively more brilliant from plastic to diamond
+export const DIFFICULTY_COLORS = {
+  plastic: { 
+    background: '#f5f5f5', 
+    border: '#999', 
+    number: '#333',
+    // Use same style as plastic material
+  },
+  copper: { 
+    background: 'linear-gradient(135deg, #b87333, #cd853f, #daa520)', 
+    border: '#8b4513', 
+    number: '#fff',
+  },
+  silver: { 
+    background: 'linear-gradient(135deg, #c0c0c0, #e8e8e8, #f5f5f5)', 
+    border: '#808080', 
+    number: '#333',
+  },
+  gold: { 
+    background: 'linear-gradient(135deg, #ffd700, #ffed4e, #ffc107)', 
+    border: '#b8860b', 
+    number: '#8b4513',
+  },
+  platinum: { 
+    background: 'linear-gradient(135deg, #e5e4e2, #f5f5f5, #ffffff)', 
+    border: '#c0c0c0', 
+    number: '#555',
+  },
+  sapphire: { 
+    background: 'radial-gradient(ellipse at top left, #0f52ba, #4169e1, #6495ed, #87ceeb)', 
+    border: '#000080', 
+    number: '#fff',
+  },
+  emerald: { 
+    background: 'radial-gradient(ellipse at top left, #50c878, #00ff7f, #90ee90, #98fb98)', 
+    border: '#006400', 
+    number: '#003300',
+  },
+  ruby: { 
+    background: 'radial-gradient(ellipse at top left, #e0115f, #dc143c, #ff1493, #ff69b4)', 
+    border: '#8b0000', 
+    number: '#fff',
+  },
+  diamond: { 
+    background: 'linear-gradient(135deg, #b9f2ff, #e0f7fa, #ffffff, #f0f8ff)', 
+    border: '#00bcd4', 
+    number: '#006064',
+    // Diamond will have animated shimmer effect
+  },
+} as const;
+
 /**
  * Get the background color for a consumable based on whether it's a whim or wish
  */

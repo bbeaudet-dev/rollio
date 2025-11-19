@@ -3,6 +3,8 @@ import { GameControlButton } from '../components/GameControlButton';
 import { RerollIndicator } from '../components/RerollIndicator';
 import { BankIndicator } from '../components/BankIndicator';
 import { LevelProgressBar } from '../components/LevelProgressBar';
+import { FireEffect } from '../components/FireEffect';
+import { HotDiceCounter } from './board/HotDiceCounter';
 
 interface GameControlsProps {
   // Button handlers
@@ -24,6 +26,7 @@ interface GameControlsProps {
   levelPoints?: number; // Current level points (banked)
   levelThreshold?: number; // Level threshold
   roundPoints?: number; // Current pot (unbanked points)
+  hotDiceCounter?: number; // Hot dice counter for fire effect
   previewScoring?: {
     isValid: boolean;
     points: number;
@@ -47,6 +50,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
   levelPoints = 0,
   levelThreshold = 0,
   roundPoints = 0,
+  hotDiceCounter = 0,
   previewScoring = null,
   breakdownState = 'hidden'
 }) => {
@@ -153,13 +157,31 @@ export const GameControls: React.FC<GameControlsProps> = ({
         </GameControlButton>
         
         {/* Roll/Score Button (middle) */}
-        <GameControlButton
-          onClick={handleMiddleButtonClick}
-          disabled={!isRollOrScoreEnabled}
-          backgroundColor={getMiddleButtonColor()}
-          text={getRollOrScoreButtonText()}
-          size="large"
-        />
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          {/* Glow effect - show whenever hot dice counter is active, regardless of button state */}
+          {hotDiceCounter > 0 && (
+            <FireEffect intensity={hotDiceCounter} />
+          )}
+          <GameControlButton
+            onClick={handleMiddleButtonClick}
+            disabled={!isRollOrScoreEnabled}
+            backgroundColor={getMiddleButtonColor()}
+            text={getRollOrScoreButtonText()}
+            size="large"
+          />
+          {/* Hot dice counter - positioned above button */}
+          {hotDiceCounter > 0 && (
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              marginBottom: '4px'
+            }}>
+              <HotDiceCounter count={hotDiceCounter} />
+            </div>
+          )}
+        </div>
         
         {/* Right Button - Bank (Green) */}
         <div ref={bankButtonRef}>

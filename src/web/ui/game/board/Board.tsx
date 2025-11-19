@@ -4,7 +4,8 @@ import { DiceDisplay } from './DiceDisplay';
 import { RoundInfo } from './RoundInfo';
 import { GameAlerts } from './GameAlerts';
 import { ScoringBreakdownComponent } from './ScoringBreakdown';
-import { ScoringBreakdown } from '../../../../game/types';
+import { ScoringBreakdown, Die } from '../../../../game/types';
+import { ViewDiceSet } from './ViewDiceSet';
 
 interface BoardProps {
   dice: any[];
@@ -31,6 +32,7 @@ interface BoardProps {
   scoringBreakdown?: ScoringBreakdown | null;
   breakdownState?: 'hidden' | 'animating' | 'complete';
   onCompleteBreakdown?: () => void;
+  diceSet?: Die[];
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -53,7 +55,8 @@ export const Board: React.FC<BoardProps> = ({
   justFlopped = false,
   scoringBreakdown = null,
   breakdownState = 'hidden',
-  onCompleteBreakdown = () => {}
+  onCompleteBreakdown = () => {},
+  diceSet = []
 }) => {
   // Get level color (memoized to avoid recalculating on every render)
   const levelColor = useMemo(() => getLevelColor(levelNumber), [levelNumber]);
@@ -203,6 +206,9 @@ export const Board: React.FC<BoardProps> = ({
         previewScoring={previewScoring}
         justFlopped={justFlopped}
       />
+
+      {/* View Dice Set - Bottom Right */}
+      {diceSet.length > 0 && <ViewDiceSet diceSet={diceSet} />}
     </div>
   );
 };
