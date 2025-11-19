@@ -261,14 +261,10 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
         onHighlightDiceRef.current([]);
       }
       
-      // Show elements briefly, then squish together
+      // Combine scoring elements into final score
       setTimeout(() => {
-        // Start squishing animation
-        // After squish animation completes (0.5s), show final score
-        setTimeout(() => {
-          setShowFinalScore(true);
-        }, 500); // Reduced from 800ms to 500ms
-      }, 200); // Reduced from 1000ms to 200ms
+        setShowFinalScore(true);
+      }, 100);
       
       // Call onComplete to transition to proper state (dice removed, bankOrRoll state)
       // But keep breakdown visible - onComplete will update the state properly

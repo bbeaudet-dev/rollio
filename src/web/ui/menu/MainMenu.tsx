@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SettingsModal } from './SettingsModal';
+import { AuthSection } from '../auth';
 
 export const MainMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +36,9 @@ export const MainMenu: React.FC = () => {
       }}>
         The dice-rolling roguelike
       </p>
+
+      {/* Auth Section */}
+      <AuthSection />
       
       <div style={{ 
         display: 'flex', 
