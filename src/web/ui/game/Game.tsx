@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Board } from './board/Board';
 import { GameControls } from './GameControls';
-import { LevelSummary } from './LevelSummary';
 import { Inventory } from './Inventory';
 import { HotDiceCounter } from './board/HotDiceCounter';
 import { GameShopView } from './GameShopView';
@@ -124,7 +123,6 @@ export const Game: React.FC<GameProps> = ({
             flexDirection: 'column',
             gap: '0'
           }}>
-            <LevelSummary gameState={gameState} roundState={roundState} />
             {roundState && (
               <div style={{ position: 'relative', marginTop: '0' }}>
                 <Board
@@ -142,10 +140,8 @@ export const Game: React.FC<GameProps> = ({
                   gameOver={false}
                   onScoreSelectedDice={() => {}}
                   lastRollPoints={0}
-                  roundPoints={roundState?.roundPoints || 0}
                   gameScore={gameState.history?.totalScore || 0}
                   justBanked={false}
-                  bankingDisplayInfo={null}
                 />
               </div>
             )}
@@ -261,8 +257,6 @@ export const Game: React.FC<GameProps> = ({
       flexDirection: 'column',
       gap: '0' // No gap between sections
     }}>
-        <LevelSummary gameState={gameState} roundState={roundState} />
-
       {/* Dice-Rolling Area */}
       <div style={{ position: 'relative', marginTop: '0' }}>
         <Board
@@ -280,12 +274,9 @@ export const Game: React.FC<GameProps> = ({
           gameOver={gameState && !gameState.isActive && gameState.endReason === 'lost'}
           onScoreSelectedDice={rollActions.scoreSelectedDice}
           lastRollPoints={lastRollPoints}
-          roundPoints={roundState.roundPoints}
           gameScore={gameState.history?.totalScore || 0}
           justBanked={board.justBanked}
           justFlopped={board.justFlopped}
-          canBank={board.canBank && canPlay}
-          bankingDisplayInfo={board.bankingDisplayInfo}
           scoringBreakdown={board.scoringBreakdown}
           breakdownState={board.breakdownState}
           onCompleteBreakdown={rollActions.handleCompleteBreakdown}
@@ -331,6 +322,11 @@ export const Game: React.FC<GameProps> = ({
             canBank={board.canBank && canPlay}
             diceToRoll={gameActions.getDiceToRollCount(gameState)}
             selectedDiceCount={board.selectedDice.length}
+            rerollsRemaining={gameState.currentLevel?.rerollsRemaining || 0}
+            banksRemaining={gameState.currentLevel?.banksRemaining || 0}
+            levelPoints={gameState.currentLevel?.pointsBanked || 0}
+            levelThreshold={gameState.currentLevel?.levelThreshold || 0}
+            roundPoints={roundState?.roundPoints || 0}
             previewScoring={board.previewScoring}
             breakdownState={board.breakdownState}
           />

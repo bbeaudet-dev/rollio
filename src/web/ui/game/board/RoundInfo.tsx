@@ -1,19 +1,21 @@
 import React from 'react';
 
 interface RoundInfoProps {
+  levelNumber: number;
   roundNumber: number;
   rollNumber: number;
   consecutiveFlops?: number;
 }
 
 export const RoundInfo: React.FC<RoundInfoProps> = ({
+  levelNumber,
   roundNumber,
   rollNumber,
   consecutiveFlops = 0
 }) => {
   return (
     <>
-      {/* Round and Roll numbers overlay */}
+      {/* Level, Round and Roll numbers overlay */}
       <div style={{
         position: 'absolute',
         top: '10px',
@@ -26,7 +28,8 @@ export const RoundInfo: React.FC<RoundInfoProps> = ({
         fontSize: '13px',
         fontWeight: 'bold'
       }}>
-        <div>Round {roundNumber}</div>
+        <div>Level {levelNumber}</div>
+        <div style={{ fontSize: '12px', fontWeight: 'normal' }}>Round {roundNumber}</div>
         <div style={{ fontSize: '12px', fontWeight: 'normal' }}>Roll {rollNumber}</div>
       </div>
 

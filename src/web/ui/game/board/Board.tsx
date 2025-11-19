@@ -3,7 +3,6 @@ import { getLevelColor } from '../../../utils/levelColors';
 import { DiceDisplay } from './DiceDisplay';
 import { RoundInfo } from './RoundInfo';
 import { GameAlerts } from './GameAlerts';
-import { PointsDisplay } from './PointsDisplay';
 import { ScoringBreakdownComponent } from './ScoringBreakdown';
 import { ScoringBreakdown } from '../../../../game/types';
 
@@ -26,16 +25,9 @@ interface BoardProps {
   gameOver?: boolean;
   onScoreSelectedDice?: () => void;
   lastRollPoints?: number;
-  roundPoints?: number;
   gameScore?: number;
   justBanked?: boolean;
   justFlopped?: boolean;
-  canBank?: boolean;
-  bankingDisplayInfo?: {
-    pointsJustBanked: number;
-    previousTotal: number;
-    newTotal: number;
-  } | null;
   scoringBreakdown?: ScoringBreakdown | null;
   breakdownState?: 'hidden' | 'animating' | 'complete';
   onCompleteBreakdown?: () => void;
@@ -56,12 +48,9 @@ export const Board: React.FC<BoardProps> = ({
   gameOver = false,
   onScoreSelectedDice = () => {},
   lastRollPoints = 0,
-  roundPoints = 0,
   gameScore = 0,
   justBanked = false,
   justFlopped = false,
-  canBank = false,
-  bankingDisplayInfo,
   scoringBreakdown = null,
   breakdownState = 'hidden',
   onCompleteBreakdown = () => {}
@@ -129,25 +118,18 @@ export const Board: React.FC<BoardProps> = ({
       borderBottomLeftRadius: '0',
       borderBottomRightRadius: '0',
       padding: '10px',
-      minHeight: '300px', 
-      height: '400px', 
+      minHeight: '400px', 
+      height: '500px', 
       width: '100%',
       position: 'relative',
       overflow: 'hidden',
       boxSizing: 'border-box'
     }}>
       <RoundInfo 
+        levelNumber={levelNumber || 1}
         roundNumber={roundNumber}
         rollNumber={rollNumber}
         consecutiveFlops={consecutiveFlops}
-      />
-
-      <PointsDisplay
-        roundPoints={roundPoints}
-        justBanked={justBanked}
-        canSelectDice={canSelect}
-        canBank={canBank}
-        bankingDisplayInfo={bankingDisplayInfo}
       />
 
       {/* Scoring Breakdown - shows when scoring */}

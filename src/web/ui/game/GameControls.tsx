@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { GameControlButton } from '../components/GameControlButton';
+import { RerollIndicator } from '../components/RerollIndicator';
+import { BankIndicator } from '../components/BankIndicator';
+import { LevelProgressBar } from '../components/LevelProgressBar';
 
 interface GameControlsProps {
   // Button handlers
@@ -16,6 +19,11 @@ interface GameControlsProps {
   // Display info
   diceToRoll: number; // Number of dice to roll
   selectedDiceCount: number; // Number of dice selected
+  rerollsRemaining?: number; // Number of rerolls remaining
+  banksRemaining?: number; // Number of banks remaining
+  levelPoints?: number; // Current level points (banked)
+  levelThreshold?: number; // Level threshold
+  roundPoints?: number; // Current pot (unbanked points)
   previewScoring?: {
     isValid: boolean;
     points: number;
@@ -34,6 +42,11 @@ export const GameControls: React.FC<GameControlsProps> = ({
   canBank,
   diceToRoll,
   selectedDiceCount,
+  rerollsRemaining = 0,
+  banksRemaining = 0,
+  levelPoints = 0,
+  levelThreshold = 0,
+  roundPoints = 0,
   previewScoring = null,
   breakdownState = 'hidden'
 }) => {
@@ -95,13 +108,37 @@ export const GameControls: React.FC<GameControlsProps> = ({
     onRollOrScore();
   };
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const bankButtonRef = useRef<HTMLDivElement>(null);
+  const [progressBarLeft, setProgressBarLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    const updatePosition = () => {
+      if (bankButtonRef.current && containerRef.current) {
+        const bankButtonRect = bankButtonRef.current.getBoundingClientRect();
+        const containerRect = containerRef.current.getBoundingClientRect();
+        // Position to the right of the Bank button with a small gap
+        const left = bankButtonRect.right - containerRect.left + 12; // 12px gap
+        setProgressBarLeft(left);
+      }
+    };
+
+    // Calculate position after render
+    updatePosition();
+
+    // Recalculate on window resize
+    window.addEventListener('resize', updatePosition);
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [diceToRoll, selectedDiceCount, canRoll]); // Recalculate when button text might change
+
   return (
-    <div style={{ marginTop: '15px' }}>
+    <div ref={containerRef} style={{ marginTop: '15px', position: 'relative' }}>
+      {/* Centered button group */}
       <div style={{ 
         display: 'flex', 
         gap: 'clamp(8px, 1.5vw, 12px)', 
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         flexWrap: 'nowrap'
       }}>
         {/* Left Button - Reroll (Blue) */}
@@ -111,7 +148,9 @@ export const GameControls: React.FC<GameControlsProps> = ({
           backgroundColor="#007bff"
           text={getRerollButtonText()}
           size="normal"
-        />
+        >
+          <RerollIndicator count={rerollsRemaining} />
+        </GameControlButton>
         
         {/* Roll/Score Button (middle) */}
         <GameControlButton
@@ -123,14 +162,33 @@ export const GameControls: React.FC<GameControlsProps> = ({
         />
         
         {/* Right Button - Bank (Green) */}
-        <GameControlButton
-          onClick={onBank}
-          disabled={!isBankEnabled}
-          backgroundColor="#28a745"
-          text="Bank Points"
-          size="normal"
-        />
+        <div ref={bankButtonRef}>
+          <GameControlButton
+            onClick={onBank}
+            disabled={!isBankEnabled}
+            backgroundColor="#28a745"
+            text="Bank Points"
+            size="normal"
+          >
+            <BankIndicator count={banksRemaining} />
+          </GameControlButton>
+        </div>
       </div>
+      
+      {/* Level Progress Bar - positioned to the right of Bank button, doesn't affect button centering */}
+      {progressBarLeft !== null && (
+        <div style={{
+          position: 'absolute',
+          left: `${progressBarLeft}px`,
+          bottom: '0'
+        }}>
+          <LevelProgressBar 
+            current={levelPoints} 
+            threshold={levelThreshold}
+            pot={roundPoints}
+          />
+        </div>
+      )}
     </div>
   );
 };

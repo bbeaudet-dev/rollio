@@ -137,7 +137,7 @@ export function calculateScoringBreakdown(
   breakdown.addStep(
     'baseCombinations',
     scoringElements,
-    `Base combinations: ${combinationTypes.join(', ')} = ${basePoints} points`
+    `Combinations: ${combinationTypes.join(', ')} = ${basePoints} points`
   );
   
   // Store combination types in breakdown for easy access

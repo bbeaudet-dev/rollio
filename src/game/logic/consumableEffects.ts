@@ -207,6 +207,7 @@ export function applyConsumableEffect(
       break;
     }
 
+    case 'midasTouch':
     case 'copyMaterial': {
       // Requires user input - return request for two die selection
       return {
@@ -222,6 +223,7 @@ export function applyConsumableEffect(
       };
     }
 
+    case 'freebie':
     case 'addStandardDie': {
       const newDieId = `d${newGameState.diceSet.length + 1}`;
       const newDie = {
@@ -234,6 +236,7 @@ export function applyConsumableEffect(
       break;
     }
 
+    case 'sacrifice':
     case 'deleteDieAddCharmSlot': {
       if (newGameState.diceSet.length <= 1) {
         shouldRemove = false;
@@ -247,6 +250,7 @@ export function applyConsumableEffect(
       break;
     }
 
+    case 'welfare':
     case 'upgradeAllHands': {
       // TODO: Implement hand upgrade system
       // For now, this is a placeholder - hand upgrades need infrastructure
@@ -254,6 +258,7 @@ export function applyConsumableEffect(
       break;
     }
 
+    case 'origin':
     case 'createLegendaryCharm': {
       const maxCharms = newGameState.charmSlots || 3;
       if (newGameState.charms.length >= maxCharms) {
@@ -267,6 +272,11 @@ export function applyConsumableEffect(
         shouldRemove = false;
         break;
       }
+      // For 'origin', 50% chance to create legendary charm
+      if (consumable.id === 'origin' && Math.random() >= 0.5) {
+        shouldRemove = false;
+        break;
+      }
       const randomIdx = Math.floor(Math.random() * available.length);
       const newCharm = { ...available[randomIdx], active: true };
       newGameState.charms = [...newGameState.charms, newCharm];
@@ -274,24 +284,26 @@ export function applyConsumableEffect(
       break;
     }
 
+    case 'distortion':
     case 'createTwoRareCharms': {
       const maxCharms = newGameState.charmSlots || 3;
       const availableSlots = maxCharms - newGameState.charms.length;
-      if (availableSlots < 2) {
+      const numToCreate = consumable.id === 'distortion' ? 1 : 2;
+      if (availableSlots < numToCreate) {
         shouldRemove = false;
         break;
       }
       // Find available rare charms not already owned
       const ownedIds = new Set(newGameState.charms.map(c => c.id));
       const available = CHARMS.filter(c => !ownedIds.has(c.id) && c.rarity === 'rare');
-      if (available.length < 2) {
+      if (available.length < numToCreate) {
         shouldRemove = false;
         break;
       }
-      // Select 2 random rare charms
+      // Select random rare charms
       const selected: typeof CHARMS = [];
       const indices = new Set<number>();
-      while (selected.length < 2 && indices.size < available.length) {
+      while (selected.length < numToCreate && indices.size < available.length) {
         const randomIdx = Math.floor(Math.random() * available.length);
         if (!indices.has(randomIdx)) {
           indices.add(randomIdx);
@@ -304,6 +316,7 @@ export function applyConsumableEffect(
       break;
     }
 
+    case 'frankenstein':
     case 'deleteTwoCopyOneCharm': {
       if (newGameState.charms.length < 3) {
         shouldRemove = false;

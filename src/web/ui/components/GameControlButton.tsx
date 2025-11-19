@@ -7,6 +7,7 @@ interface GameControlButtonProps {
   text: string;
   size?: 'normal' | 'large'; // normal for side buttons, large for middle button
   style?: React.CSSProperties;
+  children?: React.ReactNode; // Optional content below text (e.g., dice faces)
 }
 
 export const GameControlButton: React.FC<GameControlButtonProps> = ({
@@ -15,7 +16,8 @@ export const GameControlButton: React.FC<GameControlButtonProps> = ({
   backgroundColor,
   text,
   size = 'normal',
-  style = {}
+  style = {},
+  children
 }) => {
   const baseSize = size === 'large' 
     ? { width: 'clamp(105px, 15vw, 150px)', minHeight: 'clamp(55px, 6.9vh, 64px)' }
@@ -48,6 +50,8 @@ export const GameControlButton: React.FC<GameControlButtonProps> = ({
         flexGrow: 0, // Prevent buttons from growing
         // Make it look more clickable
         transform: disabled ? 'none' : 'translateY(0)',
+        flexDirection: 'column',
+        gap: '2px',
         ...style
       }}
       onMouseEnter={(e) => {
@@ -73,7 +77,8 @@ export const GameControlButton: React.FC<GameControlButtonProps> = ({
         }
       }}
     >
-      {text}
+      <span>{text}</span>
+      {children}
     </button>
   );
 };

@@ -19,6 +19,20 @@ function formatStepDescription(step: ScoringBreakdownStep): string {
   return step.description;
 }
 
+/**
+ * Format a number to remove unnecessary decimal places
+ * Shows whole numbers without decimals, but keeps decimals when needed
+ */
+function formatNumber(value: number): string {
+  // Check if it's effectively a whole number (within floating point precision)
+  const rounded = Math.round(value * 100) / 100;
+  if (Math.abs(rounded - Math.round(rounded)) < 0.001) {
+    return Math.round(rounded).toString();
+  }
+  // Remove trailing zeros from decimal representation
+  return rounded.toString().replace(/\.?0+$/, '');
+}
+
 function getStepIcon(step: ScoringBreakdownStep): string {
   const stepId = step.step;
   
@@ -275,41 +289,28 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
   return (
     <div style={{
       position: 'absolute',
-      bottom: '15px',
-      right: '15px',
+      top: '10px',
+      left: '50%',
+      transform: 'translateX(-50%)',
       zIndex: 30,
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       border: '2px solid #007bff',
-      borderRadius: '12px',
-      padding: '16px',
-      minWidth: '320px',
-      maxWidth: '400px',
+      borderRadius: '8px',
+      padding: '10px',
+      minWidth: '280px',
+      maxWidth: '360px',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
       pointerEvents: 'none',
       userSelect: 'none'
     }}>
+      {/* Combinations */}
       <div style={{
-        fontSize: '16px',
-        fontWeight: 'bold',
-        marginBottom: '12px',
-        color: '#2c3e50',
-        borderBottom: '2px solid #e1e5e9',
-        paddingBottom: '8px'
-      }}>
-        Scoring Breakdown
-      </div>
-
-      {/* Base Combinations */}
-      <div style={{
-        marginBottom: '12px',
-        padding: '8px',
+        marginBottom: '8px',
+        padding: '6px',
         backgroundColor: '#f8f9fa',
-        borderRadius: '6px'
+        borderRadius: '4px'
       }}>
-        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '4px' }}>
-          Base Combinations
-        </div>
-        <div style={{ fontSize: '13px', fontWeight: '500' }}>
+        <div style={{ fontSize: '11px', fontWeight: '500' }}>
           {baseStep.description.split('=')[0].trim()}
         </div>
       </div>
@@ -317,19 +318,19 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
       {/* Current Step */}
       {currentStep && currentStepIndex >= 0 && !isComplete && (
         <div style={{
-          marginBottom: '12px',
-          padding: '10px',
+          marginBottom: '8px',
+          padding: '6px',
           backgroundColor: '#e3f2fd',
-          borderRadius: '6px',
-          border: '2px solid #2196f3'
+          borderRadius: '4px',
+          border: '1px solid #2196f3'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '18px' }}>{getStepIcon(currentStep)}</span>
-            <div style={{ fontSize: '12px', color: '#1976d2', fontWeight: '600' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '14px' }}>{getStepIcon(currentStep)}</span>
+            <div style={{ fontSize: '10px', color: '#1976d2', fontWeight: '600' }}>
               Step {currentStepIndex + 1} of {breakdown.steps.length}
             </div>
           </div>
-          <div style={{ fontSize: '13px', color: '#424242' }}>
+          <div style={{ fontSize: '11px', color: '#424242' }}>
             {formatStepDescription(currentStep)}
           </div>
         </div>
@@ -338,23 +339,23 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
       {/* Three Component Boxes */}
       <div style={{
         display: 'flex',
-        gap: '8px',
-        marginBottom: '12px'
+        gap: '6px',
+        marginBottom: '8px'
       }}>
         {/* Base Points - Green */}
         <div style={{
           flex: 1,
-          padding: '10px',
+          padding: '6px',
           backgroundColor: '#c8e6c9',
-          borderRadius: '6px',
-          border: '2px solid #4caf50',
+          borderRadius: '4px',
+          border: '1px solid #4caf50',
           textAlign: 'center',
-          animation: animatingValues.basePoints ? 'valueChange 0.6s ease-out' : 'none'
+          animation: animatingValues.basePoints ? 'valueChange 0.6s ease-out' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}>
-          <div style={{ fontSize: '11px', color: '#2e7d32', marginBottom: '4px', fontWeight: '600' }}>
-            Score
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#2e7d32' }}>
+          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e7d32' }}>
             {displayElements.basePoints}
           </div>
         </div>
@@ -362,36 +363,38 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
         {/* Multiplier - Magenta */}
         <div style={{
           flex: 1,
-          padding: '10px',
+          padding: '6px',
           backgroundColor: '#f8bbd0',
-          borderRadius: '6px',
-          border: '2px solid #e91e63',
+          borderRadius: '4px',
+          border: '1px solid #e91e63',
           textAlign: 'center',
-          animation: animatingValues.multiplier ? 'valueChange 0.6s ease-out' : 'none'
+          animation: animatingValues.multiplier ? 'valueChange 0.6s ease-out' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}>
-          <div style={{ fontSize: '11px', color: '#c2185b', marginBottom: '4px', fontWeight: '600' }}>
-            Multiplier
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#c2185b' }}>
-            {displayElements.multiplier.toFixed(2)}x
+          <div style={{ fontSize: '16px', color: '#c2185b' }}>
+            <span style={{ fontWeight: 'normal' }}>x</span>
+            <span style={{ fontWeight: 'bold' }}>{formatNumber(displayElements.multiplier)}</span>
           </div>
         </div>
 
         {/* Exponent - Dark Purple */}
         <div style={{
           flex: 1,
-          padding: '10px',
+          padding: '6px',
           backgroundColor: '#ce93d8',
-          borderRadius: '6px',
-          border: '2px solid #9c27b0',
+          borderRadius: '4px',
+          border: '1px solid #9c27b0',
           textAlign: 'center',
-          animation: animatingValues.exponent ? 'valueChange 0.6s ease-out' : 'none'
+          animation: animatingValues.exponent ? 'valueChange 0.6s ease-out' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}>
-          <div style={{ fontSize: '11px', color: '#7b1fa2', marginBottom: '4px', fontWeight: '600' }}>
-            Exponent
-          </div>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#7b1fa2' }}>
-            {displayElements.exponent.toFixed(2)}
+          <div style={{ fontSize: '16px', color: '#7b1fa2' }}>
+            <span style={{ fontWeight: 'normal' }}>^</span>
+            <span style={{ fontWeight: 'bold' }}>{formatNumber(displayElements.exponent)}</span>
           </div>
         </div>
       </div>
@@ -399,21 +402,21 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
       {/* Final Score Calculation - Only show when complete */}
       {isComplete && (
         <div style={{
-          padding: '12px',
-          backgroundColor: '#e8f5e9',
-          borderRadius: '6px',
-          border: '2px solid #4caf50',
-          textAlign: 'center'
+          padding: '8px',
+          backgroundColor: '#e3f2fd',
+          borderRadius: '4px',
+          border: '1px solid #2196f3',
+          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}>
-          <div style={{ fontSize: '12px', color: '#2e7d32', marginBottom: '6px', fontWeight: '600' }}>
-            Final Score
-          </div>
           <div style={{
-            fontSize: '24px',
-            fontWeight: 'bold',
-            color: '#2e7d32'
+            fontSize: '18px',
+            color: '#1976d2'
           }}>
-            {calculateFinalScore(breakdown.final)}
+            <span style={{ fontWeight: 'normal' }}>+</span>
+            <span style={{ fontWeight: 'bold' }}>{calculateFinalScore(breakdown.final)}</span>
           </div>
         </div>
       )}
