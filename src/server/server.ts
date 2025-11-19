@@ -2,14 +2,23 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
+import dotenv from 'dotenv';
+import { runMigrations } from './migrations/runMigrations';
+import authRoutes from './routes/auth';
+
+dotenv.config();
 
 const app = express();
 const server = createServer(app);
+
+// CORS configuration
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+  ? true  // Allow all origins in production for now
+  : ["http://localhost:3000", "http://localhost:5173"];
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? true  // Allow all origins in production for now
-      : ["http://localhost:3000"], 
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -19,6 +28,35 @@ const PORT = process.env.PORT || 5173;
 
 // Middleware
 app.use(express.json());
+
+// CORS middleware for Express routes
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (process.env.NODE_ENV === 'production' || (Array.isArray(allowedOrigins) && origin && allowedOrigins.includes(origin))) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Initialize database and run migrations
+async function initializeDatabase() {
+  try {
+    await runMigrations();
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
+  }
+}
+
+// Routes
+app.use('/api/auth', authRoutes);
 
 // Room management
 interface Room {
@@ -253,9 +291,15 @@ io.on('connection', (socket) => {
 });
 
 // Start server
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+async function startServer() {
+  await initializeDatabase();
+  
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+}
+
+startServer().catch(console.error);
 
 export default app; 
