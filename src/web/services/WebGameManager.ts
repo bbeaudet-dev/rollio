@@ -426,17 +426,23 @@ export class WebGameManager {
     // Check for flop
     if (result.isFlop) {
       if (result.flopShieldAvailable) {
-        const charmManager = this.gameAPI.getCharmManager();
-        const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState: finalGameState, roundState: newRoundState });
         (this.gameInterface as any).pendingAction = {
           type: 'flopShieldChoice',
           canPrevent: true,
-          log: shieldCheck.log
+          log: '🛡️ Flop Shield available'
         };
         // Clear breakdown state when starting a new roll
         return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
       }
       
+      // Flop with no shield - check if we have rerolls
+      if (this.gameAPI.canReroll(finalGameState)) {
+        // Still have rerolls - ask for reroll
+        this.gameInterface.askForReroll(newRoundState.diceHand, finalGameState.currentLevel.rerollsRemaining || 0);
+        return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
+      }
+      
+      // No rerolls - handle flop
       return await this.handleFlop(finalGameState, newRoundState);
     } else {
       this.gameInterface.askForDiceSelection(newRoundState.diceHand, finalGameState.consumables);
@@ -463,18 +469,25 @@ export class WebGameManager {
       const roundState = gameState.currentLevel.currentRound;
       if (!roundState) return state;
       
-      // If it's a flop, handle it immediately
+      // If it's a flop, handle it
       if (result.isFlop) {
-        const charmManager = this.gameAPI.getCharmManager();
-        const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState, roundState });
-        if (shieldCheck.available) {
+        if (result.flopShieldAvailable) {
           (this.gameInterface as any).pendingAction = {
             type: 'flopShieldChoice',
             canPrevent: true,
-            log: shieldCheck.log
+            log: '🛡️ Flop Shield available'
           };
           return this.createWebGameState(gameState, roundState, [], null, false, false, false);
         }
+        
+        // Flop with no shield - check if we have rerolls
+        if (this.gameAPI.canReroll(gameState)) {
+          // Still have rerolls - ask for reroll
+          this.gameInterface.askForReroll(roundState.diceHand, gameState.currentLevel.rerollsRemaining || 0);
+          return this.createWebGameState(gameState, roundState, [], null, false, false, false, true);
+        }
+        
+        // No rerolls - handle flop
         return await this.handleFlop(gameState, roundState);
       }
       
@@ -509,13 +522,11 @@ export class WebGameManager {
 
     // No more rerolls - check for flop (trust result.isFlop from GameAPI)
     if (result.isFlop) {
-      const charmManager = this.gameAPI.getCharmManager();
-      const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState, roundState });
-      if (shieldCheck.available) {
+      if (result.flopShieldAvailable) {
         (this.gameInterface as any).pendingAction = {
           type: 'flopShieldChoice',
           canPrevent: true,
-          log: shieldCheck.log
+          log: '🛡️ Flop Shield available'
         };
         return this.createWebGameState(gameState, roundState, [], null, false, false, false);
       }

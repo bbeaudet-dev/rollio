@@ -1,6 +1,7 @@
 import { GameInterface } from './interfaces';
 import { CharmManager } from '../game/logic/charmSystem';
 import { createInitialRoundState, DEFAULT_GAME_CONFIG } from '../game/utils/factories';
+import { checkFlopShieldAvailable } from '../game/logic/charms/CommonCharms';
 import { isFlop } from '../game/logic/gameLogic';
 import { processBankAction, processFlop, updateGameStateAfterRound } from './CLIGameActions';
 import { getAllPartitionings } from '../game/logic/scoring';
@@ -97,7 +98,7 @@ export class CLIRoundManager {
         diceHand: [...roundState.diceHand], // Snapshot of initial roll
         selectedDice: [],
         rollPoints: 0, 
-        isFlop: isFlop(roundState.diceHand),
+        isFlop: isFlop(roundState.diceHand, gameState),
       });
     
     await this.displayRollNumber(currentRollNumber, gameInterface);
@@ -294,7 +295,7 @@ export class CLIRoundManager {
     // Validate selection and get scoring result
     const selectedIndices = validateDiceSelection(input, roundState.diceHand.map((die: Die) => die.rolledValue) as DieValue[]);
     const context = { charms: gameState.charms || [] };
-    const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndices, context);
+    const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndices, context, gameState);
     const combos = allPartitionings.length > 0 ? allPartitionings[0] : [];
     const totalComboDice = combos.reduce((sum, c) => sum + c.dice.length, 0);
     const valid = combos.length > 0 && totalComboDice === selectedIndices.length;
@@ -499,7 +500,7 @@ export class CLIRoundManager {
         diceHand: [...roundState.diceHand], // Snapshot of rolled dice
         selectedDice: [],
         rollPoints: 0, // Will be calculated when scored
-        isFlop: isFlop(roundState.diceHand),
+        isFlop: isFlop(roundState.diceHand, gameState),
       });
       
       debugActionWithContext('diceRolls', `Roll #${currentRollNumber} completed`, 'Checking for flop', {
@@ -581,7 +582,7 @@ export class CLIRoundManager {
         diceHand: [...roundState.diceHand],
         selectedDice: diceIndices,
         rollPoints: 0,
-        isFlop: isFlop(roundState.diceHand),
+        isFlop: isFlop(roundState.diceHand, gameState),
       });
       
       // Decrement rerolls remaining
@@ -620,10 +621,10 @@ export class CLIRoundManager {
    * Checks for flop and handles it. Returns true if flop occurred (round should end), 'flopPrevented' if prevented, false otherwise.
    */
   private async checkAndHandleFlop(roundState: any, gameState: any, gameInterface: GameInterface, charmManager: CharmManager): Promise<boolean | 'flopPrevented'> {
-    const isFlopResult = isFlop(roundState.diceHand);
+    const isFlopResult = isFlop(roundState.diceHand, gameState);
     if (isFlopResult) {
       // Check if flop shield is available (without using it)
-      const shieldCheck = charmManager.checkFlopShieldAvailable({ gameState, roundState });
+      const shieldCheck = checkFlopShieldAvailable(gameState);
       
       if (shieldCheck.available) {
         // Prompt user to choose whether to use flop shield

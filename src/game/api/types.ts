@@ -20,6 +20,7 @@ export interface RollDiceResult {
 export interface RerollDiceResult {
   gameState: GameState;
   isFlop: boolean;
+  flopShieldAvailable: boolean;
 }
 
 export interface ScoreDiceResult {

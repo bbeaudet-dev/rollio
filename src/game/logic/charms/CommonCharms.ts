@@ -1,5 +1,5 @@
 import { BaseCharm, CharmScoringContext, CharmBankContext, CharmFlopContext, CharmRoundStartContext, ScoringValueModification } from '../charmSystem';
-import { Die } from '../../types';
+import { Die, GameState } from '../../types';
 import { getPipEffectForDie } from '../pipEffectSystem';
 
 /**
@@ -37,6 +37,34 @@ export class FlopShieldCharm extends BaseCharm {
     }
     return false;
   }
+
+}
+
+/**
+ * Check if flop shield is available (without using it)
+ * Standalone function that finds FlopShieldCharm from gameState and checks availability
+ */
+export function checkFlopShieldAvailable(gameState: GameState): { available: boolean, log: string | null } {
+  const flopShieldCharm = gameState.charms?.find((charm: any) => 
+    charm.id === 'flopShield' || charm.name === 'Flop Shield'
+  ) as any;
+  
+  if (flopShieldCharm) {
+    // Create a temporary instance to check if it can be used
+    // We need to check if it has uses remaining without actually using it
+    const uses = flopShieldCharm.uses;
+    const hasUses = uses === undefined || uses === '∞' || (typeof uses === 'number' && uses > 0);
+    
+    if (hasUses) {
+      const usesLeft = uses ?? '∞';
+      return {
+        available: true,
+        log: `🛡️ Flop Shield available (${usesLeft} uses left)`
+      };
+    }
+  }
+  
+  return { available: false, log: null };
 }
 
 export class MoneyMagnetCharm extends BaseCharm {

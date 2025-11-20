@@ -12,6 +12,7 @@ import {
   addPointsToRound,
   incrementCrystalsScored,
   updateRollHistory,
+  addRollToHistory,
   processHotDice,
   randomizeSelectedDice,
   decrementRerolls,
@@ -40,6 +41,7 @@ import {
 } from './types';
 import { createInitialGameState, createInitialLevelState, registerStartingCharms } from '../utils/factories';
 import { registerCharms } from '../logic/charms/index';
+import { checkFlopShieldAvailable } from '../logic/charms/CommonCharms';
 
 /**
  * GameAPI
@@ -424,11 +426,37 @@ export class GameAPI {
     }
     
     // Special case: skip reroll
-    // Doesn't consume a reroll.If no scoring combinations, it's a flop - return isFlop: true
-    // If there are scoring combinations, return isFlop: false and wait for dice selection)
+    // Player intentionally chose to skip reroll - if it's a flop, handle it immediately
     if (diceToReroll.length === 0) {
-      const isFlopResult = isFlop(roundState.diceHand);
-      return { gameState, isFlop: isFlopResult };
+      const isFlopResult = isFlop(roundState.diceHand, gameState);
+      const shieldCheck = checkFlopShieldAvailable(gameState);
+      
+      // If it's a flop, handle it (player chose to skip reroll)
+      if (isFlopResult) {
+        // If shield is available, return that info so UI can prompt
+        if (shieldCheck.available) {
+          return {
+            gameState,
+            isFlop: true,
+            flopShieldAvailable: true
+          };
+        }
+        
+        // No shield available - handle the flop immediately
+        const flopResult = await this.handleFlop(gameState);
+        return {
+          gameState: flopResult.gameState,
+          isFlop: true,
+          flopShieldAvailable: false
+        };
+      }
+      
+      // Not a flop - return result
+      return { 
+        gameState, 
+        isFlop: false,
+        flopShieldAvailable: false
+      };
     }
     
     let newGameState = randomizeSelectedDice(gameState, diceToReroll);
@@ -439,7 +467,8 @@ export class GameAPI {
     if (!newRoundState) {
       throw new Error('Round state lost after reroll');
     }
-    const flopResult = isFlop(newRoundState.diceHand);
+    const flopResult = isFlop(newRoundState.diceHand, newGameState);
+    const shieldCheck = checkFlopShieldAvailable(newGameState);
     
     this.emit('diceRolled', {
       rollNumber: newRoundState.rollHistory.length + 1,
@@ -447,7 +476,11 @@ export class GameAPI {
     });
     this.emit('stateChanged', { gameState: newGameState });
     
-    return { gameState: newGameState, isFlop: flopResult };
+    return { 
+      gameState: newGameState, 
+      isFlop: flopResult,
+      flopShieldAvailable: shieldCheck.available
+    };
   }
 
   /**
@@ -461,18 +494,24 @@ export class GameAPI {
       throw new Error('No active round to roll dice');
     }
     
-    const result = processRoll(roundState, gameState.diceSet);
+    const newRoundState = processRoll(roundState, gameState.diceSet);
     
-    // Update game state
-    const newGameState = { ...gameState };
+    // Update game state with new round state
+    let newGameState = { ...gameState };
     newGameState.currentLevel = { ...gameState.currentLevel };
-    newGameState.currentLevel.currentRound = result.newRoundState;
+    newGameState.currentLevel.currentRound = newRoundState;
     
-    // Get roll number from history
-    const rollNumber = result.newRoundState.rollHistory[result.newRoundState.rollHistory.length - 1]?.rollNumber || 1;
+    // Check for flop (this already checks for flop shield availability)
+    const isFlopResult = isFlop(newRoundState.diceHand, newGameState);
     
-    const isFlopResult = isFlop(result.newRoundState.diceHand);
-    const shieldCheck = this.charmManager.checkFlopShieldAvailable({ gameState: newGameState, roundState: result.newRoundState });
+    // Add roll to history
+    newGameState = addRollToHistory(newGameState, newRoundState.diceHand, isFlopResult, false);
+    
+    const roundStateAfterRoll = newGameState.currentLevel.currentRound!;
+    const rollNumber = roundStateAfterRoll.rollHistory[roundStateAfterRoll.rollHistory.length - 1]?.rollNumber || 1;
+    
+    // Check if flop shield is available (for UI purposes)
+    const shieldCheck = checkFlopShieldAvailable(newGameState);
     
     this.emit('diceRolled', {
       rollNumber,
@@ -543,7 +582,7 @@ export class GameAPI {
   checkFlop(gameState: GameState): boolean {
     const roundState = gameState.currentLevel.currentRound;
     if (!roundState) return false;
-    return isFlop(roundState.diceHand);
+    return isFlop(roundState.diceHand, gameState);
   }
 
   /**

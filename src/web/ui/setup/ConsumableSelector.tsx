@@ -18,15 +18,15 @@ export const ConsumableSelector: React.FC<ConsumableSelectorProps> = ({
   return (
     <div style={{
       backgroundColor: '#fff',
-      padding: '20px',
+      padding: '12px',
       borderRadius: '8px',
       border: '1px solid #dee2e6'
     }}>
       <h3 style={{
         fontFamily: 'Arial, sans-serif',
-        fontSize: '18px',
+        fontSize: '14px',
         fontWeight: 'bold',
-        marginBottom: '15px',
+        marginBottom: '8px',
         color: '#17a2b8'
       }}>
         Consumables ({selectedConsumables.length}/{maxSlots})
@@ -34,7 +34,9 @@ export const ConsumableSelector: React.FC<ConsumableSelectorProps> = ({
       <div style={{ 
         display: 'flex', 
         flexDirection: 'column', 
-        gap: '6px'
+        gap: '4px',
+        maxHeight: '300px',
+        overflowY: 'auto'
       }}>
         {consumables.map((consumable, index) => {
           const isSelected = selectedConsumables.includes(index);
@@ -45,7 +47,7 @@ export const ConsumableSelector: React.FC<ConsumableSelectorProps> = ({
               key={index}
               style={{
                 border: isSelected ? '2px solid #17a2b8' : '1px solid #ddd',
-                padding: '6px',
+                padding: '4px 6px',
                 cursor: canSelect ? 'pointer' : 'not-allowed',
                 opacity: canSelect ? 1 : 0.5,
                 borderRadius: '4px',
@@ -53,8 +55,8 @@ export const ConsumableSelector: React.FC<ConsumableSelectorProps> = ({
               }}
               onClick={() => canSelect && onConsumableSelect(index)}
             >
-              <div style={{ fontWeight: 'bold', fontSize: '12px' }}>{consumable.name}</div>
-              <div style={{ fontSize: '10px', color: '#666' }}>{consumable.description}</div>
+              <div style={{ fontWeight: 'bold', fontSize: '11px', lineHeight: '1.2' }}>{consumable.name}</div>
+              <div style={{ fontSize: '9px', color: '#666', lineHeight: '1.2' }}>{consumable.description}</div>
             </div>
           );
         })}

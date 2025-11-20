@@ -3,51 +3,49 @@ import React from 'react';
 /**
  * Combination Probability Table
  */
-export const FlopProbabilityTable: React.FC = () => {
-  // Table data: 11 rows x 4 columns
-  // First row is headers, first column is row labels
-  // Edit this array to fill in your pre-calculated values
+export const CombinationProbabilityTable: React.FC = () => {
+
   const tableData: (string | number)[][] = [
-    ['Combination', 'Beginner', 'Intermediate', 'Advanced'],
-    ['Single 1', '', '', ''],
-    ['Single 5', '', '', ''],
-    ['1 Pair', '', '', ''],
-    ['2 Pair', '', '', ''],
-    ['3 Pair', '', '', ''],
-    ['3 of a Kind', '', '', ''],
-    ['4 of a Kind', '', '', ''],
-    ['5 of a Kind', '', '', ''],  
-    ['6 of a Kind', '', '', ''],  
-    ['Straight of 4', '', '', ''],  
-    ['Straight of 5', '', '', ''],  
-    ['Straight of 6', '', '', ''],  
-    ['2 Triplets', '', '', ''],  
-    ['Pyramid of 6', '', '', ''],  
+    ['Combination | # of Dice ->', '6', '7', '8', '9', '10'],
+    ['Single 1', '66.51%', '72.09%', '', '', ''],
+    ['Single 5', '66.51%', '72.09%', '', '', ''],
+    ['1 Pair', '98.46%', '100.00%', '', '', ''],
+    ['2 Pair', '59.88%', '85.60%', '', '', ''],
+    ['3 Pair', '4.84%', '23.18%', '', '', ''],
+    ['3 of a Kind', '36.73%', '54.09%', '', '', ''],
+    ['4 of a Kind', '5.22%', '10.58%', '', '', ''],
+    ['5 of a Kind', '0.40%', '1.20%', '', '', ''],  
+    ['6 of a Kind', '0.01%', '0.08%', '', '', ''],  
+    ['Straight of 4', '27.01%', '38.41%', '', '', ''],  
+    ['Straight of 5', '9.26%', '17.40%', '', '', ''],  
+    ['Straight of 6', '1.54%', '5.40%', '', '', ''],  
+    ['2 Triplets', '0.64%', '3.38%', '', '', ''],  
+    ['Pyramid of 6', '15.43%', '', '', '', ''],  
 
-    ['7 of a Kind', '', '', ''],  
-    ['Straight of 7', '', '', ''],  
+    ['7 of a Kind', '-', '', '', '', ''],  
+    ['Straight of 7', '-', '', '', '', ''],  
 
-    ['4 Pair', '', '', ''],
-    ['8 of a Kind', '', '', ''],  
-    ['Straight of 8', '', '', ''],  
-    ['2 Quadruplets', '', '', ''],  
+    ['4 Pair', '-', '', '', '', ''],
+    ['8 of a Kind', '-', '', '', '', ''],  
+    ['Straight of 8', '-', '', '', '', ''],  
+    ['2 Quadruplets', '-', '', '', '', ''],  
 
-    ['9 of a Kind', '', '', ''],  
-    ['3 Triplets', '', '', ''],  
-    ['Straight of 9', '', '', ''],  
+    ['9 of a Kind', '-', '', '', '', ''],  
+    ['3 Triplets', '-', '', '', '', ''],  
+    ['Straight of 9', '-', '', '', '', ''],
 
-    ['5 Pair', '', '', ''],
-    ['10 of a Kind', '', '', ''],  
-    ['Straight of 10', '', '', ''],   
-    ['2 Quintuplets', '', '', ''],  
-    ['Pyramid of 10', '', '', ''],  
+    ['5 Pair', '-', '', '', '', ''],
+    ['10 of a Kind', '-', '', '', '', ''],  
+    ['Straight of 10', '-', '', '', '', ''],   
+    ['2 Quintuplets', '-', '', '', '', ''],  
+    ['Pyramid of 10', '-', '', '', '', ''],  
 
-    ['2 Sextuplets', '', '', ''],  
-    ['2 Septuplets', '', '', ''],  
-    ['2 Octuplets', '', '', ''],  
-    ['2 Nonuplets', '', '', ''],  
-    ['2 Decuplets', '', '', ''],  
-    ['Pyramid of 15', '', '', ''], 
+    ['2 Sextuplets', '-', '', '', '', ''],  
+    ['2 Septuplets', '-', '', '', '', ''],  
+    ['2 Octuplets', '-', '', '', '', ''],  
+    ['2 Nonuplets', '-', '', '', '', ''],  
+    ['2 Decuplets', '-', '', '', '', ''],  
+    ['Pyramid of 15', '-', '', '', '', ''],
 
   ];
 

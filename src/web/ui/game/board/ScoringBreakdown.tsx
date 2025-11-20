@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ScoringBreakdown, ScoringBreakdownStep } from '../../../../game/types';
 import { ScoringElements, calculateFinalScore } from '../../../../game/logic/scoringElements';
 import { getAnimationSpeed } from '../../../utils/uiSettings';
+import { formatCombinationKey } from '../../../../game/utils/combinationTracking';
 
 interface ScoringBreakdownProps {
   breakdown: ScoringBreakdown & { selectedIndices?: number[] };
@@ -320,7 +321,9 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
         borderRadius: '4px'
       }}>
         <div style={{ fontSize: '11px', fontWeight: '500' }}>
-          {baseStep.description.split('=')[0].trim()}
+          {(breakdown as any).combinationKeys 
+            ? (breakdown as any).combinationKeys.map((key: string) => formatCombinationKey(key)).join(', ')
+            : baseStep.description.split('=')[0].trim()}
         </div>
       </div>
 

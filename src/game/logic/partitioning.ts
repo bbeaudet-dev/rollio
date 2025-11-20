@@ -6,14 +6,8 @@
  */
 
 import { Die, ScoringCombination } from '../types';
-import { findAllPossibleCombinations } from './findCombinations';
+import { findAllPossibleCombinations, ScoringContext } from './findCombinations';
 import { debugLog, getDebugMode } from '../utils/debug';
-
-interface ScoringContext {
-  charms?: any[];
-  materials?: any[];
-  charmManager?: any;
-}
 
 /**
  * Find all valid partitionings of dice into scoring combinations

@@ -35,7 +35,7 @@ export const StartGameButton: React.FC<StartGameButtonProps> = ({ onClick }) => 
           e.currentTarget.style.boxShadow = '0 4px 8px rgba(40, 167, 69, 0.3)';
         }}
       >
-        🚀 Start Adventure!
+        Start
       </button>
     </div>
   );

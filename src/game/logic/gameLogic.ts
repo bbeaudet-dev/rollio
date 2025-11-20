@@ -1,6 +1,7 @@
 import { Charm, Die, DieValue, GameState, RoundState } from '../types';
 import { hasAnyScoringCombination, getAllPartitionings } from '../logic/scoring';
 import { shouldTriggerHotDice } from './materialSystem';
+import { checkFlopShieldAvailable } from './charms/CommonCharms';
 
 interface ScoringContext {
   charms: Charm[];
@@ -14,9 +15,27 @@ interface ScoringContext {
 
 /**
  * Checks if a roll is a flop (no scoring combinations)
+ * REQUIRES gameState - always respects difficulty restrictions and flop shield availability
+ * If flop shield is available, it's not a flop (shield can prevent it)
  */
-export function isFlop(diceHand: Die[]): boolean {
-  return !hasAnyScoringCombination(diceHand);
+export function isFlop(diceHand: Die[], gameState: GameState): boolean {
+  const difficulty = gameState.config.difficulty;
+  const hasScoringCombinations = hasAnyScoringCombination(diceHand, difficulty);
+  
+  // If there are scoring combinations, it's not a flop
+  if (hasScoringCombinations) {
+    return false;
+  }
+  
+  // No scoring combinations - check if flop shield is available
+  // If flop shield is available, it's not a flop (shield can prevent it)
+  const shieldCheck = checkFlopShieldAvailable(gameState);
+  if (shieldCheck.available) {
+    return false;
+  }
+  
+  // No scoring combinations and no flop shield - it's a flop
+  return true;
 }
 
 /**

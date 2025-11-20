@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShopItem } from './ShopItem';
 import { Charm, Consumable, Blessing } from '../../../../game/types';
+import { useDifficulty } from '../../../contexts/DifficultyContext';
 import { getCharmPrice, getConsumablePrice, getBlessingPrice, applyDiscount } from '../../../../game/logic/shop';
 
 interface ShopItemListProps {
@@ -20,13 +21,17 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
   onPurchase,
   title
 }) => {
+  const difficulty = useDifficulty();
+  
   const getPrice = (item: Charm | Consumable | Blessing) => {
+    // Convert string to DifficultyLevel type when calling game functions
+    const difficultyLevel = difficulty as any;
     if (itemType === 'charm') {
-      return getCharmPrice(item as Charm);
+      return getCharmPrice(item as Charm, difficultyLevel);
     } else if (itemType === 'consumable') {
-      return getConsumablePrice(item as Consumable);
+      return getConsumablePrice(item as Consumable, difficultyLevel);
     } else {
-      return getBlessingPrice(item as Blessing);
+      return getBlessingPrice(item as Blessing, difficultyLevel);
     }
   };
 

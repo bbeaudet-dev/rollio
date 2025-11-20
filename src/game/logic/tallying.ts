@@ -30,9 +30,9 @@ export function calculateLevelRewards(
   const difficulty = getDifficulty(gameState);
   const levelConfig = getLevelConfig(levelNumber, difficulty);
   
-  // Base level completion reward (skip for Sapphire except miniboss/boss)
+  // Base level completion reward (skip for Platinum except miniboss/boss)
   let baseReward = 0;
-  if (difficulty !== 'sapphire' || isMinibossLevel(levelNumber) || isMainBossLevel(levelNumber)) {
+  if (difficulty !== 'platinum' || isMinibossLevel(levelNumber) || isMainBossLevel(levelNumber)) {
     baseReward = levelConfig.baseMoney;
   }
   

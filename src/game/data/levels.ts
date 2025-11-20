@@ -98,7 +98,7 @@ export function calculateLevelThreshold(levelNumber: number, difficulty?: Diffic
     baseThreshold = 500 + (levelNumber - 1) * 250 * levelNumber;
   }
   
-  // Apply difficulty modifier (Silver = 1.5x)
+  // Apply difficulty modifier (each config explicitly includes all cumulative modifiers)
   if (difficulty) {
     const difficultyConfig = getDifficultyConfig(difficulty);
     if (difficultyConfig.pointThresholdModifier) {

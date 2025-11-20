@@ -1,5 +1,6 @@
 import React from 'react';
 import { FlopProbabilityTable } from './FlopProbabilityTable';
+import { CombinationProbabilityTable } from './CombinationProbabilityTable';
 
 /**
  * Manual Probability Tables
@@ -34,7 +35,9 @@ export const ManualProbabilityTables: React.FC = () => {
       </p>
       
       <FlopProbabilityTable />
-      {/* Add more manual probability tables here as needed */}
+      
+    <CombinationProbabilityTable />
+          
     </div>
   );
 };

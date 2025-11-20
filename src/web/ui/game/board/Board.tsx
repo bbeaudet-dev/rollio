@@ -4,8 +4,11 @@ import { DiceDisplay } from './DiceDisplay';
 import { RoundInfo } from './RoundInfo';
 import { GameAlerts } from './GameAlerts';
 import { ScoringBreakdownComponent } from './ScoringBreakdown';
+import { PreviewScoring } from './score/PreviewScoring';
 import { ScoringBreakdown, Die } from '../../../../game/types';
 import { ViewDiceSet } from './ViewDiceSet';
+import { DifficultyDiceDisplay } from '../../components/DifficultyDiceDisplay';
+import { useDifficulty } from '../../../contexts/DifficultyContext';
 
 interface BoardProps {
   dice: any[];
@@ -53,6 +56,7 @@ export const Board: React.FC<BoardProps> = ({
   onCompleteBreakdown = () => {},
   diceSet = []
 }) => {
+  const difficulty = useDifficulty();
   // Get level color (memoized to avoid recalculating on every render)
   const levelColor = useMemo(() => getLevelColor(levelNumber), [levelNumber]);
   
@@ -130,6 +134,18 @@ export const Board: React.FC<BoardProps> = ({
         consecutiveFlops={consecutiveFlops}
       />
 
+      {/* Difficulty Dice Display - Top Right */}
+      {difficulty && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          zIndex: 10
+        }}>
+          <DifficultyDiceDisplay difficulty={difficulty} size={60} />
+        </div>
+      )}
+
       {/* Scoring Breakdown - shows when scoring */}
       {breakdownState !== 'hidden' && scoringBreakdown && (
         <ScoringBreakdownComponent
@@ -144,40 +160,9 @@ export const Board: React.FC<BoardProps> = ({
       )}
       
 
-      {/* Selected Dice Preview - bottom right (hidden when showing breakdown) */}
+      {/* Selected Dice Preview - top center (same position as breakdown, hidden when showing breakdown) */}
       {previewScoring && breakdownState === 'hidden' && (
-        <div style={{
-          position: 'absolute',
-          bottom: '15px',
-          right: '15px',
-          zIndex: 20,
-          backgroundColor: previewScoring.isValid ? 'rgba(227, 242, 253, 0.85)' : 'rgba(255, 235, 238, 0.85)',
-          border: `1px solid ${previewScoring.isValid ? '#007bff' : '#f44336'}`,
-          borderRadius: '8px',
-          padding: '12px',
-          fontSize: '14px',
-          fontWeight: 500,
-          maxWidth: '200px',
-          minWidth: '150px',
-          pointerEvents: 'none',
-          userSelect: 'none'
-        }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-            Combos:
-          </div>
-          {previewScoring.isValid ? (
-            <div style={{ fontSize: '13px', fontWeight: 'normal' }}>
-              <div style={{ marginBottom: '4px' }}>{previewScoring.combinations.join(', ')}</div>
-              <div style={{ fontWeight: 'bold', color: '#007bff' }}>
-                {previewScoring.points} points
-              </div>
-            </div>
-          ) : (
-            <div style={{ color: '#f44336', fontSize: '13px', fontWeight: 'normal' }}>
-              no scoring combinations
-            </div>
-          )}
-        </div>
+        <PreviewScoring previewScoring={previewScoring} />
       )}
 
       {!justBanked && (
