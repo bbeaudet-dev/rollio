@@ -2,7 +2,9 @@
  * Centralized API client for making authenticated requests to the backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+// API base URL - points to Render backend in production, local server in development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD ? 'https://your-backend.onrender.com' : 'http://localhost:5173');
 
 export interface ApiResponse<T = any> {
   success: boolean;

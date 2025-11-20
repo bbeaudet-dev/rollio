@@ -90,7 +90,7 @@ export const FlopProbabilityTable: React.FC = () => {
                   borderBottom: 'none'
                 }}
               >
-                Flop Probability Table
+                Flop Probabilities
               </th>
             </tr>
             {/* Subtitle row - merged across all columns */}
@@ -108,7 +108,7 @@ export const FlopProbabilityTable: React.FC = () => {
                   borderBottom: '2px solid #dee2e6'
                 }}
               >
-                Probabilities of flopping with standard 6-sided dice, with varying difficulty and # of dice
+                Probabilities of flopping with varying difficulty and # of standard 6-sided dice
               </th>
             </tr>
             {/* Column headers row */}

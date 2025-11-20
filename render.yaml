@@ -9,3 +9,6 @@ services:
         value: production
       - key: PORT
         value: 10000
+      # Database connection - set these in Render dashboard
+      # DATABASE_URL should be set in Render dashboard (from Neon/Supabase)
+      # JWT_SECRET should be set in Render dashboard (generate with: openssl rand -base64 32)
