@@ -118,7 +118,7 @@ export const CombinationProbabilityTable: React.FC = () => {
                   borderBottom: 'none'
                 }}
               >
-                Flop Probability Table
+                Combination Probabilities
               </th>
             </tr>
             {/* Subtitle row - merged across all columns */}
@@ -136,7 +136,7 @@ export const CombinationProbabilityTable: React.FC = () => {
                   borderBottom: '2px solid #dee2e6'
                 }}
               >
-                Probabilities of flopping with standard 6-sided dice, with varying difficulty and # of dice
+                Probabilities of rolling combinations with varying # of 6-sided dice
               </th>
             </tr>
             {/* Column headers row */}

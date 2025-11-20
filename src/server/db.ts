@@ -10,11 +10,11 @@ const connectionString = process.env.DATABASE_URL ||
 export const pool = new Pool({
   connectionString,
   ssl: {
-    rejectUnauthorized: false // Required for Neon
+    rejectUnauthorized: false // Required for Neon, Supabase, and other cloud PostgreSQL providers
   },
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  max: 20, // Maximum number of clients in the pool (good for Render)
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 5000, // Wait 5 seconds for connection (Render can be slower)
 });
 
 // Test connection

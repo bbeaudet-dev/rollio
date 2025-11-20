@@ -17,8 +17,10 @@ const server = createServer(app);
 app.use('/assets', express.static(path.join(__dirname, '../../public/assets')));
 
 // CORS configuration
+// In production, allow Vercel frontend URL (set via FRONTEND_URL env var)
+// In development, allow localhost origins
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? true  // Allow all origins in production for now
+  ? (process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : true)  // Use FRONTEND_URL if set, otherwise allow all
   : ["http://localhost:3000", "http://localhost:5173"];
 
 const io = new Server(server, {
@@ -37,9 +39,25 @@ app.use(express.json());
 // CORS middleware for Express routes
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (process.env.NODE_ENV === 'production' || (Array.isArray(allowedOrigins) && origin && allowedOrigins.includes(origin))) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  
+  // In production, check against allowed origins
+  if (process.env.NODE_ENV === 'production') {
+    if (Array.isArray(allowedOrigins)) {
+      // If FRONTEND_URL is set, only allow that origin
+      if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
+    } else {
+      // Allow all origins if FRONTEND_URL not set (for flexibility)
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    }
+  } else {
+    // In development, allow localhost origins
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
   }
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');

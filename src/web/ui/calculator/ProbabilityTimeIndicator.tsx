@@ -6,9 +6,9 @@ interface ProbabilityTimeIndicatorProps {
 
 export const ProbabilityTimeIndicator: React.FC<ProbabilityTimeIndicatorProps> = ({ totalOutcomes }) => {
   // Calculate computation time estimate
-  // Assuming ~1 billion operations per second (1e9 ops/sec) for probability calculations
-  const OPS_PER_SECOND = 1e9;
-  const seconds = totalOutcomes / OPS_PER_SECOND;
+  // Assuming ~10,000 rolls per second for probability calculations
+  const ROLLS_PER_SECOND = 10000; // was 1e9
+  const seconds = totalOutcomes / ROLLS_PER_SECOND;
   
   let timeEstimate: string;
   let bgColor: string;
