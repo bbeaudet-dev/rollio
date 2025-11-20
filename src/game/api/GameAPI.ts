@@ -1,13 +1,13 @@
 import { GameInterface } from '../../cli/interfaces';
 import { GameState, GameConfig, RoundState } from '../types';
 import { CharmManager } from '../logic/charmSystem';
+import { extractCombinationTypesFromBreakdown, trackCombinationUsage } from '../utils/combinationTracking';
 import { 
   calculatePreviewScoring, 
   processRoll,
   processBankPoints,
   startNewRound,
   endRound,
-  removeDiceFromHand,
   removeDiceAndCheckHotDice,
   addPointsToRound,
   incrementCrystalsScored,
@@ -18,8 +18,6 @@ import {
   incrementConsecutiveFlops,
   resetConsecutiveBanks,
   setForfeitedPoints,
-  getBankedRoundPoints,
-  getLevelPointsBeforeBanking
 } from '../logic/gameActions';
 import { isGameOver, isFlop, isHotDice, isLevelCompleted, canBankPoints as canBankPointsLogic } from '../logic/gameLogic';
 import { endGame, advanceToNextLevel } from '../logic/gameActions';
@@ -196,23 +194,11 @@ export class GameAPI {
       gameState.history.highScoreSingleRoll = finalPoints;
     }
     
-    // Extract combinations from breakdown
-    // Check if combinationTypes were stored in breakdown
-    let combinationTypes: string[] = [];
-    if ((breakdown as any).combinationTypes) {
-      combinationTypes = (breakdown as any).combinationTypes;
-    } else {
-      // Fallback: extract from description
-      const baseStep = breakdown.steps.find(s => s.step === 'baseCombinations');
-      if (baseStep) {
-        const match = baseStep.description.match(/Base combinations: (.+) =/);
-        if (match && match[1]) {
-          combinationTypes = match[1].split(', ').map(c => c.trim());
-        }
-      }
-    }
+    // Extract combination types from breakdown
+    const combinationTypes = extractCombinationTypesFromBreakdown(breakdown);
     
-    let currentGameState = gameState;
+    // Track combination usage with composite keys
+    let currentGameState = trackCombinationUsage(gameState, breakdown, roundState.diceHand);
     
     // Remove dice from hand and check for hot dice (includes SwordInTheStone special case)
     const { gameState: stateAfterRemoval, wasHotDice } = removeDiceAndCheckHotDice(
@@ -467,7 +453,7 @@ export class GameAPI {
   /**
    * Roll dice 
    * NOTE: This is a ROLL, not a reroll. Reroll only happens before scoring.
-   * If diceHand is empty (hot dice), resets it to full set before rolling.
+   * processRoll already handles empty diceHand (populates from diceSet)
    */
   async rollDice(gameState: GameState): Promise<RollDiceResult> {
     const roundState = gameState.currentLevel.currentRound;
@@ -475,20 +461,11 @@ export class GameAPI {
       throw new Error('No active round to roll dice');
     }
     
-    // Hot dice should have been processed during scoring, so diceHand should already be reset
-    // If diceHand is empty and we have history, hot dice occurred but wasn't reset - fix it
-    let newGameState = { ...gameState };
-    if (roundState.diceHand.length === 0 && roundState.rollHistory.length > 0) {
-      newGameState = processHotDice(newGameState);
-    }
-    const currentRoundState = newGameState.currentLevel.currentRound;
-    if (!currentRoundState) {
-      throw new Error('No active round to roll dice');
-    }
-    const result = processRoll(currentRoundState, newGameState.diceSet);
+    const result = processRoll(roundState, gameState.diceSet);
     
     // Update game state
-    newGameState.currentLevel = { ...newGameState.currentLevel };
+    const newGameState = { ...gameState };
+    newGameState.currentLevel = { ...gameState.currentLevel };
     newGameState.currentLevel.currentRound = result.newRoundState;
     
     // Get roll number from history

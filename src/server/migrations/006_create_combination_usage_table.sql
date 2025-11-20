@@ -8,8 +8,6 @@ CREATE TABLE IF NOT EXISTS combination_usage (
   
   -- Usage stats
   times_used INTEGER DEFAULT 0,
-  total_points_scored INTEGER DEFAULT 0,
-  highest_score INTEGER DEFAULT 0,
   
   -- Timestamps
   first_used_at TIMESTAMP,

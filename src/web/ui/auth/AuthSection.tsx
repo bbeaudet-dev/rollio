@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoginModal, RegisterModal } from './index';
 
 export const AuthSection: React.FC = () => {
+  const navigate = useNavigate();
   const { user, isAuthenticated, logout, isLoading } = useAuth();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -20,8 +22,8 @@ export const AuthSection: React.FC = () => {
         border: `1px solid ${isAuthenticated ? '#28a745' : '#dee2e6'}`
       }}>
         {isAuthenticated && user ? (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ textAlign: 'left' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            <div style={{ textAlign: 'left', flex: 1 }}>
               <div style={{ fontSize: '14px', fontWeight: '500', color: '#2c3e50' }}>
                 Logged in as: <span style={{ color: '#28a745' }}>{user.username}</span>
               </div>
@@ -32,6 +34,28 @@ export const AuthSection: React.FC = () => {
               )}
             </div>
             <button
+              onClick={() => navigate('/profile')}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#5a6268';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#6c757d';
+              }}
+            >
+              Profile
+            </button>
+            <button
               onClick={logout}
               style={{
                 padding: '6px 12px',
@@ -41,7 +65,8 @@ export const AuthSection: React.FC = () => {
                 borderRadius: '4px',
                 fontSize: '13px',
                 cursor: 'pointer',
-                fontWeight: '500'
+                fontWeight: '500',
+                whiteSpace: 'nowrap'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#c82333';

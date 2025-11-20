@@ -42,7 +42,8 @@ export interface DiceSetConfig {
 // SCORING TYPES
 import { ScoringCombinationType } from './data/combinations';
 import type { ScoringBreakdown } from './logic/scoringBreakdown';
-export type CombinationCounters = Record<ScoringCombinationType, number>;
+// Combination counters use composite keys (e.g., "nPairs:2", "nOfAKind:4")
+export type CombinationCounters = Record<string, number>;
 
 // Re-export scoring value types
 export type { ScoringElements } from './logic/scoringElements';

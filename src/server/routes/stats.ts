@@ -164,8 +164,7 @@ router.get('/combinations', requireAuth, async (req: Request, res: Response) => 
     const userId = (req as any).userId;
 
     const result = await query(
-      `SELECT combination_type, times_used, total_points_scored, highest_score,
-              first_used_at, last_used_at
+      `SELECT combination_type, times_used, first_used_at, last_used_at
        FROM combination_usage
        WHERE user_id = $1
        ORDER BY times_used DESC`,
@@ -175,8 +174,6 @@ router.get('/combinations', requireAuth, async (req: Request, res: Response) => 
     const combinations = result.rows.map(row => ({
       combinationType: row.combination_type,
       timesUsed: row.times_used,
-      totalPointsScored: row.total_points_scored,
-      highestScore: row.highest_score,
       firstUsedAt: row.first_used_at,
       lastUsedAt: row.last_used_at,
     }));

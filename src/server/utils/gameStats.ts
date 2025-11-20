@@ -139,47 +139,49 @@ async function updateUserStats(
  * Save combination usage statistics
  */
 async function saveCombinationUsage(userId: string, gameState: GameState): Promise<void> {
-  const combinationCounters = gameState.history.combinationCounters;
-  
-  // Get all combinations that were used (count > 0)
-  const usedCombinations = Object.entries(combinationCounters)
-    .filter(([_, count]) => count > 0);
-  
-  // For each used combination, update or insert usage stats
-  for (const [combinationType, timesUsed] of usedCombinations) {
-    // Check if record exists
-    let result = await query(
-      `SELECT * FROM combination_usage 
-       WHERE user_id = $1 AND combination_type = $2`,
-      [userId, combinationType]
-    );
+  try {
+    const combinationCounters = gameState.history.combinationCounters || {};
     
-    // Calculate total points and highest score for this combination
-    // This is a simplified version - in a full implementation, we'd track
-    // points per combination during gameplay
-    const totalPoints = 0; // TODO: Track this during gameplay
-    const highestScore = 0; // TODO: Track this during gameplay
+    // Get all combinations that were used (count > 0)
+    const usedCombinations = Object.entries(combinationCounters)
+      .filter(([_, count]) => count > 0);
     
-    if (result.rows.length === 0) {
-      // Insert new record
-      await query(
-        `INSERT INTO combination_usage 
-         (user_id, combination_type, times_used, total_points_scored, 
-          highest_score, first_used_at, last_used_at)
-         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
-        [userId, combinationType, timesUsed, totalPoints, highestScore]
-      );
-    } else {
-      // Update existing record
-      await query(
-        `UPDATE combination_usage
-         SET times_used = times_used + $1,
-             last_used_at = NOW(),
-             updated_at = NOW()
-         WHERE user_id = $2 AND combination_type = $3`,
-        [timesUsed, userId, combinationType]
-      );
+    if (usedCombinations.length === 0) {
+      return;
     }
+    
+    // For each used combination, update or insert usage stats
+    for (const [combinationType, timesUsed] of usedCombinations) {
+      // Check if record exists
+      let result = await query(
+        `SELECT * FROM combination_usage 
+         WHERE user_id = $1 AND combination_type = $2`,
+        [userId, combinationType]
+      );
+      
+      if (result.rows.length === 0) {
+        // Insert new record
+        await query(
+          `INSERT INTO combination_usage 
+           (user_id, combination_type, times_used, first_used_at, last_used_at)
+           VALUES ($1, $2, $3, NOW(), NOW())`,
+          [userId, combinationType, timesUsed]
+        );
+      } else {
+        // Update existing record
+        await query(
+          `UPDATE combination_usage
+           SET times_used = times_used + $1,
+               last_used_at = NOW(),
+               updated_at = NOW()
+           WHERE user_id = $2 AND combination_type = $3`,
+          [timesUsed, userId, combinationType]
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Error saving combination usage:', error);
+    throw error; // Re-throw so it's caught by the outer try-catch
   }
 }
 

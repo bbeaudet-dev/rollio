@@ -8,42 +8,25 @@ import { MainMenuButton } from '../components/MainMenuButton';
 
 export const MainMenu: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hasSavedGame, setHasSavedGame] = useState(false);
-  const [isCheckingSave, setIsCheckingSave] = useState(false);
 
-  // Check if user has a saved game (only after auth is loaded)
+  // Check for saved game in the background (non-blocking)
   useEffect(() => {
-    const checkSavedGame = async () => {
-      if (authLoading) {
-        return;
-      }
+    if (!isAuthenticated) {
+      setHasSavedGame(false);
+      return;
+    }
 
-      // Only check for saved game if user is authenticated 
-      if (!isAuthenticated) {
-        setHasSavedGame(false);
-        setIsCheckingSave(false);
-        return;
-      }
-
-      // User is authenticated - check for saved game
-      setIsCheckingSave(true);
-      try {
-        const result = await gameApi.loadGame();
-        // 404 means no saved game, which is fine - just means hasSavedGame should be false
-        // Only set to true if we successfully got a gameState
-        const hasGame = result.success && !!(result as any).gameState;
-        setHasSavedGame(hasGame);
-      } catch (error) {
-        setHasSavedGame(false);
-      } finally {
-        setIsCheckingSave(false);
-      }
-    };
-
-    checkSavedGame();
-  }, [isAuthenticated, authLoading]);
+    // Check for saved game in background - don't block UI
+    gameApi.loadGame().then(result => {
+      const hasGame = result.success && !!(result as any).gameState;
+      setHasSavedGame(hasGame);
+    }).catch(() => {
+      setHasSavedGame(false);
+    });
+  }, [isAuthenticated]);
   return (
     <div style={{
       fontFamily: 'Arial, sans-serif',
@@ -81,21 +64,14 @@ export const MainMenu: React.FC = () => {
         gap: '12px',
         marginTop: '30px'
       }}>
-        {/* Don't show buttons until auth check is complete */}
-        {authLoading || isCheckingSave ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
-            Loading...
-          </div>
-        ) : (
-          <>
-            {isAuthenticated && hasSavedGame && (
-          <MainMenuButton
-            variant="success"
-            onClick={() => navigate('/game?load=true')}
-          >
-            Continue Game
-          </MainMenuButton>
-        )}
+        {/* Continue button - always shown, disabled if no save */}
+        <MainMenuButton
+          variant="success"
+          onClick={() => navigate('/game?load=true')}
+          disabled={!isAuthenticated || !hasSavedGame}
+        >
+          Continue Game
+        </MainMenuButton>
         
         <MainMenuButton
           variant="primary"
@@ -111,17 +87,8 @@ export const MainMenu: React.FC = () => {
           Collection
         </MainMenuButton>
         
-        {isAuthenticated && (
-          <MainMenuButton
-            variant="secondary"
-            onClick={() => navigate('/profile')}
-          >
-            Profile
-          </MainMenuButton>
-        )}
-        
         <button 
-          onClick={() => setIsSettingsOpen(true)} 
+          onClick={() => setIsSettingsOpen(true)}
           style={{
             backgroundColor: '#6c757d',
             color: '#fff',
@@ -133,7 +100,7 @@ export const MainMenu: React.FC = () => {
             fontWeight: '500',
             transition: 'background-color 0.2s ease',
             fontFamily: 'Arial, sans-serif',
-            minHeight: '44px' // Touch target size
+            minHeight: '44px'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = '#5a6268';
@@ -144,8 +111,6 @@ export const MainMenu: React.FC = () => {
         >
           Settings
         </button>
-          </>
-        )}
 
         <SettingsModal 
           isOpen={isSettingsOpen} 

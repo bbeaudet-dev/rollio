@@ -139,9 +139,6 @@ export function calculateScoringBreakdown(
     scoringElements,
     `Combinations: ${combinationTypes.join(', ')} = ${basePoints} points`
   );
-  
-  // Store combination types in breakdown for easy access
-  (breakdown as any).combinationTypes = combinationTypes;
 
   // Step 3: Apply pip effects (in order of selected dice)
   // This also checks for per-die charm triggers before each pip effect
@@ -199,20 +196,9 @@ export function calculateScoringBreakdown(
   // Build and return final breakdown
   const finalBreakdown = breakdown.build();
   
-  // Log breakdown for debugging (always log for now to see what's happening)
-  console.log('=== Scoring Breakdown ===');
-  console.log(`Selected dice indices: [${selectedIndices.join(', ')}]`);
-  finalBreakdown.steps.forEach((step, index) => {
-    const inputScore = calculateFinalScore(step.input);
-    const outputScore = calculateFinalScore(step.output);
-    console.log(`${index + 1}. ${step.step}:`);
-    console.log(`   Input:  ${step.input.basePoints} pts × ${step.input.multiplier}x ^ ${step.input.exponent} = ${inputScore}`);
-    console.log(`   Output: ${step.output.basePoints} pts × ${step.output.multiplier}x ^ ${step.output.exponent} = ${outputScore}`);
-    console.log(`   ${step.description}`);
-  });
-  const finalScore = calculateFinalScore(finalBreakdown.final);
-  console.log(`Final Score: ${finalScore} (${finalBreakdown.final.basePoints} × ${finalBreakdown.final.multiplier} ^ ${finalBreakdown.final.exponent})`);
-  console.log('========================');
+  // Add selectedPartitioning and combinationTypes to the final breakdown for tracking
+  (finalBreakdown as any).selectedPartitioning = selectedPartitioning;
+  (finalBreakdown as any).combinationTypes = combinationTypes;
   
   return finalBreakdown;
 }

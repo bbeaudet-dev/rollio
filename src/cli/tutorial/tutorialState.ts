@@ -1,6 +1,5 @@
 import { Die, GameState, RoundState, DiceSetConfig, DiceMaterialType, CombinationCounters } from '../../game/types';
 import { CharmManager } from '../../game/logic/charmSystem';
-import { ALL_SCORING_TYPES } from '../../game/data/combinations';
 
 export interface TutorialState {
   currentLesson: string;
@@ -87,9 +86,7 @@ export class TutorialStateManager {
       },
       history: {
         totalScore: 0,
-        combinationCounters: Object.fromEntries(
-          ALL_SCORING_TYPES.map(c => [c, 0])
-        ) as CombinationCounters,
+        combinationCounters: {},
         levelHistory: []
       }
     };

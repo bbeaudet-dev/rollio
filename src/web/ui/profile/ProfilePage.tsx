@@ -5,6 +5,7 @@ import { statsApi, ApiResponse } from '../../services/api';
 import { ProfilePictureSelector } from './ProfilePictureSelector';
 import { ProfileStats } from './ProfileStats';
 import { RecentGames, GameHistory } from './RecentGames';
+import { CombinationStats } from './CombinationStats';
 import { MainMenuReturnButton } from '../components/MenuButton';
 
 interface UserStats {
@@ -107,6 +108,11 @@ export const ProfilePage: React.FC = () => {
           onPictureClick={() => setShowPictureSelector(true)} 
         />
       )}
+
+      {/* Combination Usage Statistics */}
+      <div style={{ marginBottom: '30px' }}>
+        <CombinationStats />
+      </div>
 
       {/* Game History */}
       <RecentGames games={history} />

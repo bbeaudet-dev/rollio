@@ -15,6 +15,7 @@ export interface ApiResponse<T = any> {
   stats?: any; // For stats responses
   games?: any[]; // For game history responses
   pictures?: any[]; // For profile pictures responses
+  combinations?: any[]; // For combination stats responses
 }
 
 export interface ApiError {

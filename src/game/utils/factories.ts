@@ -34,7 +34,8 @@ export const DEFAULT_SHOP_STATE: ShopState = {
 };
 
 function createInitialCombinationCounters(): CombinationCounters {
-  return Object.fromEntries(ALL_SCORING_TYPES.map(c => [c, 0])) as CombinationCounters;
+  // Start with empty object - combinations will be added as they're used
+  return {};
 }
 
 // Convert die config to runtime die state
