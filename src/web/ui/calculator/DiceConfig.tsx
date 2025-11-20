@@ -4,10 +4,9 @@ interface DiceConfigProps {
   dieIndex: number;
   faces: number[];
   onChange: (faces: number[]) => void;
-  disabled?: boolean;
 }
 
-export const DiceConfig: React.FC<DiceConfigProps> = ({ dieIndex, faces, onChange, disabled = false }) => {
+export const DiceConfig: React.FC<DiceConfigProps> = ({ dieIndex, faces, onChange }) => {
   const handleNumSidesChange = (newNumSides: number) => {
     if (newNumSides < faces.length) {
       // Remove sides
@@ -30,31 +29,28 @@ export const DiceConfig: React.FC<DiceConfigProps> = ({ dieIndex, faces, onChang
   };
 
   const isFirstDie = dieIndex === 0;
-  const showFullConfig = !disabled; // Show full config for all non-disabled dice
-  const isWideDie = !disabled && isFirstDie; // First die gets wider width
+  const colsPerRow = Math.ceil(faces.length / 2);
 
   return (
     <div style={{
-      backgroundColor: disabled ? '#f8f9fa' : '#fff',
-      padding: '3px 6px',
-      borderRadius: '3px',
+      backgroundColor: '#fff',
+      padding: '6px',
+      borderRadius: '4px',
       border: '1px solid #dee2e6',
       marginBottom: '4px',
-      opacity: disabled ? 0.6 : 1,
       width: 'auto',
-      minWidth: isWideDie ? '300px' : '120px',
-      maxWidth: isWideDie ? '500px' : 'none',
-      height: '52px', // Fixed height for all dice boxes
+      minWidth: isFirstDie ? '300px' : '120px',
+      maxWidth: isFirstDie ? '500px' : 'none',
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'flex-start'
+      gap: '4px'
     }}>
+      {/* Die label and number of sides */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '6px',
-        marginBottom: showFullConfig ? '2px' : '0'
+        gap: '8px'
       }}>
         <div style={{
           fontSize: '11px',
@@ -65,76 +61,99 @@ export const DiceConfig: React.FC<DiceConfigProps> = ({ dieIndex, faces, onChang
         }}>
           D{dieIndex + 1}:
         </div>
-        {showFullConfig && (
-          <div style={{ flex: '1', display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-            <span style={{ fontSize: '10px', color: '#6c757d', minWidth: '35px', flexShrink: 0 }}>
-              {faces.length}s
-            </span>
-            <input
-              type="range"
-              min="1"
-              max="20"
-              value={faces.length}
-              onChange={(e) => handleNumSidesChange(parseInt(e.target.value))}
-              style={{
-                flex: '1',
-                minWidth: 0
-              }}
-            />
-          </div>
-        )}
-        {!showFullConfig && (
-          <div style={{ fontSize: '10px', color: '#6c757d' }}>
-            {faces.length}s
-          </div>
-        )}
+        <span style={{ 
+          fontSize: '10px', 
+          color: '#6c757d'
+        }}>
+          {faces.length}s
+        </span>
+      </div>
+      
+      {/* Sides slider on its own row */}
+      <div style={{
+        width: '100%',
+        maxWidth: '200px'
+      }}>
+        <input
+          type="range"
+          min="1"
+          max="20"
+          value={faces.length}
+          onChange={(e) => handleNumSidesChange(parseInt(e.target.value))}
+          style={{
+            width: '100%'
+          }}
+        />
       </div>
 
-      {showFullConfig && (
-        <>
-          <style>{`
-            input[type="number"]::-webkit-inner-spin-button,
-            input[type="number"]::-webkit-outer-spin-button {
-              -webkit-appearance: none;
-              margin: 0;
-            }
-            input[type="number"] {
-              -moz-appearance: textfield;
-            }
-          `}</style>
-          <div style={{
-            display: 'flex',
-            flexWrap: 'nowrap',
-            gap: '0',
-            alignItems: 'center',
-            marginTop: '0'
-          }}>
-            {faces.map((value, sideIndex) => (
-              <input
-                key={sideIndex}
-                type="number"
-                value={value}
-                onChange={(e) => {
-                  const num = parseInt(e.target.value) || 0;
-                  handleSideValueChange(sideIndex, num);
-                }}
-                title={`Side ${sideIndex + 1}`}
-                style={{
-                  width: '20px',
-                  padding: '1px 2px',
-                  border: '1px solid #ced4da',
-                  borderRadius: sideIndex === 0 ? '2px 0 0 2px' : sideIndex === faces.length - 1 ? '0 2px 2px 0' : '0',
-                  borderRight: sideIndex < faces.length - 1 ? 'none' : '1px solid #ced4da',
-                  fontSize: '10px',
-                  textAlign: 'center'
-                }}
-                onFocus={(e) => e.target.select()}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      {/* Side value inputs in 2-row grid */}
+      <style>{`
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type="number"] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
+      <div style={{
+        display: 'grid',
+        gridTemplateRows: 'repeat(2, 1fr)',
+        gridTemplateColumns: `repeat(${colsPerRow}, 24px)`,
+        gap: '2px',
+        width: 'fit-content'
+      }}>
+        {faces.map((value, sideIndex) => {
+          const row = Math.floor(sideIndex / colsPerRow);
+          const col = sideIndex % colsPerRow;
+          const isFirstCol = col === 0;
+          const isLastCol = col === colsPerRow - 1 || sideIndex === faces.length - 1;
+          const isFirstRow = row === 0;
+          const isLastRow = row === 1;
+          const isLastItem = sideIndex === faces.length - 1;
+          
+          // Calculate border radius - handle edge cases
+          let borderRadius = '0';
+          if (faces.length === 1) {
+            borderRadius = '3px'; // Single item gets all rounded corners
+          } else if (isFirstRow && isFirstCol) {
+            borderRadius = '3px 0 0 0';
+          } else if (isFirstRow && isLastCol && isLastItem && faces.length <= colsPerRow) {
+            borderRadius = '0 3px 0 0';
+          } else if (isLastRow && isFirstCol && (isLastItem || faces.length <= colsPerRow)) {
+            borderRadius = '0 0 0 3px';
+          } else if (isLastRow && isLastCol && isLastItem) {
+            borderRadius = '0 0 3px 0';
+          }
+          
+          return (
+            <input
+              key={sideIndex}
+              type="number"
+              value={value}
+              onChange={(e) => {
+                const num = parseInt(e.target.value) || 0;
+                handleSideValueChange(sideIndex, num);
+              }}
+              title={`Side ${sideIndex + 1}`}
+              style={{
+                width: '24px',
+                height: '20px',
+                padding: '2px',
+                border: '1px solid #ced4da',
+                borderRadius: borderRadius,
+                fontSize: '10px',
+                textAlign: 'center',
+                boxSizing: 'border-box',
+                margin: 0,
+                outline: 'none'
+              }}
+              onFocus={(e) => e.target.select()}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 };
-

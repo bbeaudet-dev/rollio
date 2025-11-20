@@ -207,7 +207,6 @@ export function calculateNPairsPoints(n: number): number {
 /**
  * Calculate points for nOfAKind combination
  * Algorithm: 10 * (faceValue + 9) * (n - 2)^2
- * This formula scales nicely with both face value and count
  */
 export function calculateNOfAKindPoints(faceValue: number, n: number): number {
   // Special case: 1s are worth more

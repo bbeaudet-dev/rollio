@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { calculateAllSpecificProbabilities, SpecificCombinationProbability } from '../../../game/logic/probability';
+import { calculateAllSpecificProbabilities, SpecificCombinationProbability, CombinationCategory } from '../../../game/logic/probability';
 import { CalculatorConfig } from './CalculatorConfig';
 import { ProbabilityTable } from './ProbabilityTable';
+import { ManualProbabilityTables } from './ManualProbabilityTables';
+import { MainMenuReturnButton } from '../components';
 
 // Timeout for calculations (5 minutes)
 const COMPUTE_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 export const CalculatorPage: React.FC = () => {
-  const navigate = useNavigate();
   const [diceFaces, setDiceFaces] = useState<number[][]>([
     [1, 2, 3, 4, 5, 6],
     [1, 2, 3, 4, 5, 6],
@@ -18,9 +18,11 @@ export const CalculatorPage: React.FC = () => {
     [1, 2, 3, 4, 5, 6],
   ]);
   const [probabilities, setProbabilities] = useState<SpecificCombinationProbability[]>([]);
+  const [noneProbability, setNoneProbability] = useState<SpecificCombinationProbability | null>(null);
+  const [category, setCategory] = useState<CombinationCategory>('beginner');
   const [isComputing, setIsComputing] = useState(false);
   const [computeError, setComputeError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<{ combinationIndex: number; totalCombinations: number; currentRoll: number; totalRolls: number } | null>(null);
+  const [progress, setProgress] = useState<{ currentRoll: number; totalRolls: number } | null>(null);
   const cancelFlagRef = useRef(false);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -49,8 +51,9 @@ export const CalculatorPage: React.FC = () => {
       try {
         const results = await calculateAllSpecificProbabilities(
           diceFaces,
-          (combinationIndex, totalCombinations, currentRoll, totalRolls) => {
-            setProgress({ combinationIndex, totalCombinations, currentRoll, totalRolls });
+          category,
+          (currentRoll, totalRolls) => {
+            setProgress({ currentRoll, totalRolls });
           },
           () => cancelFlagRef.current
         );
@@ -58,7 +61,8 @@ export const CalculatorPage: React.FC = () => {
           clearTimeout(timeoutIdRef.current);
           timeoutIdRef.current = null;
         }
-        setProbabilities(results);
+        setProbabilities(results.combinations);
+        setNoneProbability(results.noneProbability);
         setIsComputing(false);
         setProgress(null);
       } catch (error) {
@@ -68,6 +72,7 @@ export const CalculatorPage: React.FC = () => {
         }
         setComputeError(error instanceof Error ? error.message : 'An error occurred during calculation');
         setProbabilities([]);
+        setNoneProbability(null);
         setIsComputing(false);
         setProgress(null);
       }
@@ -110,41 +115,18 @@ export const CalculatorPage: React.FC = () => {
         }}>
           Probability Calculator
         </h1>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            backgroundColor: '#6c757d',
-            color: '#fff',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '6px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            transition: 'background-color 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#5a6268';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#6c757d';
-          }}
-        >
-          Back to Menu
-        </button>
+        <MainMenuReturnButton style={{ position: 'relative', top: 0, left: 0 }} />
       </div>
 
-      <p style={{
-        fontSize: '15px',
-        color: '#6c757d',
-        marginBottom: '30px'
-      }}>
-        Calculate probabilities for scoring combinations. Configure each die individually with custom sides and values.
-      </p>
-
-      <CalculatorConfig diceFaces={diceFaces} onChange={setDiceFaces} />
+      <CalculatorConfig 
+        diceFaces={diceFaces} 
+        onChange={setDiceFaces}
+        category={category}
+        onCategoryChange={setCategory}
+      />
       <ProbabilityTable 
-        probabilities={probabilities} 
+        probabilities={probabilities}
+        noneProbability={noneProbability}
         totalOutcomes={totalOutcomes}
         onCompute={handleCompute}
         onCancel={handleCancel}
@@ -152,6 +134,8 @@ export const CalculatorPage: React.FC = () => {
         computeError={computeError}
         progress={progress}
       />
+      
+      <ManualProbabilityTables />
     </div>
   );
 };

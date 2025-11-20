@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { DiceConfig } from './DiceConfig';
 
+import { CombinationCategory } from '../../../game/logic/probability';
+
 interface CalculatorConfigProps {
   diceFaces: number[][];
   onChange: (diceFaces: number[][]) => void;
+  category: CombinationCategory;
+  onCategoryChange: (category: CombinationCategory) => void;
 }
 
-export const CalculatorConfig: React.FC<CalculatorConfigProps> = ({ diceFaces, onChange }) => {
+export const CalculatorConfig: React.FC<CalculatorConfigProps> = ({ diceFaces, onChange, category, onCategoryChange }) => {
   const [isHomogenous, setIsHomogenous] = useState(false);
   const handleNumDiceChange = (newNumDice: number) => {
     if (newNumDice < diceFaces.length) {
@@ -91,7 +95,7 @@ export const CalculatorConfig: React.FC<CalculatorConfigProps> = ({ diceFaces, o
       
       <div style={{ 
         display: 'flex', 
-        alignItems: 'center', 
+        alignItems: 'flex-start', 
         gap: '15px',
         marginBottom: '10px',
         flexWrap: 'wrap'
@@ -118,47 +122,82 @@ export const CalculatorConfig: React.FC<CalculatorConfigProps> = ({ diceFaces, o
             }}
           />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          gap: '8px',
+          alignItems: 'flex-start'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '12px',
+              color: '#495057',
+              cursor: 'pointer'
+            }}>
+              <input
+                type="checkbox"
+                checked={isHomogenous}
+                onChange={(e) => setIsHomogenous(e.target.checked)}
+                style={{
+                  cursor: 'pointer'
+                }}
+              />
+              Homogenous Set
+            </label>
+            <button
+              onClick={handleReset}
+              style={{
+                backgroundColor: '#dc3545',
+                color: '#fff',
+                border: 'none',
+                padding: '4px 10px',
+                borderRadius: '3px',
+                fontSize: '11px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                transition: 'background-color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#c82333';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#dc3545';
+              }}
+            >
+              Reset All
+            </button>
+          </div>
+          <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            fontSize: '12px',
-            color: '#495057',
-            cursor: 'pointer'
+            gap: '6px'
           }}>
-            <input
-              type="checkbox"
-              checked={isHomogenous}
-              onChange={(e) => setIsHomogenous(e.target.checked)}
+            <label style={{
+              fontSize: '12px',
+              color: '#495057'
+            }}>
+              Difficulty:
+            </label>
+            <select
+              value={category}
+              onChange={(e) => onCategoryChange(e.target.value as CombinationCategory)}
               style={{
-                cursor: 'pointer'
+                padding: '4px 8px',
+                borderRadius: '3px',
+                border: '1px solid #ced4da',
+                fontSize: '11px',
+                cursor: 'pointer',
+                backgroundColor: '#fff'
               }}
-            />
-            Homogenous Set
-          </label>
-          <button
-            onClick={handleReset}
-            style={{
-              backgroundColor: '#dc3545',
-              color: '#fff',
-              border: 'none',
-              padding: '4px 10px',
-              borderRadius: '3px',
-              fontSize: '11px',
-              cursor: 'pointer',
-              fontWeight: '500',
-              transition: 'background-color 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#c82333';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#dc3545';
-            }}
-          >
-            Reset All
-          </button>
+            >
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -167,15 +206,19 @@ export const CalculatorConfig: React.FC<CalculatorConfigProps> = ({ diceFaces, o
         flexWrap: 'wrap',
         gap: '8px'
       }}>
-        {diceFaces.map((faces, dieIndex) => (
-          <DiceConfig
-            key={dieIndex}
-            dieIndex={dieIndex}
-            faces={faces}
-            onChange={(newFaces) => handleDieChange(dieIndex, newFaces)}
-            disabled={isHomogenous && dieIndex > 0}
-          />
-        ))}
+        {diceFaces
+          .filter((_, dieIndex) => !isHomogenous || dieIndex === 0)
+          .map((faces, filteredIndex) => {
+            const dieIndex = isHomogenous ? 0 : filteredIndex;
+            return (
+              <DiceConfig
+                key={dieIndex}
+                dieIndex={dieIndex}
+                faces={faces}
+                onChange={(newFaces) => handleDieChange(dieIndex, newFaces)}
+              />
+            );
+          })}
       </div>
     </div>
   );

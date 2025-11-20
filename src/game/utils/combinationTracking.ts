@@ -93,6 +93,14 @@ export function createCombinationKey(
  * Converts "nPairs:2" to "2 Pairs", "nOfAKind:4" to "4 of a Kind", etc.
  */
 export function formatCombinationKey(key: string): string {
+  // Handle special cases: "flop" (no combinations) and "hotDice" (uses all dice)
+  if (key === 'flop') {
+    return 'Flop';
+  }
+  if (key === 'hotDice') {
+    return 'Hot Dice';
+  }
+  
   const [type, param] = key.split(':');
   const paramNum = parseInt(param, 10);
   

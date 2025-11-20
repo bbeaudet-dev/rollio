@@ -1,5 +1,8 @@
-import { ScoringCombinationType } from '../data/combinations';
+import { ScoringCombinationType, DIFFICULTY_MIN_VALUES } from '../data/combinations';
 import { countDice } from './findCombinations';
+import { findAllValidPartitionings } from './partitioning';
+import { Die } from '../types';
+import { isCombinationAvailable } from './difficulty';
 
 /**
  * Probability Calculation Engine
@@ -18,6 +21,8 @@ export interface SpecificCombinationProbability {
   percentage: number;
   isPossible: boolean;
 }
+
+export type CombinationCategory = 'beginner' | 'intermediate' | 'advanced';
 
 
 /**
@@ -54,9 +59,12 @@ export function generateAllSpecificCombinations(numDice: number): Array<{ type: 
     combinations.push({ type: 'straightOfN', param: n });
   }
 
-  // Pyramid of N: 6 to numDice (if applicable)
-  if (numDice >= 6) {
-    combinations.push({ type: 'pyramidOfN', param: numDice });
+  // Pyramid of N: Triangular numbers (n*(n+1)/2) starting from 6
+  // 6 (3-2-1), 10 (4-3-2-1), 15 (5-4-3-2-1), 21 (6-5-4-3-2-1), etc.
+  for (let n = 3; ; n++) {
+    const pyramidSize = (n * (n + 1)) / 2;
+    if (pyramidSize > numDice) break;
+    combinations.push({ type: 'pyramidOfN', param: pyramidSize });
   }
   
   // N Triplets: 2 to floor(numDice/3)
@@ -311,39 +319,6 @@ function processChunk<T>(
 }
 
 /**
- * Calculate favorable outcomes for a specific combination with parameter
- * Uses inclusive counting - counts all rolls that contain the combination
- */
-async function calculateFavorableOutcomesForSpecificCombination(
-  type: ScoringCombinationType,
-  param: number,
-  diceFaces: number[][],
-  onProgress?: (current: number, total: number) => void,
-  shouldCancel?: () => boolean
-): Promise<number> {
-  // Generate all possible rolls
-  const allRolls = generateAllPossibleRolls(diceFaces);
-  
-  // Count how many rolls contain this combination
-  let count = 0;
-  
-  await processChunk(
-    allRolls,
-    (roll) => {
-      if (rollContainsCombination(roll, type, param)) {
-        count++;
-      }
-    },
-    500000, // Process 500k rolls at a time for better performance
-    onProgress,
-    shouldCancel
-  );
-  
-  return count;
-}
-
-
-/**
  * Check if a combination is possible with the given number of dice
  */
 function isCombinationPossible(type: ScoringCombinationType, param: number, numDice: number): boolean {
@@ -396,56 +371,301 @@ function isCombinationPossible(type: ScoringCombinationType, param: number, numD
 }
 
 /**
- * Calculate probabilities for all specific combinations
+ * Filter combinations based on difficulty category
+ */
+function filterCombinationsByCategory(
+  combinations: Array<{ type: ScoringCombinationType; param: number }>,
+  category: CombinationCategory
+): Array<{ type: ScoringCombinationType; param: number }> {
+  const minValues = category === 'beginner' 
+    ? DIFFICULTY_MIN_VALUES.plastic
+    : category === 'intermediate'
+    ? DIFFICULTY_MIN_VALUES.silver
+    : DIFFICULTY_MIN_VALUES.diamond;
+  
+  return combinations.filter(({ type, param }) => {
+    switch (type) {
+      case 'singleN':
+        if (category === 'advanced') {
+          // Advanced: no singleN combinations
+          return false;
+        } else if (category === 'intermediate') {
+          // Intermediate: only single1, no single5
+          return minValues.singleN > 0 && param === 1;
+        } else {
+          // Beginner: both single1 and single5
+          return minValues.singleN > 0 && (param === 1 || param === 5);
+        }
+      case 'nPairs':
+        return param >= minValues.nPairs;
+      case 'nOfAKind':
+        return param >= minValues.nOfAKind;
+      case 'straightOfN':
+        return param >= minValues.straightOfN;
+      case 'nTriplets':
+        return param >= minValues.nTriplets;
+      case 'nQuadruplets':
+        return param >= minValues.nQuadruplets;
+      case 'pyramidOfN':
+        return param >= minValues.pyramidOfN;
+      default:
+        return true; // Other types are always included
+    }
+  });
+}
+
+/**
+ * Calculate how many dice a combination uses
+ */
+function getDiceUsedByCombination(type: ScoringCombinationType, param: number): number {
+  switch (type) {
+    case 'singleN':
+      return 1;
+    case 'nPairs':
+      return param * 2;
+    case 'nOfAKind':
+      return param;
+    case 'straightOfN':
+      return param;
+    case 'nTriplets':
+      return param * 3;
+    case 'nQuadruplets':
+      return param * 4;
+    case 'nQuintuplets':
+      return param * 5;
+    case 'nSextuplets':
+      return param * 6;
+    case 'nSeptuplets':
+      return param * 7;
+    case 'nOctuplets':
+      return param * 8;
+    case 'nNonuplets':
+      return param * 9;
+    case 'nDecuplets':
+      return param * 10;
+    case 'pyramidOfN':
+      return param; // Pyramid of N uses N dice
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Convert CombinationCategory to DifficultyLevel for partitioning system
+ */
+function categoryToDifficulty(category: CombinationCategory): 'plastic' | 'silver' | 'diamond' {
+  switch (category) {
+    case 'beginner':
+      return 'plastic';
+    case 'intermediate':
+      return 'silver';
+    case 'advanced':
+      return 'diamond';
+  }
+}
+
+/**
+ * Check if a roll can use all dice (hot dice) using the actual partitioning system
+ * This uses the same logic as the game to determine if all dice can be used
+ */
+function rollHasHotDice(
+  roll: number[],
+  category: CombinationCategory
+): boolean {
+  const numDice = roll.length;
+  if (numDice === 0) return false;
+  
+  // Convert category to difficulty level
+  const difficulty = categoryToDifficulty(category);
+  
+  // Create minimal Die objects from the roll values
+  // We need Die objects with rolledValue set, and basic structure for partitioning
+  const diceHand: Die[] = roll.map((value, index) => ({
+    id: `die-${index}`,
+    sides: 6,
+    allowedValues: [1, 2, 3, 4, 5, 6],
+    material: 'plastic' as const,
+    rolledValue: value,
+    pipEffects: {}, // No pip effects for calculator
+  }));
+  
+  // Create selected indices (all dice)
+  const selectedIndices = roll.map((_, index) => index);
+  
+  // Create minimal scoring context
+  // The partitioning system will use findAllPossibleCombinations which doesn't directly use difficulty,
+  // but we can filter the results afterward if needed
+  const context = {
+    charms: [],
+    materials: [],
+  };
+  
+  // Use the actual partitioning system to find all valid partitionings
+  // If any partitioning exists, it means all dice can be used (hot dice)
+  try {
+    const partitionings = findAllValidPartitionings(
+      roll,
+      selectedIndices,
+      diceHand,
+      context
+    );
+    
+    // Filter partitionings to only include those that respect difficulty rules
+    // We need to check each combination in each partitioning against difficulty
+    const validPartitionings = partitionings.filter(partitioning => {
+      return partitioning.every(combo => {
+        // Extract params from combination
+        const params = extractCombinationParams(combo, diceHand);
+        return isCombinationAvailable(combo.type as ScoringCombinationType, difficulty, params);
+      });
+    });
+    
+    // Hot dice if there's at least one valid partitioning that uses all dice
+    return validPartitionings.length > 0;
+  } catch (error) {
+    // If partitioning fails, fall back to false
+    // This shouldn't happen, but we want to be safe
+    console.warn('Error checking hot dice partitioning:', error);
+    return false;
+  }
+}
+
+/**
+ * Extract parameters from a ScoringCombination for difficulty checking
+ */
+function extractCombinationParams(combo: { type: string; dice: number[] }, diceHand: Die[]): { n?: number; count?: number; length?: number; faceValue?: number } {
+  const diceCount = combo.dice.length;
+  const diceValues = combo.dice.map(idx => diceHand[idx].rolledValue!);
+  const counts = countDice(diceValues);
+  
+  switch (combo.type) {
+    case 'singleN':
+      return { faceValue: diceValues[0] };
+    case 'nPairs':
+      return { n: diceCount / 2 };
+    case 'nOfAKind':
+      return { count: diceCount };
+    case 'straightOfN':
+      return { length: diceCount };
+    case 'nTriplets':
+      return { n: diceCount / 3 };
+    case 'nQuadruplets':
+      return { n: diceCount / 4 };
+    case 'pyramidOfN':
+      return { n: diceCount };
+    default:
+      return {};
+  }
+}
+
+/**
+ * Check all combinations for a single roll (single-pass optimization)
+ */
+function checkRollForAllCombinations(
+  roll: number[],
+  combinations: Array<{ type: ScoringCombinationType; param: number }>
+): { [key: string]: boolean; hasAny: boolean } {
+  const results: { [key: string]: boolean; hasAny: boolean } = { hasAny: false };
+  
+  for (const { type, param } of combinations) {
+    const key = `${type}:${param}`;
+    const contains = rollContainsCombination(roll, type, param);
+    results[key] = contains;
+    if (contains) {
+      results.hasAny = true;
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Calculate probabilities for all specific combinations using single-pass optimization
  */
 export async function calculateAllSpecificProbabilities(
   diceFaces: number[][],
-  onProgress?: (combinationIndex: number, totalCombinations: number, currentRoll: number, totalRolls: number) => void,
+  category: CombinationCategory = 'beginner',
+  onProgress?: (currentRoll: number, totalRolls: number) => void,
   shouldCancel?: () => boolean
-): Promise<SpecificCombinationProbability[]> {
+): Promise<{ combinations: SpecificCombinationProbability[]; noneProbability: SpecificCombinationProbability }> {
   const numDice = diceFaces.length;
-  const specificCombinations = generateAllSpecificCombinations(numDice);
+  const allSpecificCombinations = generateAllSpecificCombinations(numDice);
   const totalOutcomes = calculateTotalOutcomes(diceFaces);
-  const results: SpecificCombinationProbability[] = [];
   
-  // Filter out impossible combinations first
-  const possibleCombinations = specificCombinations.filter(({ type, param }) => 
+  // Filter by category and impossible combinations
+  const categoryFiltered = filterCombinationsByCategory(allSpecificCombinations, category);
+  const possibleCombinations = categoryFiltered.filter(({ type, param }) => 
     isCombinationPossible(type, param, numDice)
   );
   
-  for (let index = 0; index < possibleCombinations.length; index++) {
-    // Check for cancellation before each combination
-    if (shouldCancel && shouldCancel()) {
-      throw new Error('Calculation cancelled');
-    }
-    
-    const { type, param } = possibleCombinations[index];
-    
-    // Create progress callback for this combination
-    const combinationProgress = onProgress 
-      ? (current: number, total: number) => {
-          onProgress(index, possibleCombinations.length, current, total);
+  // Generate all possible rolls
+  const allRolls = generateAllPossibleRolls(diceFaces);
+  
+  // Initialize counters for each combination
+  const combinationCounts: { [key: string]: number } = {};
+  for (const { type, param } of possibleCombinations) {
+    combinationCounts[`${type}:${param}`] = 0;
+  }
+  
+  let noneCount = 0; // Rolls with zero combinations
+  let hotDiceCount = 0; // Rolls that can use all dice (hot dice)
+  
+  // Process all rolls in a single pass
+  await processChunk(
+    allRolls,
+    (roll) => {
+      const results = checkRollForAllCombinations(roll, possibleCombinations);
+      
+      // Update counts for each combination
+      for (const key in results) {
+        if (key !== 'hasAny' && key !== 'hasHotDice' && results[key]) {
+          combinationCounts[key]++;
         }
-      : undefined;
+      }
+      
+      // Track "none" (rolls with no combinations)
+      if (!results.hasAny) {
+        noneCount++;
+      }
+      
+      // Track hot dice using partitioning system
+      if (rollHasHotDice(roll, category)) {
+        hotDiceCount++;
+      }
+    },
+    500000,
+    onProgress,
+    shouldCancel
+  );
+  
+  // Build results
+  const combinationResults: SpecificCombinationProbability[] = [];
+  for (const { type, param } of possibleCombinations) {
+    const key = `${type}:${param}`;
+    const favorableOutcomes = combinationCounts[key] || 0;
+    const probability = favorableOutcomes / totalOutcomes;
+    const percentage = probability * 100;
     
-    const result = await calculateProbabilityForSpecificCombination(
-      type, 
-      param, 
-      diceFaces,
-      combinationProgress,
-      shouldCancel
-    );
-    
-    results.push(result);
+    combinationResults.push({
+      key,
+      type,
+      param,
+      favorableOutcomes,
+      totalOutcomes,
+      probability,
+      percentage,
+      isPossible: favorableOutcomes > 0,
+    });
   }
   
   // Add impossible combinations with 0 favorable outcomes
-  const impossibleCombinations = specificCombinations.filter(({ type, param }) => 
-    !isCombinationPossible(type, param, numDice)
+  const impossibleCombinations = allSpecificCombinations.filter(({ type, param }) => 
+    !isCombinationPossible(type, param, numDice) || 
+    !categoryFiltered.some(c => c.type === type && c.param === param)
   );
   
   for (const { type, param } of impossibleCombinations) {
-    results.push({
+    combinationResults.push({
       key: `${type}:${param}`,
       type,
       param,
@@ -457,42 +677,41 @@ export async function calculateAllSpecificProbabilities(
     });
   }
   
-  return results;
-}
-
-
-/**
- * Calculate probability for a specific combination with parameter
- */
-async function calculateProbabilityForSpecificCombination(
-  type: ScoringCombinationType,
-  param: number,
-  diceFaces: number[][],
-  onProgress?: (current: number, total: number) => void,
-  shouldCancel?: () => boolean
-): Promise<SpecificCombinationProbability> {
-  const totalOutcomes = calculateTotalOutcomes(diceFaces);
-  const favorableOutcomes = await calculateFavorableOutcomesForSpecificCombination(
-    type, 
-    param, 
-    diceFaces,
-    onProgress,
-    shouldCancel
-  );
-  const probability = favorableOutcomes / totalOutcomes;
-  const percentage = probability * 100;
+  // Add "flop" probability (rolls with no combinations)
+  const flopProbability: SpecificCombinationProbability = {
+    key: 'flop',
+    type: 'singleN' as ScoringCombinationType, // Dummy type for "flop"
+    param: 0,
+    favorableOutcomes: noneCount,
+    totalOutcomes,
+    probability: noneCount / totalOutcomes,
+    percentage: (noneCount / totalOutcomes) * 100,
+    isPossible: noneCount > 0,
+  };
+  
+  // Add "hotDice" probability (rolls that can use all dice)
+  const hotDiceProbability: SpecificCombinationProbability = {
+    key: 'hotDice',
+    type: 'singleN' as ScoringCombinationType, // Dummy type for "hotDice"
+    param: 0,
+    favorableOutcomes: hotDiceCount,
+    totalOutcomes,
+    probability: hotDiceCount / totalOutcomes,
+    percentage: (hotDiceCount / totalOutcomes) * 100,
+    isPossible: hotDiceCount > 0,
+  };
+  
+  // Add flop and hotDice to the results so they get sorted with the rest
+  combinationResults.push(flopProbability);
+  combinationResults.push(hotDiceProbability);
   
   return {
-    key: `${type}:${param}`,
-    type,
-    param,
-    favorableOutcomes,
-    totalOutcomes,
-    probability,
-    percentage,
-    isPossible: favorableOutcomes > 0,
+    combinations: combinationResults,
+    noneProbability: flopProbability,
   };
 }
+
+
 
 /**
  * Factorial: n! = n * (n-1) * ... * 1

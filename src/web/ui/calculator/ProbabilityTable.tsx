@@ -5,16 +5,18 @@ import { ProbabilityTimeIndicator } from './ProbabilityTimeIndicator';
 
 interface ProbabilityTableProps {
   probabilities: SpecificCombinationProbability[];
+  noneProbability: SpecificCombinationProbability | null;
   totalOutcomes: number;
   onCompute: () => void;
   onCancel: () => void;
   isComputing: boolean;
   computeError: string | null;
-  progress: { combinationIndex: number; totalCombinations: number; currentRoll: number; totalRolls: number } | null;
+  progress: { currentRoll: number; totalRolls: number } | null;
 }
 
 export const ProbabilityTable: React.FC<ProbabilityTableProps> = ({ 
-  probabilities, 
+  probabilities,
+  noneProbability,
   totalOutcomes,
   onCompute,
   onCancel,
@@ -22,20 +24,34 @@ export const ProbabilityTable: React.FC<ProbabilityTableProps> = ({
   computeError,
   progress
 }) => {
-  const possibleCombinations = probabilities.filter(p => p.isPossible);
-  const impossibleCombinations = probabilities.filter(p => !p.isPossible);
+  // Always include flop and hotDice in possible combinations, even if 0%
+  const possibleCombinations = probabilities.filter(p => p.isPossible || p.key === 'flop' || p.key === 'hotDice');
+  const impossibleCombinations = probabilities.filter(p => !p.isPossible && p.key !== 'flop' && p.key !== 'hotDice');
 
   return (
     <div>
+      <div style={{
+        marginTop: '20px',
+        marginBottom: '20px'
+      }}>
+        <ProbabilityTimeIndicator totalOutcomes={totalOutcomes} />
+      </div>
+
       <div style={{
         display: 'flex',
         justifyContent: 'flex-start',
         alignItems: 'center',
         gap: '20px',
-        marginBottom: '10px',
-        marginTop: '20px'
+        marginBottom: '20px'
       }}>
-        <ProbabilityTimeIndicator totalOutcomes={totalOutcomes} />
+        {isComputing && progress && (
+          <span style={{
+            fontSize: '14px',
+            color: '#6c757d'
+          }}>
+            {progress.currentRoll.toLocaleString()} / {progress.totalRolls.toLocaleString()} rolls
+          </span>
+        )}
         <button
           onClick={onCompute}
           disabled={isComputing}
@@ -89,50 +105,6 @@ export const ProbabilityTable: React.FC<ProbabilityTableProps> = ({
           </button>
         )}
       </div>
-
-      {isComputing && progress && (
-        <div style={{
-          marginTop: '20px',
-          marginBottom: '20px'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginBottom: '8px',
-            fontSize: '14px',
-            color: '#6c757d'
-          }}>
-            <span>
-              Combination {progress.combinationIndex + 1} of {progress.totalCombinations}
-            </span>
-            <span>
-              {progress.currentRoll.toLocaleString()} / {progress.totalRolls.toLocaleString()} rolls
-            </span>
-          </div>
-          <div style={{
-            width: '100%',
-            height: '24px',
-            backgroundColor: '#e9ecef',
-            borderRadius: '12px',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              height: '100%',
-              backgroundColor: '#007bff',
-              width: `${((progress.combinationIndex / progress.totalCombinations) * 100) + ((progress.currentRoll / progress.totalRolls) * (100 / progress.totalCombinations))}%`,
-              transition: 'width 0.1s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontSize: '12px',
-              fontWeight: '600'
-            }}>
-              {((progress.combinationIndex / progress.totalCombinations) * 100 + (progress.currentRoll / progress.totalRolls) * (100 / progress.totalCombinations)).toFixed(1)}%
-            </div>
-          </div>
-        </div>
-      )}
 
       {computeError && (
         <div style={{
@@ -206,26 +178,44 @@ export const ProbabilityTable: React.FC<ProbabilityTableProps> = ({
               <tbody>
                 {possibleCombinations
                   .sort((a, b) => b.percentage - a.percentage)
-                  .map((prob, index) => (
-                    <tr
-                      key={prob.key}
-                      style={{
-                        borderBottom: index < possibleCombinations.length - 1 ? '1px solid #e1e5e9' : 'none',
-                        backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa'
-                      }}
-                    >
-                      <td style={{
-                        padding: '8px 12px',
-                        color: '#2c3e50',
-                        fontSize: '14px',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {formatCombinationKey(prob.key)}
-                      </td>
+                  .map((prob, index) => {
+                    const isFlop = prob.key === 'flop';
+                    const isHotDice = prob.key === 'hotDice';
+                    const isSpecial = isFlop || isHotDice;
+                    return (
+                      <tr
+                        key={prob.key}
+                        style={{
+                          borderBottom: index < possibleCombinations.length - 1 ? '1px solid #e1e5e9' : 'none',
+                        backgroundColor: isFlop 
+                          ? (prob.isPossible ? '#fff3cd' : '#f8f9fa')
+                          : isHotDice
+                          ? (prob.isPossible ? '#ffeaa7' : '#f8f9fa')
+                          : (index % 2 === 0 ? '#fff' : '#f8f9fa')
+                        }}
+                      >
+                        <td style={{
+                          padding: '8px 12px',
+                          color: isFlop 
+                            ? (prob.isPossible ? '#856404' : '#6c757d')
+                          : isHotDice
+                          ? (prob.isPossible ? '#d68910' : '#6c757d')
+                            : '#2c3e50',
+                          fontSize: '14px',
+                          fontWeight: isSpecial ? '600' : 'normal',
+                          whiteSpace: 'nowrap',
+                          fontStyle: isSpecial && !prob.isPossible ? 'italic' : 'normal'
+                        }}>
+                          {formatCombinationKey(prob.key)}
+                        </td>
                         <td style={{
                           padding: '8px 12px',
                           textAlign: 'right',
-                          color: '#495057',
+                          color: isFlop 
+                            ? (prob.isPossible ? '#856404' : '#6c757d')
+                            : isHotDice
+                            ? (prob.isPossible ? '#d68910' : '#6c757d')
+                            : '#495057',
                           fontSize: '14px',
                           fontFamily: 'monospace',
                           whiteSpace: 'nowrap'
@@ -235,7 +225,11 @@ export const ProbabilityTable: React.FC<ProbabilityTableProps> = ({
                         <td style={{
                           padding: '8px 12px',
                           textAlign: 'right',
-                          color: '#2c3e50',
+                          color: isFlop 
+                            ? (prob.isPossible ? '#856404' : '#6c757d')
+                          : isHotDice
+                          ? (prob.isPossible ? '#d68910' : '#6c757d')
+                            : '#2c3e50',
                           fontSize: '14px',
                           fontWeight: '600',
                           fontFamily: 'monospace',
@@ -243,8 +237,9 @@ export const ProbabilityTable: React.FC<ProbabilityTableProps> = ({
                         }}>
                           {prob.percentage.toFixed(2)}%
                         </td>
-                    </tr>
-                  ))}
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
