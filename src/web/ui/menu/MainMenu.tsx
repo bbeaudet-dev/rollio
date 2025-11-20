@@ -87,6 +87,13 @@ export const MainMenu: React.FC = () => {
           Collection
         </MainMenuButton>
         
+        <MainMenuButton
+          variant="secondary"
+          onClick={() => navigate('/calculator')}
+        >
+          Calculator
+        </MainMenuButton>
+        
         <button 
           onClick={() => setIsSettingsOpen(true)}
           style={{

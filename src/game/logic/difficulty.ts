@@ -155,7 +155,18 @@ export function isCombinationAvailable(
       if (minValues.singleN === 0) return false;
       const faceValue = params?.count ?? params?.faceValue;
       if (faceValue === undefined) return false;
-      return faceValue >= minValues.singleN;
+      
+      // Advanced difficulties (diamond): no singleN combinations
+      if (difficulty === 'diamond') return false;
+      
+      // Intermediate difficulties (silver, gold, platinum, sapphire, emerald, ruby): only single1, no single5
+      if (difficulty === 'silver' || difficulty === 'gold' || difficulty === 'platinum' || 
+          difficulty === 'sapphire' || difficulty === 'emerald' || difficulty === 'ruby') {
+        return faceValue === 1;
+      }
+      
+      // Beginner difficulties (plastic, copper): both single1 and single5
+      return faceValue >= minValues.singleN && (faceValue === 1 || faceValue === 5);
     
     // Other types (nQuintuplets, etc.) are always available if they can be formed
     default:

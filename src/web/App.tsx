@@ -3,6 +3,7 @@ import { SinglePlayerGame } from './ui/single-player';
 import { MainMenu, SettingsPage } from './ui/menu';
 import { CollectionPage } from './ui/collection';
 import { ProfilePage } from './ui/profile/ProfilePage';
+import { CalculatorPage } from './ui/calculator';
 
 function App() {
   return (
@@ -16,6 +17,9 @@ function App() {
         
         {/* Collection page */}
         <Route path="/collection" element={<CollectionPage />} />
+        
+        {/* Calculator page */}
+        <Route path="/calculator" element={<CalculatorPage />} />
         
         {/* Settings page */}
         <Route path="/settings" element={<SettingsPage />} />

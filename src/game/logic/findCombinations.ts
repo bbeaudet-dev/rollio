@@ -6,7 +6,6 @@
  */
 
 import { Die, ScoringCombination } from '../types';
-import { ScoringCombinationType } from '../data/combinations';
 import { calculateCombinationPoints } from '../data/combinations';
 import { debugLog, getDebugMode } from '../utils/debug';
 import { shouldAllowSingleThrees } from './charms/charmUtils';
