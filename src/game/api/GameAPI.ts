@@ -191,6 +191,11 @@ export class GameAPI {
     // Extract final score from breakdown
     const finalPoints = calculateFinalScore(breakdown.final);
     
+    // Update high score for single roll if this is higher
+    if (finalPoints > (gameState.history.highScoreSingleRoll || 0)) {
+      gameState.history.highScoreSingleRoll = finalPoints;
+    }
+    
     // Extract combinations from breakdown
     // Check if combinationTypes were stored in breakdown
     let combinationTypes: string[] = [];
@@ -286,6 +291,11 @@ export class GameAPI {
     
     // Use pure function to process banking (charm effects applied after banking)
     const result = processBankPoints(gameState, roundState, this.charmManager);
+    
+    // Update high score for bank if this is higher
+    if (result.bankedPoints > (result.newGameState.history.highScoreBank || 0)) {
+      result.newGameState.history.highScoreBank = result.bankedPoints;
+    }
     
     // Check if game should end (no banks remaining) - only if level not completed
     // If level is completed, player proceeds to tally/shop, not game over

@@ -3,9 +3,10 @@ import { Board } from './board/Board';
 import { GameControls } from './GameControls';
 import { Inventory } from './Inventory';
 import { GameShopView } from './GameShopView';
-import { SettingsButton, MenuButton } from '../components';
+import { SettingsButton, MainMenuReturnButton } from '../components';
 import { SettingsModal } from '../menu';
 import { TallyModal } from './TallyModal';
+import { GameOverModal } from './GameOverModal';
 
 // Intermediary interfaces for logical groups
 interface RollActions {
@@ -72,6 +73,8 @@ interface GameProps {
   canPlay?: boolean;
   showTallyModal?: boolean;
   pendingRewards?: any;
+  onReturnToMenu?: () => void;
+  onNewGame?: () => void;
 }
 
 export const Game: React.FC<GameProps> = ({ 
@@ -88,9 +91,14 @@ export const Game: React.FC<GameProps> = ({
   levelRewards = null,
   canPlay = true,
   showTallyModal = false,
-  pendingRewards = null
+  pendingRewards = null,
+  onReturnToMenu,
+  onNewGame
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Check if game is over
+  const isGameOver = gameState && !gameState.isActive;
   
   // Handle shop phase
   if (isInShop && shopState && gameState && shopActions) {
@@ -106,6 +114,60 @@ export const Game: React.FC<GameProps> = ({
     );
   }
   
+  // Handle game over modal - show board in background
+  if (isGameOver && onReturnToMenu && onNewGame) {
+    return (
+      <>
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
+        {gameState && (
+          <div style={{ 
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0'
+          }}>
+            {roundState && (
+              <div style={{ position: 'relative', marginTop: '0' }}>
+                <Board
+                  dice={board.dice}
+                  selectedIndices={board.selectedDice}
+                  onDiceSelect={() => {}}
+                  canSelect={false}
+                  roundNumber={gameState.currentLevel.currentRound?.roundNumber || 1}
+                  rollNumber={roundState?.rollHistory?.length || 0}
+                  consecutiveFlops={gameState.currentLevel.consecutiveFlops}
+                  levelNumber={gameState.currentLevel?.levelNumber || 1}
+                  previewScoring={null}
+                  canChooseFlopShield={false}
+                  onFlopShieldChoice={() => {}}
+                  onScoreSelectedDice={() => {}}
+                  lastRollPoints={0}
+                  justBanked={false}
+                />
+              </div>
+            )}
+            <Inventory 
+              charms={inventory.charms}
+              consumables={inventory.consumables}
+              blessings={gameState.blessings || []}
+              money={gameState.money}
+              onConsumableUse={() => {}}
+            />
+          </div>
+        )}
+        <GameOverModal
+          isOpen={true}
+          endReason={gameState.endReason || 'lost'}
+          onReturnToMenu={onReturnToMenu}
+          onNewGame={onNewGame}
+        />
+      </>
+    );
+  }
+
   // Handle tally modal FIRST (before checking roundState, since level completion sets roundState to null)
   if (showTallyModal && pendingRewards && gameState?.currentLevel) {
     // Show the game board in the background with tally modal overlay
@@ -136,10 +198,8 @@ export const Game: React.FC<GameProps> = ({
                   previewScoring={null}
                   canChooseFlopShield={false}
                   onFlopShieldChoice={() => {}}
-                  gameOver={false}
                   onScoreSelectedDice={() => {}}
                   lastRollPoints={0}
-                  gameScore={gameState.history?.totalScore || 0}
                   justBanked={false}
                 />
               </div>
@@ -169,7 +229,7 @@ export const Game: React.FC<GameProps> = ({
           backgroundColor: '#f8f9fa',
           borderTop: '1px solid #dee2e6'
         }}>
-          <MenuButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+          <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
           <SettingsButton 
             onClick={() => setIsSettingsOpen(true)} 
             style={{ position: 'relative', top: 'auto', right: 'auto' }}
@@ -202,7 +262,7 @@ export const Game: React.FC<GameProps> = ({
         backgroundColor: '#f8f9fa',
         borderTop: '1px solid #dee2e6'
       }}>
-        <MenuButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+        <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
         <SettingsButton 
           onClick={() => setIsSettingsOpen(true)} 
           style={{ position: 'relative', top: 'auto', right: 'auto' }}
@@ -218,7 +278,7 @@ export const Game: React.FC<GameProps> = ({
     // This shouldn't happen - if we get here, something went wrong
     return (
       <>
-        <MenuButton />
+        <MainMenuReturnButton />
         <SettingsButton onClick={() => setIsSettingsOpen(true)} />
         <SettingsModal 
           isOpen={isSettingsOpen} 
@@ -270,10 +330,9 @@ export const Game: React.FC<GameProps> = ({
           previewScoring={board.previewScoring}
           canChooseFlopShield={board.canChooseFlopShield && canPlay}
           onFlopShieldChoice={gameActions.handleFlopShieldChoice}
-          gameOver={gameState && !gameState.isActive && gameState.endReason === 'lost'}
+          gameOver={false}
           onScoreSelectedDice={rollActions.scoreSelectedDice}
           lastRollPoints={lastRollPoints}
-          gameScore={gameState.history?.totalScore || 0}
           justBanked={board.justBanked}
           justFlopped={board.justFlopped}
           scoringBreakdown={board.scoringBreakdown}
@@ -347,7 +406,7 @@ export const Game: React.FC<GameProps> = ({
         backgroundColor: '#f8f9fa',
         borderTop: '1px solid #dee2e6'
       }}>
-        <MenuButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+        <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
         <SettingsButton 
           onClick={() => setIsSettingsOpen(true)} 
           style={{ position: 'relative', top: 'auto', right: 'auto' }}

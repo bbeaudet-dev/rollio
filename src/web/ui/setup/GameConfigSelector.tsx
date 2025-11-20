@@ -5,7 +5,7 @@ import { DiceSetSelector } from './DiceSetSelector';
 import { StartGameButton } from './StartGameButton';
 import { CheatModeToggle } from './CheatModeToggle';
 import { DifficultySelector } from './DifficultySelector';
-import { MenuButton } from '../components';
+import { MainMenuReturnButton } from '../components';
 import { DifficultyLevel } from '../../../game/logic/difficulty';
 
 interface GameConfigSelectorProps {
@@ -156,7 +156,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
       border: '1px solid #dee2e6',
       position: 'relative'
     }}>
-      <MenuButton />
+      <MainMenuReturnButton />
       
       <h1 style={{
         fontFamily: 'Arial, sans-serif',

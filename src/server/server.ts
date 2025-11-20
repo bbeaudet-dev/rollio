@@ -6,11 +6,15 @@ import dotenv from 'dotenv';
 import { runMigrations } from './migrations/runMigrations';
 import authRoutes from './routes/auth';
 import gameRoutes from './routes/game';
+import statsRoutes from './routes/stats';
 
 dotenv.config();
 
 const app = express();
 const server = createServer(app);
+
+// Serve static files from public directory
+app.use('/assets', express.static(path.join(__dirname, '../../public/assets')));
 
 // CORS configuration
 const allowedOrigins = process.env.NODE_ENV === 'production' 
@@ -59,6 +63,7 @@ async function initializeDatabase() {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Room management
 interface Room {

@@ -124,8 +124,6 @@ export function addPointsToLevel(gameState: GameState, points: number): GameStat
   const newGameState = { ...gameState };
   newGameState.currentLevel = { ...gameState.currentLevel };
   newGameState.currentLevel.pointsBanked += points;
-  newGameState.history = { ...gameState.history };
-  newGameState.history.totalScore += points;
   return newGameState;
 }
 

@@ -14,7 +14,6 @@ export const AuthSection: React.FC = () => {
   return (
     <>
       <div style={{
-        marginBottom: '20px',
         padding: '12px',
         backgroundColor: isAuthenticated ? '#e7f5e7' : '#f8f9fa',
         borderRadius: '6px',

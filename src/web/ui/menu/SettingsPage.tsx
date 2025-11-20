@@ -1,9 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { MainMenuReturnButton } from '../components/MenuButton';
 
 export const SettingsPage: React.FC = () => {
-  const navigate = useNavigate();
-
   const containerStyle: React.CSSProperties = {
     fontFamily: 'Arial, sans-serif',
     maxWidth: '800px',
@@ -38,17 +36,6 @@ export const SettingsPage: React.FC = () => {
     color: '#2c3e50'
   };
 
-  const backButtonStyle: React.CSSProperties = {
-    marginBottom: '20px',
-    padding: '8px 16px',
-    backgroundColor: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px'
-  };
-
   const placeholderStyle: React.CSSProperties = {
     color: '#6c757d',
     fontStyle: 'italic'
@@ -57,9 +44,9 @@ export const SettingsPage: React.FC = () => {
   return (
     <div style={containerStyle}>
       <h1 style={titleStyle}>Settings</h1>
-      <button style={backButtonStyle} onClick={() => navigate('/')}>
-        ← Back to Menu
-      </button>
+      <div style={{ marginBottom: '20px' }}>
+        <MainMenuReturnButton style={{ position: 'relative', top: 0, left: 0 }} />
+      </div>
 
       <div style={sectionStyle}>
         <h2 style={sectionTitleStyle}>Game Settings</h2>

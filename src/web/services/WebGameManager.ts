@@ -61,6 +61,38 @@ export class WebGameManager {
     this.gameAPI.on('stateChanged', () => {
       // Messages are handled via ReactGameInterface
     });
+    
+    // Subscribe to gameEnded event to save statistics
+    this.gameAPI.on('gameEnded', async (data: { reason: string; gameState: GameState }) => {
+      const endReason = data.reason as 'win' | 'lost' | 'quit';
+      await this.saveGameStats(data.gameState, endReason);
+    });
+  }
+  
+  /**
+   * Save game statistics when game ends
+   */
+  private async saveGameStats(gameState: GameState, endReason: 'win' | 'lost' | 'quit'): Promise<void> {
+    try {
+      // Import dynamically to avoid circular dependency
+      const { gameApi } = await import('./api');
+      
+      // Save completion stats first
+      const saveResult = await gameApi.saveGameCompletion(gameState, endReason);
+      
+      // Only delete the save if completion was successfully saved
+      if (saveResult.success) {
+        await gameApi.deleteGame();
+        console.log('Game completion saved and active save deactivated');
+      } else {
+        console.error('Failed to save game completion, keeping save active for retry:', saveResult.error);
+        // Keep the save active so we can retry later or user can manually retry
+      }
+    } catch (error) {
+      // Silently fail - don't interrupt gameplay if stats save fails
+      // Keep the save active so we can retry later
+      console.error('Failed to save game stats:', error);
+    }
   }
 
   /**

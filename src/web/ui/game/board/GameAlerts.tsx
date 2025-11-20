@@ -4,7 +4,6 @@ import { Button } from '../../components/Button';
 interface GameAlertsProps {
   canChooseFlopShield: boolean;
   onFlopShieldChoice: (useShield: boolean) => void;
-  gameOver: boolean;
   canSelectDice: boolean;
   selectedDiceCount: number;
   previewScoring: {
@@ -18,7 +17,6 @@ interface GameAlertsProps {
 export const GameAlerts: React.FC<GameAlertsProps> = ({
   canChooseFlopShield,
   onFlopShieldChoice,
-  gameOver,
   canSelectDice,
   selectedDiceCount,
   previewScoring,
@@ -108,30 +106,6 @@ export const GameAlerts: React.FC<GameAlertsProps> = ({
         </div>
       )}
 
-      {/* Game Over Notification - Center Overlay */}
-      {gameOver && (
-        <div style={{
-          position: 'absolute',
-          top: '35%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 30,
-          backgroundColor: 'rgba(255, 235, 238, 0.9)',
-          border: '2px solid #f44336',
-          borderRadius: '8px',
-          padding: '16px',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          textAlign: 'center',
-          color: '#c62828',
-          minWidth: '250px'
-        }}>
-          💀 GAME OVER 💀
-          <div style={{ fontSize: '14px', marginTop: '8px', fontWeight: 'normal' }}>
-            You ran out of banks!
-          </div>
-        </div>
-      )}
     </>
   );
 };

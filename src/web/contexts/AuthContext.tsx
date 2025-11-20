@@ -5,6 +5,7 @@ export interface User {
   id: string;
   username: string;
   email?: string;
+  profilePicture?: string;
   createdAt?: string;
   lastLogin?: string;
 }
@@ -16,6 +17,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (username: string, email: string | null, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -127,6 +129,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     removeToken();
   };
 
+  /**
+   * Refresh user data from server
+   */
+  const refreshUser = async () => {
+    try {
+      const response = await authApi.getCurrentUser();
+      if (response.success && response.user) {
+        setUser(response.user);
+      }
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -134,6 +150,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

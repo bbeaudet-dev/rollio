@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ShopDisplay } from './shop/ShopDisplay';
 import { Inventory } from './Inventory';
-import { SettingsButton, MenuButton } from '../components';
+import { SettingsButton, MainMenuReturnButton } from '../components';
 import { SettingsModal } from '../menu';
 
 interface GameShopViewProps {
@@ -67,7 +67,7 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
           backgroundColor: '#f8f9fa',
           borderTop: '1px solid #dee2e6'
         }}>
-          <MenuButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+          <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
           <SettingsButton 
             onClick={() => setIsSettingsOpen(true)} 
             style={{ position: 'relative', top: 'auto', right: 'auto' }}

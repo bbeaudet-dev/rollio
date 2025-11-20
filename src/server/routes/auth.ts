@@ -4,6 +4,32 @@ import { hashPassword, verifyPassword, generateToken, verifyToken } from '../aut
 
 const router = Router();
 
+/**
+ * Middleware to verify authentication
+ */
+function requireAuth(req: Request, res: Response, next: Function) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ 
+      success: false, 
+      error: 'Authentication required' 
+    });
+  }
+
+  try {
+    const token = authHeader.substring(7);
+    const payload = verifyToken(token);
+    (req as any).userId = payload.userId;
+    next();
+  } catch (error) {
+    return res.status(401).json({ 
+      success: false, 
+      error: 'Invalid or expired token' 
+    });
+  }
+}
+
 // Register new user
 router.post('/register', async (req: Request, res: Response) => {
   try {
@@ -84,6 +110,7 @@ router.post('/register', async (req: Request, res: Response) => {
         id: user.id,
         username: user.username,
         email: user.email,
+        profilePicture: user.profile_picture || 'default',
         createdAt: user.created_at
       },
       token
@@ -111,7 +138,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Find user
     const result = await query(
-      'SELECT id, username, email, password_hash FROM users WHERE username = $1',
+      'SELECT id, username, email, password_hash, profile_picture FROM users WHERE username = $1',
       [username]
     );
 
@@ -126,6 +153,9 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Verify password
     const isValid = await verifyPassword(password, user.password_hash);
+    
+    // Get profile_picture from user record
+    const profilePicture = user.profile_picture || 'default';
 
     if (!isValid) {
       return res.status(401).json({ 
@@ -151,7 +181,8 @@ router.post('/login', async (req: Request, res: Response) => {
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        profilePicture
       },
       token
     });
@@ -181,7 +212,7 @@ router.get('/me', async (req: Request, res: Response) => {
 
     // Get user from database
     const result = await query(
-      'SELECT id, username, email, created_at, last_login FROM users WHERE id = $1',
+      'SELECT id, username, email, profile_picture, created_at, last_login FROM users WHERE id = $1',
       [payload.userId]
     );
 
@@ -192,15 +223,55 @@ router.get('/me', async (req: Request, res: Response) => {
       });
     }
 
+    const user = result.rows[0];
     res.json({
       success: true,
-      user: result.rows[0]
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profile_picture,
+        createdAt: user.created_at,
+        lastLogin: user.last_login
+      }
     });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(401).json({ 
       success: false, 
       error: 'Invalid or expired token' 
+    });
+  }
+});
+
+// Update profile picture
+router.post('/profile/picture', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { pictureId } = req.body;
+
+    if (!pictureId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Picture ID is required' 
+      });
+    }
+
+    // Update profile picture
+    await query(
+      'UPDATE users SET profile_picture = $1 WHERE id = $2',
+      [pictureId, userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Profile picture updated'
+    });
+  } catch (error) {
+    console.error('Update profile picture error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to update profile picture' 
     });
   }
 });

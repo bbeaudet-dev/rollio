@@ -248,8 +248,12 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
       }, stepDelay));
     });
 
-    // Show final score and complete (but don't auto-hide - wait for player to click Roll)
-    const finalDelay = breakdown.steps.length * animationSpeedMs;
+    // Show final score and complete - treat it like the next step in the sequence
+    const lastStepIndex = breakdown.steps.length - 1;
+    const lastStepStartTime = lastStepIndex * animationSpeedMs;
+    const lastStepOutputTime = lastStepStartTime + 250; // When last step shows output
+    const finalStepDelay = lastStepOutputTime + animationSpeedMs; // Next step timing
+    
     const finalTimeout = setTimeout(() => {
       // Mark as completed first
       hasCompletedRef.current = true;
@@ -262,9 +266,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
       }
       
       // Combine scoring elements into final score
-      setTimeout(() => {
-        setShowFinalScore(true);
-      }, 100);
+      setShowFinalScore(true);
       
       // Call onComplete to transition to proper state (dice removed, bankOrRoll state)
       // But keep breakdown visible - onComplete will update the state properly
@@ -274,7 +276,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
           onCompleteRef.current();
         });
       });
-    }, finalDelay + 500);
+    }, finalStepDelay);
     stepTimeouts.push(finalTimeout);
 
     return () => {

@@ -52,6 +52,14 @@ export const SinglePlayerGame: React.FC = () => {
     );
   }
 
+  const handleReturnToMenu = () => {
+    navigate('/');
+  };
+
+  const handleNewGame = () => {
+    setShowConfigSelector(true);
+  };
+
   return (
     <div style={rootStyle}>
       <Game
@@ -68,6 +76,8 @@ export const SinglePlayerGame: React.FC = () => {
         levelRewards={game.levelRewards}
         showTallyModal={game.showTallyModal}
         pendingRewards={game.pendingRewards}
+        onReturnToMenu={handleReturnToMenu}
+        onNewGame={handleNewGame}
       />
     </div>
   );

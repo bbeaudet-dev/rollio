@@ -12,6 +12,9 @@ export interface ApiResponse<T = any> {
   token?: string;
   gameState?: any; // For game load responses
   savedAt?: string; // For game load responses
+  stats?: any; // For stats responses
+  games?: any[]; // For game history responses
+  pictures?: any[]; // For profile pictures responses
 }
 
 export interface ApiError {
@@ -147,9 +150,66 @@ export const gameApi = {
 
   /**
    * Load saved game
+   * Returns success: false with no error for 404s (expected when no save exists)
    */
   async loadGame(): Promise<ApiResponse> {
-    return apiRequest('/api/game/save');
+    const token = getToken();
+    if (!token) {
+      // No token means not authenticated - don't make request
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    try {
+      const headers: any = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/game/save`, {
+        method: 'GET',
+        headers,
+      });
+
+      const data = await response.json();
+
+      // Handle 401 Unauthorized
+      if (response.status === 401) {
+        removeToken();
+        window.dispatchEvent(new CustomEvent('auth:logout'));
+        return {
+          success: false,
+          error: 'Session expired. Please log in again.',
+        };
+      }
+
+      // Handle other HTTP errors (500, etc.)
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.error || `Request failed with status ${response.status}`,
+        };
+      }
+
+      // No saved game - server returns 200 with success: false and a message
+      if (!data.success) {
+        return {
+          success: false,
+          error: data.error || 'No saved game found'
+        };
+      }
+
+      return {
+        success: true,
+        ...data,
+      };
+    } catch (error) {
+      // Only log non-404 errors
+      console.error('Load game error:', error);
+      return {
+        success: false,
+        error: 'Failed to load game',
+      };
+    }
   },
 
   /**
@@ -159,6 +219,63 @@ export const gameApi = {
     return apiRequest('/api/game/save', {
       method: 'DELETE',
     });
+  },
+  
+  /**
+   * Save game completion statistics
+   */
+  async saveGameCompletion(gameState: any, endReason: 'win' | 'lost' | 'quit'): Promise<ApiResponse> {
+    return apiRequest('/api/game/complete', {
+      method: 'POST',
+      body: JSON.stringify({ gameState, endReason }),
+    });
+  },
+};
+
+/**
+ * Stats API functions
+ */
+export const statsApi = {
+  /**
+   * Get user statistics
+   */
+  async getStats(): Promise<ApiResponse> {
+    return apiRequest('/api/stats');
+  },
+
+  /**
+   * Get game history
+   */
+  async getHistory(limit?: number, offset?: number): Promise<ApiResponse> {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+    if (offset) params.append('offset', offset.toString());
+    const query = params.toString();
+    return apiRequest(`/api/stats/history${query ? `?${query}` : ''}`);
+  },
+
+  /**
+   * Get combination usage statistics
+   */
+  async getCombinations(): Promise<ApiResponse> {
+    return apiRequest('/api/stats/combinations');
+  },
+  
+  /**
+   * Update profile picture
+   */
+  async updateProfilePicture(pictureId: string): Promise<ApiResponse> {
+    return apiRequest('/api/auth/profile/picture', {
+      method: 'POST',
+      body: JSON.stringify({ pictureId }),
+    });
+  },
+  
+  /**
+   * Get available profile pictures
+   */
+  async getProfilePictures(): Promise<ApiResponse> {
+    return apiRequest('/api/stats/profile-pictures');
   },
 };
 

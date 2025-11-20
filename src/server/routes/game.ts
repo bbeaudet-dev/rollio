@@ -4,6 +4,7 @@ import { verifyToken } from '../auth/authUtils';
 import { serializeGameState, deserializeGameState } from '../utils/gameStateSerialization';
 import { CharmRegistry } from '../../game/logic/charmSystem';
 import { registerCharms } from '../../game/logic/charms/index';
+import { saveGameCompletion } from '../utils/gameStats';
 
 const router = Router();
 
@@ -118,7 +119,8 @@ router.get('/save', requireAuth, async (req: Request, res: Response) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
+      // Return 200 with a message instead of 404
+      return res.status(200).json({
         success: false,
         error: 'No saved game found'
       });
@@ -126,19 +128,42 @@ router.get('/save', requireAuth, async (req: Request, res: Response) => {
 
     const save = result.rows[0];
     
+    // Check if the saved game is still active (not ended)
+    // game_state is JSONB - pg library returns it as an object
+    const rawGameState = save.game_state;
+    const parsedGameState = typeof rawGameState === 'string' 
+      ? JSON.parse(rawGameState) 
+      : rawGameState;
+    
+    // If game is not active (ended), deactivate the save and return 200 with message
+    if (!parsedGameState.isActive) {
+      // Deactivate the save
+      await query(
+        'UPDATE game_saves SET is_active = false WHERE user_id = $1 AND is_active = true',
+        [userId]
+      );
+      // Return 200 with a message instead of 404
+      return res.status(200).json({
+        success: false,
+        error: 'No active game found'
+      });
+    }
+    
     // game_state is JSONB - pg library returns it as an object, but we stored it as a JSON string
     // We need to handle both cases
-    let gameStateData = save.game_state;
+    let gameStateData: string;
     
     // If it's an object, stringify it first (since we stored it as a string)
     // If it's already a string, use it directly
-    if (typeof gameStateData === 'object' && gameStateData !== null) {
+    if (typeof rawGameState === 'object' && rawGameState !== null) {
       // It's already parsed by pg, but we need to stringify it to match our serialization format
-      gameStateData = JSON.stringify(gameStateData);
+      gameStateData = JSON.stringify(rawGameState);
+    } else {
+      gameStateData = rawGameState as string;
     }
     
     // deserializeGameState expects a string (our serialized format)
-    const gameState = deserializeGameState(gameStateData as string, charmRegistry);
+    const gameState = deserializeGameState(gameStateData, charmRegistry);
 
     return res.json({
       success: true,
@@ -150,6 +175,38 @@ router.get('/save', requireAuth, async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to load game'
+    });
+  }
+});
+
+/**
+ * Save game completion statistics
+ * POST /api/game/complete
+ */
+router.post('/complete', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { gameState, endReason } = req.body;
+
+    if (!gameState || !endReason) {
+      return res.status(400).json({
+        success: false,
+        error: 'Game state and end reason are required'
+      });
+    }
+
+    // Save game completion stats
+    await saveGameCompletion(userId, gameState, endReason);
+
+    return res.json({
+      success: true,
+      message: 'Game completion saved'
+    });
+  } catch (error) {
+    console.error('Save game completion error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save game completion'
     });
   }
 });

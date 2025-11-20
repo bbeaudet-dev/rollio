@@ -4,34 +4,38 @@ import { SettingsModal } from './SettingsModal';
 import { AuthSection } from '../auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { gameApi } from '../../services/api';
+import { MainMenuButton } from '../components/MainMenuButton';
 
 export const MainMenu: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hasSavedGame, setHasSavedGame] = useState(false);
   const [isCheckingSave, setIsCheckingSave] = useState(false);
 
-  // Check if user has a saved game
+  // Check if user has a saved game (only after auth is loaded)
   useEffect(() => {
     const checkSavedGame = async () => {
-      if (!isAuthenticated) {
-        setHasSavedGame(false);
+      if (authLoading) {
         return;
       }
 
+      // Only check for saved game if user is authenticated 
+      if (!isAuthenticated) {
+        setHasSavedGame(false);
+        setIsCheckingSave(false);
+        return;
+      }
+
+      // User is authenticated - check for saved game
       setIsCheckingSave(true);
       try {
         const result = await gameApi.loadGame();
-        console.log('Check saved game result:', result);
-        console.log('Is authenticated:', isAuthenticated);
         // 404 means no saved game, which is fine - just means hasSavedGame should be false
         // Only set to true if we successfully got a gameState
         const hasGame = result.success && !!(result as any).gameState;
-        console.log('Has saved game:', hasGame, 'result.success:', result.success, 'gameState exists:', !!(result as any).gameState);
         setHasSavedGame(hasGame);
       } catch (error) {
-        console.error('Error checking for saved game:', error);
         setHasSavedGame(false);
       } finally {
         setIsCheckingSave(false);
@@ -39,7 +43,7 @@ export const MainMenu: React.FC = () => {
     };
 
     checkSavedGame();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authLoading]);
   return (
     <div style={{
       fontFamily: 'Arial, sans-serif',
@@ -70,9 +74,6 @@ export const MainMenu: React.FC = () => {
       }}>
         The dice-rolling roguelike
       </p>
-
-      {/* Auth Section */}
-      <AuthSection />
       
       <div style={{ 
         display: 'flex', 
@@ -80,85 +81,44 @@ export const MainMenu: React.FC = () => {
         gap: '12px',
         marginTop: '30px'
       }}>
-        {hasSavedGame && (
-          <button 
-            onClick={() => {
-              // Navigate to game and trigger load
-              navigate('/game?load=true');
-            }}
-            style={{
-              backgroundColor: '#28a745',
-              color: '#fff',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '6px',
-              fontSize: '15px',
-              cursor: 'pointer',
-              fontWeight: '500',
-              transition: 'background-color 0.2s ease',
-              fontFamily: 'Arial, sans-serif',
-              minHeight: '44px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#218838';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#28a745';
-            }}
+        {/* Don't show buttons until auth check is complete */}
+        {authLoading || isCheckingSave ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#6c757d' }}>
+            Loading...
+          </div>
+        ) : (
+          <>
+            {isAuthenticated && hasSavedGame && (
+          <MainMenuButton
+            variant="success"
+            onClick={() => navigate('/game?load=true')}
           >
             Continue Game
-          </button>
+          </MainMenuButton>
         )}
         
-        <button 
+        <MainMenuButton
+          variant="primary"
           onClick={() => navigate('/game')}
-          style={{
-            backgroundColor: '#007bff',
-            color: '#fff',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            fontSize: '15px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            transition: 'background-color 0.2s ease',
-            fontFamily: 'Arial, sans-serif',
-            minHeight: '44px' // Touch target size
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#0056b3';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#007bff';
-          }}
         >
-          {hasSavedGame ? 'New Game' : 'Single Player'}
-        </button>
+          New Game
+        </MainMenuButton>
         
-        <button 
-          onClick={() => navigate('/collection')} 
-          style={{
-            backgroundColor: '#6c757d',
-            color: '#fff',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            fontSize: '15px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            transition: 'background-color 0.2s ease',
-            fontFamily: 'Arial, sans-serif',
-            minHeight: '44px' // Touch target size
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#5a6268';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#6c757d';
-          }}
+        <MainMenuButton
+          variant="secondary"
+          onClick={() => navigate('/collection')}
         >
           Collection
-        </button>
+        </MainMenuButton>
+        
+        {isAuthenticated && (
+          <MainMenuButton
+            variant="secondary"
+            onClick={() => navigate('/profile')}
+          >
+            Profile
+          </MainMenuButton>
+        )}
         
         <button 
           onClick={() => setIsSettingsOpen(true)} 
@@ -184,12 +144,20 @@ export const MainMenu: React.FC = () => {
         >
           Settings
         </button>
+          </>
+        )}
 
         <SettingsModal 
           isOpen={isSettingsOpen} 
           onClose={() => setIsSettingsOpen(false)} 
         />
       </div>
+      
+      {/* Auth Section - Below buttons */}
+      <div style={{ marginTop: '30px' }}>
+        <AuthSection />
+      </div>
+      
     </div>
   );
 }; 

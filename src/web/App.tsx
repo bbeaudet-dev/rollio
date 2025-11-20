@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SinglePlayerGame } from './ui/single-player';
 import { MainMenu, SettingsPage } from './ui/menu';
 import { CollectionPage } from './ui/collection';
+import { ProfilePage } from './ui/profile/ProfilePage';
 
 function App() {
   return (
@@ -18,6 +19,9 @@ function App() {
         
         {/* Settings page */}
         <Route path="/settings" element={<SettingsPage />} />
+        
+        {/* Profile page */}
+        <Route path="/profile" element={<ProfilePage />} />
         
         {/* Future routes */}
         {/* <Route path="/setup" element={<GameSetup />} /> */}

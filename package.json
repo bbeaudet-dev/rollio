@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "dev": "nodemon --exec ts-node src/cli/cli.ts",
     "dev:web": "nodemon --exec ts-node src/app/web.ts",
-    "dev:server": "nodemon --exec ts-node src/server/server.ts",
+    "dev:server": "nodemon --watch src/server --ext ts,json --exec ts-node src/server/server.ts",
     "dev:app": "vite",
     "test": "vitest",
     "test:run": "vitest run",

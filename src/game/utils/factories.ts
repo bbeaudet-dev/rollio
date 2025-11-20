@@ -196,9 +196,10 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty:
     
     // History (consolidated here - all history in one place)
     history: {
-      totalScore: 0, // Renamed from gameScore - cumulative banked points
       combinationCounters: createInitialCombinationCounters(),
       levelHistory: [],
+      highScoreSingleRoll: 0,  // Track highest single roll score
+      highScoreBank: 0,  // Track highest bank score
     },
     consecutiveBanks: 0,  // Initialize consecutive banks counter
   };
