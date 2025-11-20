@@ -23,10 +23,8 @@ interface BoardProps {
   } | null;
   canChooseFlopShield?: boolean;
   onFlopShieldChoice?: (useShield: boolean) => void;
-  gameOver?: boolean;
   onScoreSelectedDice?: () => void;
   lastRollPoints?: number;
-  gameScore?: number;
   justBanked?: boolean;
   justFlopped?: boolean;
   scoringBreakdown?: ScoringBreakdown | null;
@@ -47,10 +45,7 @@ export const Board: React.FC<BoardProps> = ({
   previewScoring = null,
   canChooseFlopShield = false,
   onFlopShieldChoice = () => {},
-  gameOver = false,
-  onScoreSelectedDice = () => {},
   lastRollPoints = 0,
-  gameScore = 0,
   justBanked = false,
   justFlopped = false,
   scoringBreakdown = null,
@@ -200,7 +195,6 @@ export const Board: React.FC<BoardProps> = ({
       <GameAlerts
         canChooseFlopShield={canChooseFlopShield}
         onFlopShieldChoice={onFlopShieldChoice}
-        gameOver={gameOver}
         canSelectDice={canSelect}
         selectedDiceCount={selectedIndices.length}
         previewScoring={previewScoring}

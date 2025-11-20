@@ -1,10 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SettingsModal } from './SettingsModal';
+import { AuthSection } from '../auth';
+import { useAuth } from '../../contexts/AuthContext';
+import { gameApi } from '../../services/api';
+import { MainMenuButton } from '../components/MainMenuButton';
 
 export const MainMenu: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [hasSavedGame, setHasSavedGame] = useState(false);
+
+  // Check for saved game in the background (non-blocking)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setHasSavedGame(false);
+      return;
+    }
+
+    // Check for saved game in background - don't block UI
+    gameApi.loadGame().then(result => {
+      const hasGame = result.success && !!(result as any).gameState;
+      setHasSavedGame(hasGame);
+    }).catch(() => {
+      setHasSavedGame(false);
+    });
+  }, [isAuthenticated]);
   return (
     <div style={{
       fontFamily: 'Arial, sans-serif',
@@ -42,58 +64,31 @@ export const MainMenu: React.FC = () => {
         gap: '12px',
         marginTop: '30px'
       }}>
-        <button 
-          onClick={() => navigate('/game')}
-          style={{
-            backgroundColor: '#007bff',
-            color: '#fff',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            fontSize: '15px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            transition: 'background-color 0.2s ease',
-            fontFamily: 'Arial, sans-serif',
-            minHeight: '44px' // Touch target size
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#0056b3';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#007bff';
-          }}
+        {/* Continue button - always shown, disabled if no save */}
+        <MainMenuButton
+          variant="success"
+          onClick={() => navigate('/game?load=true')}
+          disabled={!isAuthenticated || !hasSavedGame}
         >
-          Single Player
-        </button>
+          Continue Game
+        </MainMenuButton>
         
-        <button 
-          onClick={() => navigate('/collection')} 
-          style={{
-            backgroundColor: '#6c757d',
-            color: '#fff',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            fontSize: '15px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            transition: 'background-color 0.2s ease',
-            fontFamily: 'Arial, sans-serif',
-            minHeight: '44px' // Touch target size
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#5a6268';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#6c757d';
-          }}
+        <MainMenuButton
+          variant="primary"
+          onClick={() => navigate('/game')}
+        >
+          New Game
+        </MainMenuButton>
+        
+        <MainMenuButton
+          variant="secondary"
+          onClick={() => navigate('/collection')}
         >
           Collection
-        </button>
+        </MainMenuButton>
         
         <button 
-          onClick={() => setIsSettingsOpen(true)} 
+          onClick={() => setIsSettingsOpen(true)}
           style={{
             backgroundColor: '#6c757d',
             color: '#fff',
@@ -105,7 +100,7 @@ export const MainMenu: React.FC = () => {
             fontWeight: '500',
             transition: 'background-color 0.2s ease',
             fontFamily: 'Arial, sans-serif',
-            minHeight: '44px' // Touch target size
+            minHeight: '44px'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = '#5a6268';
@@ -122,6 +117,12 @@ export const MainMenu: React.FC = () => {
           onClose={() => setIsSettingsOpen(false)} 
         />
       </div>
+      
+      {/* Auth Section - Below buttons */}
+      <div style={{ marginTop: '30px' }}>
+        <AuthSection />
+      </div>
+      
     </div>
   );
 }; 

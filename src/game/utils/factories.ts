@@ -34,7 +34,8 @@ export const DEFAULT_SHOP_STATE: ShopState = {
 };
 
 function createInitialCombinationCounters(): CombinationCounters {
-  return Object.fromEntries(ALL_SCORING_TYPES.map(c => [c, 0])) as CombinationCounters;
+  // Start with empty object - combinations will be added as they're used
+  return {};
 }
 
 // Convert die config to runtime die state
@@ -196,9 +197,10 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty:
     
     // History (consolidated here - all history in one place)
     history: {
-      totalScore: 0, // Renamed from gameScore - cumulative banked points
       combinationCounters: createInitialCombinationCounters(),
       levelHistory: [],
+      highScoreSingleRoll: 0,  // Track highest single roll score
+      highScoreBank: 0,  // Track highest bank score
     },
     consecutiveBanks: 0,  // Initialize consecutive banks counter
   };

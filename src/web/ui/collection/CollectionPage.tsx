@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MenuButton } from '../components';
+import { MainMenuReturnButton } from '../components';
 import { MATERIALS } from '../../../game/data/materials';
 import { CHARMS } from '../../../game/data/charms';
 import { CONSUMABLES, WHIMS, WISHES } from '../../../game/data/consumables';
@@ -127,7 +127,7 @@ export const CollectionPage: React.FC = () => {
 
   return (
     <div style={containerStyle}>
-      <MenuButton />
+      <MainMenuReturnButton />
       <h1 style={titleStyle}>Collection</h1>
 
       {/* Materials */}

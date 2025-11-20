@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-interface MenuButtonProps {
+interface MainMenuReturnButtonProps {
   onClick?: () => void;
   style?: React.CSSProperties;
 }
 
-export const MenuButton: React.FC<MenuButtonProps> = ({ onClick, style }) => {
+export const MainMenuReturnButton: React.FC<MainMenuReturnButtonProps> = ({ onClick, style }) => {
   const navigate = useNavigate();
   
   const defaultStyle: React.CSSProperties = {

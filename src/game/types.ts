@@ -42,7 +42,8 @@ export interface DiceSetConfig {
 // SCORING TYPES
 import { ScoringCombinationType } from './data/combinations';
 import type { ScoringBreakdown } from './logic/scoringBreakdown';
-export type CombinationCounters = Record<ScoringCombinationType, number>;
+// Combination counters use composite keys (e.g., "nPairs:2", "nOfAKind:4")
+export type CombinationCounters = Record<string, number>;
 
 // Re-export scoring value types
 export type { ScoringElements } from './logic/scoringElements';
@@ -205,12 +206,15 @@ export interface LevelState {
 
 // Game history and tracking data (consolidated here)
 export interface GameHistory {
-  // Cumulative statistics (calculated from nested history)
-  totalScore: number;  // Renamed from gameScore - cumulative banked points
+  // Combination usage tracking
   combinationCounters: CombinationCounters;
 
   // Historical records (nested structure)
   levelHistory: LevelState[];  // Completed levels (excluding current)
+  
+  // Game-wide high scores (for statistics tracking)
+  highScoreSingleRoll: number;  // Highest single roll score in this game
+  highScoreBank: number;  // Highest bank score in this game
     
   // TODO: Future game-wide statistics tracking
   // We want to track cumulative stats across the entire game/run:

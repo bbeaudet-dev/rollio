@@ -11,7 +11,7 @@ export interface InputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  type?: 'text' | 'number';
+  type?: 'text' | 'number' | 'email' | 'password';
 }
 
 export interface ModalProps {

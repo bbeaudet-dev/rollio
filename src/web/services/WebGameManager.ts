@@ -61,6 +61,38 @@ export class WebGameManager {
     this.gameAPI.on('stateChanged', () => {
       // Messages are handled via ReactGameInterface
     });
+    
+    // Subscribe to gameEnded event to save statistics
+    this.gameAPI.on('gameEnded', async (data: { reason: string; gameState: GameState }) => {
+      const endReason = data.reason as 'win' | 'lost' | 'quit';
+      await this.saveGameStats(data.gameState, endReason);
+    });
+  }
+  
+  /**
+   * Save game statistics when game ends
+   */
+  private async saveGameStats(gameState: GameState, endReason: 'win' | 'lost' | 'quit'): Promise<void> {
+    try {
+      // Import dynamically to avoid circular dependency
+      const { gameApi } = await import('./api');
+      
+      // Save completion stats first
+      const saveResult = await gameApi.saveGameCompletion(gameState, endReason);
+      
+      // Only delete the save if completion was successfully saved
+      if (saveResult.success) {
+        await gameApi.deleteGame();
+        console.log('Game completion saved and active save deactivated');
+      } else {
+        console.error('Failed to save game completion, keeping save active for retry:', saveResult.error);
+        // Keep the save active so we can retry later or user can manually retry
+      }
+    } catch (error) {
+      // Silently fail - don't interrupt gameplay if stats save fails
+      // Keep the save active so we can retry later
+      console.error('Failed to save game stats:', error);
+    }
   }
 
   /**
@@ -166,6 +198,56 @@ export class WebGameManager {
 
     const roundState = gameState.currentLevel.currentRound;
     return this.createWebGameState(gameState, roundState || null, [], null, false, false, false);
+  }
+
+  /**
+   * Load a saved game from the server
+   */
+  async loadGame(): Promise<WebGameState> {
+    resetLevelColors();
+    
+    // Import dynamically to avoid circular dependency
+    const { gameApi } = await import('./api');
+    const result = await gameApi.loadGame();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to load game');
+    }
+
+    // The API response has gameState at the top level
+    const gameState = (result as any).gameState;
+    if (!gameState) {
+      throw new Error('No game state in response');
+    }
+    
+    // Register charms with the charm manager
+    // The backend already deserialized and rebuilt charm instances, so we just need to register them
+    const { registerStartingCharms } = await import('../../game/utils/factories');
+    registerStartingCharms(gameState, (this.gameAPI as any).charmManager);
+
+    // The gameState should already have the current level and round state
+    const roundState = gameState.currentLevel?.currentRound || null;
+    
+    // Check if game is in shop state (shop is stored in currentLevel.shop)
+    const shop = gameState.currentLevel?.shop;
+    const isInShop = !!(shop && shop.isOpen);
+    const shopState = isInShop ? shop : null;
+    
+    // Check if we need to show tally modal (level completed but not yet confirmed)
+    // This would be if level has rewards but shop is not open yet
+    const showTallyModal = !!(gameState.currentLevel?.rewards && !isInShop && !roundState);
+    const pendingRewards = showTallyModal ? gameState.currentLevel.rewards : null;
+    
+    const baseState = this.createWebGameState(gameState, roundState, [], null, false, false, false);
+    
+    return {
+      ...baseState,
+      isInShop,
+      shopState,
+      showTallyModal,
+      pendingRewards,
+      levelRewards: gameState.currentLevel?.rewards || null,
+    };
   }
 
   updateDiceSelection(state: WebGameState, selectedIndices: number[]): WebGameState {
@@ -599,7 +681,36 @@ export class WebGameManager {
     
     if (!roundState) return state;
     
+    // Auto-save after level completion (after advancing to next level)
+    await this.autoSaveGame(gameState);
+    
     return this.createWebGameState(gameState, roundState, [], null, false, false, false);
+  }
+
+  /**
+   * Auto-save game state (only if user is authenticated)
+   */
+  private async autoSaveGame(gameState: GameState): Promise<void> {
+    try {
+      // Check if user is authenticated by checking for token
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        // User is not logged in, skip auto-save
+        return;
+      }
+      
+      // Save game (import dynamically to avoid circular dependency)
+      const { gameApi } = await import('./api');
+      const result = await gameApi.saveGame(gameState);
+      if (result.success) {
+        console.log('Game auto-saved successfully');
+      } else {
+        console.error('Failed to auto-save game:', result.error);
+      }
+    } catch (error) {
+      // Silently fail - don't interrupt gameplay if save fails
+      console.error('Auto-save error:', error);
+    }
   }
 
   resolvePendingAction(state: WebGameState, value: string): WebGameState {
