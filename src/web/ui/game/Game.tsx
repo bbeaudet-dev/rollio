@@ -7,6 +7,7 @@ import { SettingsButton, MainMenuReturnButton } from '../components';
 import { SettingsModal } from '../menu';
 import { TallyModal } from './TallyModal';
 import { GameOverModal } from './GameOverModal';
+import { DifficultyProvider } from '../../contexts/DifficultyContext';
 
 // Intermediary interfaces for logical groups
 interface RollActions {
@@ -182,6 +183,7 @@ export const Game: React.FC<GameProps> = ({
     roundState.rollHistory[roundState.rollHistory.length - 1]?.rollPoints || 0 : 0;
   const rollNumber = roundState?.rollHistory?.length || 0;
   const roundNumber = gameState.currentLevel.currentRound?.roundNumber || 1;
+  const difficulty = gameState.config.difficulty as any; // Convert to string type for context
 
   return (
     <>
@@ -189,12 +191,13 @@ export const Game: React.FC<GameProps> = ({
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
       />
-    <div style={{ 
-      width: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0' // No gap between sections
-    }}>
+      <DifficultyProvider difficulty={difficulty}>
+        <div style={{ 
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0' // No gap between sections
+        }}>
       {/* Dice-Rolling Area */}
       <div style={{ position: 'relative', marginTop: '0' }}>
         <Board
@@ -266,14 +269,13 @@ export const Game: React.FC<GameProps> = ({
         </div>
       </div>
 
-        <Inventory 
-            charms={inventory.charms}
-            consumables={inventory.consumables}
-          blessings={gameState.blessings || []}
-            money={gameState.money}
-            onConsumableUse={inventoryActions.handleConsumableUse}
-          />
-      </div>
+      <Inventory 
+        charms={inventory.charms}
+        consumables={inventory.consumables}
+        blessings={gameState.blessings || []}
+        money={gameState.money}
+        onConsumableUse={inventoryActions.handleConsumableUse}
+      />
       
       {/* Menu and Settings buttons below inventory */}
       <div style={{
@@ -311,6 +313,8 @@ export const Game: React.FC<GameProps> = ({
           onNewGame={onNewGame}
         />
       )}
+        </div>
+      </DifficultyProvider>
     </>
   );
 }; 

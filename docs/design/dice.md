@@ -15,6 +15,10 @@ EDGE CONNECTIONS:
   Connect point 4 to point 5 thick
  Connect point 4 to point 6 thin
 
+AREAS:
+Points 4 5 6 and back to 4 creates the left half of the triangular die
+Points 4 7 6 and back to 4 creates the right half of the triangular die
+
 
 
 D8
@@ -34,9 +38,15 @@ EDGE CONNECTIONS:
   Connect point 15 to point 16 thick
   Connect point 16 to point 17 thick
   Connect point 17 to point 12 thick
-Connect point 12 to point 14 thin
+  Connect point 12 to point 14 thin
   Connect point 12 to point 16 thin
   Conntect point 14 to 16 thin
+
+AREAS:
+Points 12 14 16 and back to 12 creates the top front area of the "prism", facing upwards
+Points 15 14 16 and back to 15 creates the bottom front area of the "prism", facing downwards
+Points 12 13 14 and back to 12 creates the top left face of the "prism", facing leftwards and up
+Points 12 17 16 and back to 12 creates the top right face of the "prism", facing rightwards and up
 
 
 
@@ -70,6 +80,13 @@ Connect point 6 to point 1 thin
 Connect point 6 to point 17 thin
 Connect point 1 to point 14 thin
 Connect point 1 to point 16 thin
+
+AREAS:
+Points 6 8 14 1 and back to 6 creates the top front area of the "prism", facing upwards
+Points 8 18 13 14 and back to 8 creates the top right face of the "prism", facing rightwards and up
+Points 14 15 16 1 and back to 14 creates the top left face of the "prism", facing leftwards and up
+Points 16 1 6 17 and back to 16 creates the bottom left face of the "prism", facing front/leftwards and down
+Points 18 8 6 17 and back to 18 creates the bottom right face of the "prism", facing front/rightwards and down
 
 
 
@@ -117,6 +134,14 @@ Connect points 3 and 6 thin
 Connect points 6 and 19 thin
 Connect points 6 and 12 thin
 
+AREAS:
+Points 3 4 11 12 6 and back to 3 creates the main front pentagonal area facing straight forwards
+Points 12 17 18 19 6 and back to 12 creates the top right face, facing rightwards and up
+Points 6 3 21 20 19 and back to 6 creates the top left face, facing leftwards and up
+Points 3 21 22 23 4 and back to 3 creates the bottom left face, facing leftwards and down
+Points 4 23 24 25 11 and back to 4 creates the bottom face, facing forward and down
+Points 11 25 26 17 12 and back to 11 creates the bottom right face, facing rightwards and down
+
 
 
 D20
@@ -153,6 +178,22 @@ EDGE CONNECTIONS:
   Connect points 2 and 23 thin
   Connect points 2 and 24 thin
 
+NOTES:
   Also, 21, 3, 2, and 23 can all have the same y value, since they are all on the same line
   Also, 20, 13, and 24 can all have the same y value, since they are all on the same line
   21 and 20 have the same x value, and 23 and 24 have the same x value
+
+TOP AREAS:
+Points 19 20 13 and back to 19 creates the top left triangle, facing 45 degrees left and 45 degrees up
+Points 19 24 13 and back to 19 creates the top right triangle, facing 45 degrees right and 45 degrees up
+BOTTOM AREAS:
+Points 21 3 22 and back to 21 creates a narrow sliver on the bottom left, facing about 75 degrees left and 45 degrees down
+Points 23 2 22 and back to 23 creates a narrow sliver on the bottom right, facing about 75 degrees right and 45 degrees down
+Points 3 2 22 and back to 3 creates a large center triangle on the bottom, facing forward and 45 degrees down
+MIDDLE AREAS:
+Points 20 21 3 and back to 20 creates a narrow sliver on the left side of the main middle section, facing about 75 degrees left
+Points 23 24 2 and back to 23 creates a narrow sliver on the right side of the main middle section, facing about 75 degrees right
+Points 20 3 13 and back to 20 creates a large triangle just left of the middle, facing forward with about 10 degrees to the left
+Points 24 2 13 and back to 24 creates a large triangle just right of the middle, facing forward with about 10 degrees to the right
+Points 13 3 2 and back to 13 creates the most prominent center triangle, facing directly forward
+

@@ -16,7 +16,8 @@ const DIFFICULTY_ORDER: DifficultyLevel[] = [
   'sapphire',
   'emerald',
   'ruby',
-  'diamond'
+  'diamond',
+  'quantum'
 ];
 
 export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficulty, onChange }) => {
@@ -192,11 +193,11 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
         overflow: 'hidden'
       }}>
         <div style={{
-          padding: '10px',
-          fontSize: '13px',
+          padding: '12px',
+          fontSize: '14px',
           color: '#495057',
           textAlign: 'center',
-          fontWeight: 'bold',
+          fontWeight: 'normal',
           lineHeight: '1.5',
           ...(difficulty !== 'plastic' && {
             borderBottom: '1px solid #e9ecef'
@@ -211,10 +212,15 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
             fontSize: '13px',
             color: '#0066cc',
             textAlign: 'center',
-            fontWeight: 'bold',
+            fontWeight: 'normal',
             lineHeight: '1.5'
           }}>
-            Effects of all previous Difficulties
+            + Effects of all previous Difficulties
+            <div style={{ marginTop: '2px', fontSize: '9px', opacity: 0.8 }}>
+              {DIFFICULTY_ORDER.slice(0, currentIndex).map((d, idx) => 
+                DIFFICULTY_CONFIGS[d].name
+              ).join(', ')}
+            </div>
           </div>
         )}
       </div>

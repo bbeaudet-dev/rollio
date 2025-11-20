@@ -8,6 +8,7 @@ import { GameState } from '../game/types';
 import { GameInterface } from './interfaces';
 import { calculateLevelRewards, applyLevelRewards, LevelRewards } from '../game/logic/tallying';
 import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, calculateShopDiscount, applyDiscount, getCharmPrice, getConsumablePrice, getBlessingPrice } from '../game/logic/shop';
+import { getDifficulty } from '../game/logic/difficulty';
 import { CLIDisplayFormatter } from './display/cliDisplay';
 import { debugAction, debugLog } from '../game/utils/debug';
 
@@ -42,16 +43,17 @@ function generateShopState(gameState: GameState) {
   const shopState = generateShopInventory(gameState);
   const discount = calculateShopDiscount(gameState);
   
+  const difficulty = getDifficulty(gameState);
   const charmPrices = shopState.availableCharms.map(charm => {
-    const basePrice = getCharmPrice(charm);
+    const basePrice = getCharmPrice(charm, difficulty);
     return applyDiscount(basePrice, discount);
   });
   const consumablePrices = shopState.availableConsumables.map(consumable => {
-    const basePrice = getConsumablePrice(consumable);
+    const basePrice = getConsumablePrice(consumable, difficulty);
     return applyDiscount(basePrice, discount);
   });
   const blessingPrices = shopState.availableBlessings.map(blessing => {
-    const basePrice = getBlessingPrice(blessing);
+    const basePrice = getBlessingPrice(blessing, difficulty);
     return applyDiscount(basePrice, discount);
   });
   

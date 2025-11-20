@@ -7,7 +7,7 @@
 import { ScoringCombinationType } from '../data/combinations';
 import { GameState } from '../types';
 
-export type DifficultyLevel = 'plastic' | 'copper' | 'silver' | 'gold' | 'platinum' | 'sapphire' | 'emerald' | 'ruby' | 'diamond';
+export type DifficultyLevel = 'plastic' | 'copper' | 'silver' | 'gold' | 'platinum' | 'sapphire' | 'emerald' | 'ruby' | 'diamond' | 'quantum';
 
 /**
  * Minimum N values for each combination type at each difficulty level
@@ -45,21 +45,21 @@ export const DIFFICULTY_MIN_VALUES: Record<DifficultyLevel, CombinationMinValues
     pyramidOfN: 6,  
   },
   silver: {
+    singleN: [1, 5], 
+    nPairs: 1,         
+    nOfAKind: 3,
+    nTriplets: 2,
+    nQuadruplets: 2,
+    straightOfN: 4, 
+    pyramidOfN: 6,
+  },
+  gold: {
     singleN: [1],       // Only 1s allowed, 5s disabled
-    nPairs: 3,          // Three pairs or more 
+    nPairs: 3,          // Three pairs or more
     nOfAKind: 3,
     nTriplets: 2,
     nQuadruplets: 2,
     straightOfN: 5,     // Straight of (5) or more
-    pyramidOfN: 6,
-  },
-  gold: {
-    singleN: [1], 
-    nPairs: 3,
-    nOfAKind: 3,
-    nTriplets: 2,
-    nQuadruplets: 2,
-    straightOfN: 5,
     pyramidOfN: 6,
   },
   platinum: {
@@ -107,6 +107,15 @@ export const DIFFICULTY_MIN_VALUES: Record<DifficultyLevel, CombinationMinValues
     straightOfN: 6,     // Large straight (6) or more
     pyramidOfN: 10,     // Pyramid of 10 or more
   },
+  quantum: {
+    singleN: false,
+    nPairs: 3,
+    nOfAKind: 4,
+    nTriplets: 2,
+    nQuadruplets: 2, 
+    straightOfN: 6,
+    pyramidOfN: 10, 
+  },
 };
 
 /**
@@ -135,6 +144,7 @@ export interface DifficultyConfig {
   consumableSlotsModifier?: number; // Modifier for consumable slots
   moneyModifier?: number; // Multiplier for money rewards
   pointThresholdModifier?: number; // Multiplier for level thresholds
+  shopPriceModifier?: number; // Multiplier for shop prices (e.g., 1.5 for 50% more expensive)
 }
 
 /**
@@ -154,64 +164,96 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     description: '-1 reroll per level',
     minValues: DIFFICULTY_MIN_VALUES.copper,
     pointThresholdModifier: 1.0,
-    rerollsModifier: -1,
+    rerollsModifier: -1, // new
   },
   silver: {
     id: 'silver',
     name: 'Silver',
-    description: 'No beginner scoring combinations',
+    description: '-1 bank per level',
     minValues: DIFFICULTY_MIN_VALUES.silver,
     pointThresholdModifier: 1.0,
+    rerollsModifier: -1,
+    banksModifier: -1, // new
   },
   gold: {
     id: 'gold',
     name: 'Gold',
-    description: '-1 bank per level',
+    description: 'No beginner scoring combinations',
     minValues: DIFFICULTY_MIN_VALUES.gold,
     pointThresholdModifier: 1.0,
+    rerollsModifier: -1,
     banksModifier: -1,
   },
   platinum: {
     id: 'platinum',
     name: 'Platinum',
-    description: 'Faster level threshold scaling (1.5x)',
+    description: 'Level completion bonus only for miniboss and boss levels',
     minValues: DIFFICULTY_MIN_VALUES.platinum,
-    pointThresholdModifier: 1.5, // 1.5x level thresholds
+    pointThresholdModifier: 1.0,
+    rerollsModifier: -1, 
+    banksModifier: -1,
   },
   sapphire: {
     id: 'sapphire',
     name: 'Sapphire',
-    description: 'Level completion bonus only for miniboss and boss levels',
+    description: 'Faster level threshold scaling (1.5x)',
     minValues: DIFFICULTY_MIN_VALUES.sapphire,
-    pointThresholdModifier: 1.5,
+    pointThresholdModifier: 1.5, // new
+    rerollsModifier: -1, 
+    banksModifier: -1,
   },
   emerald: {
     id: 'emerald',
     name: 'Emerald',
-    description: '-1 consumable slot',
+    description: '-1 consumable slot and -1 charm slot',
     minValues: DIFFICULTY_MIN_VALUES.emerald,
     pointThresholdModifier: 1.5,
-    consumableSlotsModifier: -1,
+    rerollsModifier: -1, 
+    banksModifier: -1, 
+    consumableSlotsModifier: -1, // new
+    charmSlotsModifier: -1, // new
   },
   ruby: {
     id: 'ruby',
     name: 'Ruby',
-    description: '-1 charm slot',
+    description: 'Everything in the shop is 50% more expensive',
     minValues: DIFFICULTY_MIN_VALUES.ruby,
-    pointThresholdModifier: 1.5,
-    charmSlotsModifier: -1,
+    pointThresholdModifier: 1.5, // From sapphire
+    rerollsModifier: -1, // From copper
+    banksModifier: -1, // From silver
+    consumableSlotsModifier: -1, // From emerald
+    charmSlotsModifier: -1, // From emerald
+    shopPriceModifier: 1.5, // 50% more expensive - its own
   },
   diamond: {
     id: 'diamond',
     name: 'Diamond',
     description: 'No intermediate scoring combinations',
     minValues: DIFFICULTY_MIN_VALUES.diamond,
-    pointThresholdModifier: 1.5,
+    pointThresholdModifier: 1.5, // From sapphire
+    rerollsModifier: -1, // From copper
+    banksModifier: -1, // From silver
+    consumableSlotsModifier: -1, // From emerald
+    charmSlotsModifier: -1, // From emerald
+    shopPriceModifier: 1.5, // From ruby
+  },
+  quantum: {
+    id: 'quantum',
+    name: 'Quantum',
+    description: 'Much faster level scaling (5x)',
+    minValues: DIFFICULTY_MIN_VALUES.quantum,
+    pointThresholdModifier: 5, // Much faster scaling - its own (replaces 1.5x)
+    rerollsModifier: -1, // From copper
+    banksModifier: -1, // From silver
+    consumableSlotsModifier: -1, // From emerald
+    charmSlotsModifier: -1, // From emerald
+    shopPriceModifier: 1.5, // From ruby
   },
 };
 
 /**
  * Get difficulty configuration
+ * Each difficulty config explicitly includes all cumulative modifiers from lower difficulties
  */
 export function getDifficultyConfig(difficulty: DifficultyLevel): DifficultyConfig {
   return DIFFICULTY_CONFIGS[difficulty];

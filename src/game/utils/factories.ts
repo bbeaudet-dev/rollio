@@ -153,7 +153,7 @@ export function createInitialLevelState(levelNumber: number, gameState: GameStat
 export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty: DifficultyLevel): GameState {
   validateDiceSetConfig(diceSetConfig);
   
-  // Apply difficulty modifiers
+  // Apply difficulty modifiers (each config explicitly includes all cumulative modifiers)
   const config = getDifficultyConfig(difficulty);
   let finalBanks = diceSetConfig.baseLevelBanks;
   let finalRerolls = diceSetConfig.baseLevelRerolls;

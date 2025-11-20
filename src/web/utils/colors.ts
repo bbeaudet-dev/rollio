@@ -101,6 +101,12 @@ export const DIFFICULTY_COLORS = {
     number: '#006064',
     // Diamond will have animated shimmer effect
   },
+  quantum: { 
+    background: 'linear-gradient(135deg, #6a0dad, #8a2be2, #4b0082, #ff8c00, #ff1493)', 
+    border: '#8a2be2', 
+    number: '#fff',
+    // Quantum will have 4D wireframe effects
+  },
 } as const;
 
 /**

@@ -7,6 +7,8 @@ import { ScoringBreakdownComponent } from './ScoringBreakdown';
 import { PreviewScoring } from './score/PreviewScoring';
 import { ScoringBreakdown, Die } from '../../../../game/types';
 import { ViewDiceSet } from './ViewDiceSet';
+import { DifficultyDiceDisplay } from '../../components/DifficultyDiceDisplay';
+import { useDifficulty } from '../../../contexts/DifficultyContext';
 
 interface BoardProps {
   dice: any[];
@@ -54,6 +56,7 @@ export const Board: React.FC<BoardProps> = ({
   onCompleteBreakdown = () => {},
   diceSet = []
 }) => {
+  const difficulty = useDifficulty();
   // Get level color (memoized to avoid recalculating on every render)
   const levelColor = useMemo(() => getLevelColor(levelNumber), [levelNumber]);
   
@@ -130,6 +133,18 @@ export const Board: React.FC<BoardProps> = ({
         rollNumber={rollNumber}
         consecutiveFlops={consecutiveFlops}
       />
+
+      {/* Difficulty Dice Display - Top Right */}
+      {difficulty && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          zIndex: 10
+        }}>
+          <DifficultyDiceDisplay difficulty={difficulty} size={60} />
+        </div>
+      )}
 
       {/* Scoring Breakdown - shows when scoring */}
       {breakdownState !== 'hidden' && scoringBreakdown && (

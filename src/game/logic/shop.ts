@@ -7,6 +7,7 @@ import { CHARMS } from '../data/charms';
 import { CONSUMABLES, WHIMS, WISHES } from '../data/consumables';
 import { selectRandomBlessing, getBlessingName, getBlessingDescription, enrichBlessingForDisplay } from '../data/blessings';
 import { CHARM_PRICES } from '../data/charms';
+import { getDifficultyConfig, getDifficulty, DifficultyLevel } from '../logic/difficulty';
 
 const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
   wish: { buy: 8, sell: 4 },
@@ -38,31 +39,61 @@ export function applyDiscount(price: number, discount: number): number {
 }
 
 /**
- * Get charm price
+ * Get charm price (with difficulty modifier applied)
  */
-export function getCharmPrice(charm: Charm): number {
+export function getCharmPrice(charm: Charm, difficulty?: DifficultyLevel): number {
   const rarity = charm.rarity || 'common';
   const priceInfo = CHARM_PRICES[rarity] || CHARM_PRICES.common;
-  return priceInfo.buy;
+  let price = priceInfo.buy;
+  
+  // Apply difficulty shop price modifier (e.g., Ruby and above 50% more expensive)
+  if (difficulty) {
+    const config = getDifficultyConfig(difficulty);
+    if (config.shopPriceModifier) {
+      price = Math.ceil(price * config.shopPriceModifier);
+    }
+  }
+  
+  return price;
 }
 
 /**
- * Get consumable price
+ * Get consumable price (with difficulty modifier applied)
  */
-export function getConsumablePrice(consumable: Consumable): number {
+export function getConsumablePrice(consumable: Consumable, difficulty?: DifficultyLevel): number {
   // Check if consumable is a wish or whim
   const isWish = WISHES.some(w => w.id === consumable.id);
   const isWhim = WHIMS.some(w => w.id === consumable.id);
   const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
   const priceInfo = CONSUMABLE_PRICES[category] || CONSUMABLE_PRICES.whim;
-  return priceInfo.buy;
+  let price = priceInfo.buy;
+  
+  // Apply difficulty shop price modifier (e.g., Ruby and above 50% more expensive)
+  if (difficulty) {
+    const config = getDifficultyConfig(difficulty);
+    if (config.shopPriceModifier) {
+      price = Math.ceil(price * config.shopPriceModifier);
+    }
+  }
+  
+  return price;
 }
 
 /**
- * Get blessing price
+ * Get blessing price (with difficulty modifier applied)
  */
-export function getBlessingPrice(blessing: Blessing): number {
-  return BLESSING_PRICE;
+export function getBlessingPrice(blessing: Blessing, difficulty?: DifficultyLevel): number {
+  let price = BLESSING_PRICE;
+  
+  // Apply difficulty shop price modifier (e.g., Ruby and above 50% more expensive)
+  if (difficulty) {
+    const config = getDifficultyConfig(difficulty);
+    if (config.shopPriceModifier) {
+      price = Math.ceil(price * config.shopPriceModifier);
+    }
+  }
+  
+  return price;
 }
 
 /**
@@ -157,7 +188,8 @@ export function purchaseCharm(
   
   // Calculate price with discount
   const discount = calculateShopDiscount(gameState);
-  const basePrice = getCharmPrice(charm);
+  const difficulty = getDifficulty(gameState);
+  const basePrice = getCharmPrice(charm, difficulty);
   const finalPrice = applyDiscount(basePrice, discount);
   
   // Check money
@@ -201,7 +233,8 @@ export function purchaseConsumable(
   
   // Calculate price with discount
   const discount = calculateShopDiscount(gameState);
-  const basePrice = getConsumablePrice(consumable);
+  const difficulty = getDifficulty(gameState);
+  const basePrice = getConsumablePrice(consumable, difficulty);
   const finalPrice = applyDiscount(basePrice, discount);
   
   // Check money
@@ -245,7 +278,8 @@ export function purchaseBlessing(
   
   // Calculate price with discount
   const discount = calculateShopDiscount(gameState);
-  const basePrice = getBlessingPrice(blessing);
+  const difficulty = getDifficulty(gameState);
+  const basePrice = getBlessingPrice(blessing, difficulty);
   const finalPrice = applyDiscount(basePrice, discount);
   
   // Check money
