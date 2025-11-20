@@ -1,5 +1,6 @@
-import { ScoringCombinationType, DIFFICULTY_MIN_VALUES } from '../data/combinations';
-import { countDice } from './findCombinations';
+import { ScoringCombinationType } from '../data/combinations';
+import { DIFFICULTY_MIN_VALUES } from '../logic/difficulty';
+import { countDice, getSpecificCombinationParams } from './findCombinations';
 import { findAllValidPartitionings } from './partitioning';
 import { Die } from '../types';
 import { isCombinationAvailable } from './difficulty';
@@ -145,7 +146,6 @@ function rollContainsCombination(
   param: number
 ): boolean {
   const counts = countDice(roll);
-  const maxFace = Math.max(...roll, 0);
   
   switch (type) {
     case 'singleN':
@@ -219,29 +219,48 @@ function rollContainsCombination(
     
     case 'pyramidOfN':
       // Pyramid: descending count pattern (e.g., 3-2-1, 4-3-2-1, 5-4-3-2-1)
-      // Check if roll has counts that form a descending sequence starting from some N down to 1
-      if (roll.length !== param) return false;
-      const pyramidCounts = counts.filter(c => c > 0).sort((a, b) => b - a);
+      // Check if roll contains a subset that forms a pyramid of size param
+      // A pyramid of N requires: N of one value, N-1 of another, ..., 1 of another
+      // Total dice needed: N + (N-1) + ... + 1 = N*(N+1)/2 = param
+      if (roll.length < param) return false;
       
-      // Check if counts form a descending sequence: N, N-1, N-2, ..., 1
-      if (pyramidCounts.length === 0) return false;
+      // Find N such that N*(N+1)/2 = param
+      // N^2 + N - 2*param = 0
+      // N = (-1 + sqrt(1 + 8*param)) / 2
+      const n = Math.floor((-1 + Math.sqrt(1 + 8 * param)) / 2);
+      if (n * (n + 1) / 2 !== param) return false; // param is not a triangular number
       
-      // The first count should be the largest, and they should decrease by 1 each time
-      const firstCount = pyramidCounts[0];
-      if (pyramidCounts.length !== firstCount) return false; // Must have exactly firstCount different values
+      // Check if we can form pyramid pattern: n, n-1, ..., 1
+      // We need to find n different values where we have at least n, n-1, ..., 1 of each
+      const nonZeroCounts = counts.filter(c => c > 0).sort((a, b) => b - a);
       
-      // Check if counts are consecutive descending: firstCount, firstCount-1, ..., 1
-      // Also verify the sum equals param (total dice)
-      let sum = 0;
-      for (let i = 0; i < pyramidCounts.length; i++) {
-        if (pyramidCounts[i] !== firstCount - i) {
-          return false;
+      // We need at least n different values
+      if (nonZeroCounts.length < n) return false;
+      
+      // Check if we can select n values from the available counts to form the pyramid
+      // We need: one value with count >= n, one with count >= n-1, ..., one with count >= 1
+      // Try all possible ways to assign the pyramid pattern to the available counts
+      function canFormPyramid(availableCounts: number[], pyramidPattern: number[]): boolean {
+        if (pyramidPattern.length === 0) return true;
+        const needed = pyramidPattern[0];
+        for (let i = 0; i < availableCounts.length; i++) {
+          if (availableCounts[i] >= needed) {
+            const newAvailable = [...availableCounts];
+            newAvailable.splice(i, 1);
+            if (canFormPyramid(newAvailable, pyramidPattern.slice(1))) {
+              return true;
+            }
+          }
         }
-        sum += pyramidCounts[i];
+        return false;
       }
       
-      // Sum should equal param (e.g., 3+2+1=6, 4+3+2+1=10)
-      return sum === param;
+      const pyramidPattern: number[] = [];
+      for (let i = n; i >= 1; i--) {
+        pyramidPattern.push(i);
+      }
+      
+      return canFormPyramid(nonZeroCounts, pyramidPattern);
     
     default:
       return false;
@@ -251,25 +270,41 @@ function rollContainsCombination(
 
 /**
  * Process computation in chunks to avoid blocking the UI
- * Uses adaptive chunk sizes - larger chunks for better performance, only yields when needed
+ * Always yields to the browser to keep the UI responsive
+ * In Node.js (non-browser), can process synchronously for better performance
  */
 function processChunk<T>(
   items: T[],
   processor: (item: T, index: number) => void,
-  chunkSize: number = 500000, // Process 500k items at a time (much larger)
+  chunkSize: number = 10000, // Process 10k items at a time, then yield
   onProgress?: (current: number, total: number) => void,
   shouldCancel?: () => boolean
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    // For small computations, process everything at once
-    if (items.length < 1000000) {
+    // In Node.js, process everything synchronously for maximum speed
+    // In browser, we need to yield to keep UI responsive
+    const isNode = typeof window === 'undefined';
+    
+    if (isNode && items.length < 10000000) {
+      // For Node.js with reasonable sizes, process synchronously
+      let lastProgressUpdate = 0;
+      const progressUpdateInterval = Math.max(50000, Math.floor(items.length / 200));
+      
       for (let i = 0; i < items.length; i++) {
         if (shouldCancel && shouldCancel()) {
           reject(new Error('Calculation cancelled'));
           return;
         }
+        
         processor(items[i], i);
+        
+        // Update progress occasionally
+        if (onProgress && (i - lastProgressUpdate >= progressUpdateInterval || i === items.length - 1)) {
+          onProgress(i + 1, items.length);
+          lastProgressUpdate = i;
+        }
       }
+      
       if (onProgress) {
         onProgress(items.length, items.length);
       }
@@ -277,6 +312,7 @@ function processChunk<T>(
       return;
     }
     
+    // Browser path: yield to keep UI responsive
     let index = 0;
     let lastProgressUpdate = 0;
     // Update progress every 0.5% or every 10k items, whichever is larger
@@ -302,13 +338,9 @@ function processChunk<T>(
       }
       
       if (index < items.length) {
-        // Yield control back to browser, then continue
-        // Use requestAnimationFrame for smoother updates, fallback to setTimeout
-        if (typeof requestAnimationFrame !== 'undefined') {
-          requestAnimationFrame(processNextChunk);
-        } else {
-          setTimeout(processNextChunk, 0);
-        }
+        // Always yield control back to browser to keep UI responsive
+        // Use setTimeout(0) to yield to the event loop
+        setTimeout(processNextChunk, 0);
       } else {
         resolve();
       }
@@ -362,8 +394,8 @@ function isCombinationPossible(type: ScoringCombinationType, param: number, numD
     case 'pyramidOfN':
       // Pyramid requires specific count pattern: N, N-1, N-2, ..., 1
       // Sum is N*(N+1)/2, so we need at least that many dice
-      // For pyramid of N, we need N dice total
-      return numDice === param;
+      // For pyramid of N, we need at least N dice (can use fewer than all dice)
+      return numDice >= param;
     
     default:
       return false;
@@ -386,16 +418,12 @@ function filterCombinationsByCategory(
   return combinations.filter(({ type, param }) => {
     switch (type) {
       case 'singleN':
-        if (category === 'advanced') {
-          // Advanced: no singleN combinations
+        if (minValues.singleN === false) {
           return false;
-        } else if (category === 'intermediate') {
-          // Intermediate: only single1, no single5
-          return minValues.singleN > 0 && param === 1;
-        } else {
-          // Beginner: both single1 and single5
-          return minValues.singleN > 0 && (param === 1 || param === 5);
+        } else if (Array.isArray(minValues.singleN)) {
+          return minValues.singleN.includes(param);
         }
+        return false;
       case 'nPairs':
         return param >= minValues.nPairs;
       case 'nOfAKind':
@@ -467,23 +495,40 @@ function categoryToDifficulty(category: CombinationCategory): 'plastic' | 'silve
 /**
  * Check if a roll can use all dice (hot dice) using the actual partitioning system
  * This uses the same logic as the game to determine if all dice can be used
+ * @throws Error if diceFaces configuration is invalid or doesn't match roll length
  */
 function rollHasHotDice(
   roll: number[],
-  category: CombinationCategory
+  category: CombinationCategory,
+  diceFaces: number[][]
 ): boolean {
   const numDice = roll.length;
   if (numDice === 0) return false;
+  
+  // Validate that diceFaces matches roll length
+  if (diceFaces.length !== numDice) {
+    throw new Error(`Dice configuration mismatch: roll has ${numDice} dice but diceFaces has ${diceFaces.length} entries`);
+  }
+  
+  // Validate each die configuration
+  for (let i = 0; i < numDice; i++) {
+    if (!diceFaces[i] || diceFaces[i].length === 0) {
+      throw new Error(`Invalid dice configuration at index ${i}: diceFaces[${i}] is missing or empty`);
+    }
+    if (!diceFaces[i].includes(roll[i])) {
+      throw new Error(`Roll value ${roll[i]} at index ${i} is not in allowedValues [${diceFaces[i].join(', ')}]`);
+    }
+  }
   
   // Convert category to difficulty level
   const difficulty = categoryToDifficulty(category);
   
   // Create minimal Die objects from the roll values
-  // We need Die objects with rolledValue set, and basic structure for partitioning
+  // Use the actual diceFaces configuration to get correct allowedValues
   const diceHand: Die[] = roll.map((value, index) => ({
     id: `die-${index}`,
-    sides: 6,
-    allowedValues: [1, 2, 3, 4, 5, 6],
+    sides: diceFaces[index].length,
+    allowedValues: diceFaces[index],
     material: 'plastic' as const,
     rolledValue: value,
     pipEffects: {}, // No pip effects for calculator
@@ -492,71 +537,27 @@ function rollHasHotDice(
   // Create selected indices (all dice)
   const selectedIndices = roll.map((_, index) => index);
   
-  // Create minimal scoring context
-  // The partitioning system will use findAllPossibleCombinations which doesn't directly use difficulty,
-  // but we can filter the results afterward if needed
+  // Create scoring context with difficulty
+  // The partitioning system will use findAllPossibleCombinations which filters by difficulty
   const context = {
     charms: [],
-    materials: [],
+    difficulty: difficulty,
   };
   
   // Use the actual partitioning system to find all valid partitionings
-  // If any partitioning exists, it means all dice can be used (hot dice)
-  try {
-    const partitionings = findAllValidPartitionings(
-      roll,
-      selectedIndices,
-      diceHand,
-      context
-    );
-    
-    // Filter partitionings to only include those that respect difficulty rules
-    // We need to check each combination in each partitioning against difficulty
-    const validPartitionings = partitionings.filter(partitioning => {
-      return partitioning.every(combo => {
-        // Extract params from combination
-        const params = extractCombinationParams(combo, diceHand);
-        return isCombinationAvailable(combo.type as ScoringCombinationType, difficulty, params);
-      });
-    });
-    
-    // Hot dice if there's at least one valid partitioning that uses all dice
-    return validPartitionings.length > 0;
-  } catch (error) {
-    // If partitioning fails, fall back to false
-    // This shouldn't happen, but we want to be safe
-    console.warn('Error checking hot dice partitioning:', error);
-    return false;
-  }
+  // The partitioning system will automatically filter by difficulty
+  const partitionings = findAllValidPartitionings(
+    roll,
+    selectedIndices,
+    diceHand,
+    context
+  );
+  
+  // Hot dice if there's at least one valid partitioning that uses all dice
+  // (partitionings are already filtered by difficulty in findAllValidPartitionings)
+  return partitionings.length > 0;
 }
 
-/**
- * Extract parameters from a ScoringCombination for difficulty checking
- */
-function extractCombinationParams(combo: { type: string; dice: number[] }, diceHand: Die[]): { n?: number; count?: number; length?: number; faceValue?: number } {
-  const diceCount = combo.dice.length;
-  const diceValues = combo.dice.map(idx => diceHand[idx].rolledValue!);
-  const counts = countDice(diceValues);
-  
-  switch (combo.type) {
-    case 'singleN':
-      return { faceValue: diceValues[0] };
-    case 'nPairs':
-      return { n: diceCount / 2 };
-    case 'nOfAKind':
-      return { count: diceCount };
-    case 'straightOfN':
-      return { length: diceCount };
-    case 'nTriplets':
-      return { n: diceCount / 3 };
-    case 'nQuadruplets':
-      return { n: diceCount / 4 };
-    case 'pyramidOfN':
-      return { n: diceCount };
-    default:
-      return {};
-  }
-}
 
 /**
  * Check all combinations for a single roll (single-pass optimization)
@@ -629,11 +630,12 @@ export async function calculateAllSpecificProbabilities(
       }
       
       // Track hot dice using partitioning system
-      if (rollHasHotDice(roll, category)) {
+      // If this throws, let it propagate to the catch block
+      if (rollHasHotDice(roll, category, diceFaces)) {
         hotDiceCount++;
       }
     },
-    500000,
+    10000, // Smaller chunk size to keep UI responsive with expensive hot dice checks
     onProgress,
     shouldCancel
   );

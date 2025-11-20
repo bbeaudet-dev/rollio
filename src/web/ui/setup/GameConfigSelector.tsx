@@ -186,18 +186,12 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
         />
       </div>
 
-      <StartGameButton onClick={() => onConfigComplete({
-        diceSetIndex: config.diceSetIndex,
-        selectedCharms: config.selectedCharms,
-        selectedConsumables: config.selectedConsumables,
-        difficulty: config.difficulty
-      })} />
-
-      {/* All sections in one view */}
+      {/* Main configuration sections - Dice Set and Difficulty */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: config.cheatMode ? '1fr 1fr 1fr' : '1fr 1fr', 
-        gap: '20px' 
+        gridTemplateColumns: '1fr 1fr', 
+        gap: '20px',
+        marginBottom: '20px'
       }}>
         <DiceSetSelector
           diceSets={availableDiceSets}
@@ -209,25 +203,38 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
           difficulty={config.difficulty}
           onChange={handleDifficultyChange}
         />
-
-        {config.cheatMode && (
-          <>
-            <CharmSelector
-              charms={charms}
-              selectedCharms={config.selectedCharms}
-              maxSlots={maxCharmSlots}
-              onCharmSelect={handleCharmSelect}
-            />
-
-            <ConsumableSelector
-              consumables={consumables}
-              selectedConsumables={config.selectedConsumables}
-              maxSlots={maxConsumableSlots}
-              onConsumableSelect={handleConsumableSelect}
-            />
-          </>
-        )}
       </div>
+
+      {/* Charms and Consumables - shown below main sections */}
+      {config.cheatMode && (
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr', 
+          gap: '20px' 
+        }}>
+          <CharmSelector
+            charms={charms}
+            selectedCharms={config.selectedCharms}
+            maxSlots={maxCharmSlots}
+            onCharmSelect={handleCharmSelect}
+          />
+
+          <ConsumableSelector
+            consumables={consumables}
+            selectedConsumables={config.selectedConsumables}
+            maxSlots={maxConsumableSlots}
+            onConsumableSelect={handleConsumableSelect}
+          />
+        </div>
+      )}
+
+      {/* Start button at the bottom */}
+      <StartGameButton onClick={() => onConfigComplete({
+        diceSetIndex: config.diceSetIndex,
+        selectedCharms: config.selectedCharms,
+        selectedConsumables: config.selectedConsumables,
+        difficulty: config.difficulty
+      })} />
     </div>
   );
 };

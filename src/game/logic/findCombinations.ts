@@ -10,11 +10,13 @@ import { calculateCombinationPoints } from '../data/combinations';
 import { debugLog, getDebugMode } from '../utils/debug';
 import { shouldAllowSingleThrees } from './charms/charmUtils';
 import { expandDiceValuesForCombinations } from './pipEffectSystem';
+import { DifficultyLevel, isCombinationAvailable } from './difficulty';
 
-interface ScoringContext {
+export interface ScoringContext {
   charms?: any[];
   materials?: any[];
   charmManager?: any;
+  difficulty?: DifficultyLevel;
 }
 
 /**
@@ -51,6 +53,48 @@ function generateAllSubsets(indices: number[]): number[][] {
 }
 
 /**
+ * Get the parameters needed to check if a combination is available at a given difficulty.
+ * Extracts the relevant values (n, count, length, faceValue) from a combination based on its type.
+ */
+export function getSpecificCombinationParams(
+  combo: ScoringCombination,
+  diceHand: Die[]
+): { n?: number; count?: number; length?: number; faceValue?: number } {
+  const diceValues = combo.dice.map(idx => diceHand[idx].rolledValue!);
+  
+  switch (combo.type) {
+    case 'singleN':
+      return { faceValue: diceValues[0] };
+    case 'nPairs':
+      return { n: combo.dice.length / 2 };
+    case 'nOfAKind':
+      return { count: combo.dice.length };
+    case 'straightOfN':
+      return { length: combo.dice.length };
+    case 'nTriplets':
+      return { n: combo.dice.length / 3 };
+    case 'nQuadruplets':
+      return { n: combo.dice.length / 4 };
+    case 'nQuintuplets':
+      return { n: combo.dice.length / 5 };
+    case 'nSextuplets':
+      return { n: combo.dice.length / 6 };
+    case 'nSeptuplets':
+      return { n: combo.dice.length / 7 };
+    case 'nOctuplets':
+      return { n: combo.dice.length / 8 };
+    case 'nNonuplets':
+      return { n: combo.dice.length / 9 };
+    case 'nDecuplets':
+      return { n: combo.dice.length / 10 };
+    case 'pyramidOfN':
+      return { n: combo.dice.length };
+    default:
+      return {};
+  }
+}
+
+/**
  * Find all possible individual combinations from subsets of the dice
  * Only generates algorithm-based types (no backwards compatibility)
  */
@@ -61,6 +105,7 @@ export function findAllPossibleCombinations(
   context?: ScoringContext
 ): ScoringCombination[] {
   const combinations: ScoringCombination[] = [];
+  const difficulty = context?.difficulty;
   
   // Expand dice values based on pip effects (two-faced, wild)
   // This handles the expansion before combination finding
@@ -347,74 +392,45 @@ export function findAllPossibleCombinations(
     debugLog(`Combination deduplication: ${beforeCombinationCount} → ${uniqueCombinations.length} unique combinations`);
   }
   
+  // Filter by difficulty if provided
+  if (difficulty) {
+    const filteredCombinations: ScoringCombination[] = [];
+    for (const combo of uniqueCombinations) {
+      // Extract parameters for difficulty checking
+      const params = getSpecificCombinationParams(combo, diceHand);
+      
+      if (isCombinationAvailable(combo.type as any, difficulty, params)) {
+        filteredCombinations.push(combo);
+      }
+    }
+    
+    if (getDebugMode()) {
+      debugLog(`Difficulty filtering (${difficulty}): ${uniqueCombinations.length} → ${filteredCombinations.length} combinations`);
+    }
+    
+    return filteredCombinations;
+  }
+  
   return uniqueCombinations;
 }
 
 /**
  * Check if dice hand has any scoring combination
  * Only checks dice that have rolled values (filters out dice without rolledValue)
+ * If difficulty is provided, only checks for combinations valid at that difficulty level
  */
-export function hasAnyScoringCombination(diceHand: Die[]): boolean {
+export function hasAnyScoringCombination(diceHand: Die[], difficulty: DifficultyLevel): boolean {
   // Filter to only dice with rolled values (exclude dice that haven't been rolled yet)
   const diceWithValues = diceHand.filter(die => die.rolledValue !== undefined && die.rolledValue !== null);
   
   // If no dice have rolled values, it's not a flop (just haven't rolled yet)
   if (diceWithValues.length === 0) return false;
   
+  // Always use difficulty to check for valid combinations
   const values = diceWithValues.map(die => die.rolledValue!);
-  const counts = countDice(values);
-  
-  // Singles (1s or 5s)
-  if (counts[0] > 0 || counts[4] > 0) return true;
-  
-  // Pairs (at least one pair) - algorithm-based
-  if (counts.some(c => c >= 2)) return true;
-  
-  // N-of-a-kind (algorithm-based: check for any N >= 3)
-  if (counts.some(c => c >= 3)) return true;
-  
-  // Straights (algorithm-based: check for any straight length >= 4)
-  if (values.length >= 4) {
-    const sorted = [...values].sort((a, b) => a - b);
-    const unique = [...new Set(sorted)];
-    // Check for straights of length 4, 5, 6, or longer
-    for (let straightLength = 4; straightLength <= Math.min(unique.length, values.length); straightLength++) {
-      for (let start = 0; start <= unique.length - straightLength; start++) {
-        const straightSequence = unique.slice(start, start + straightLength);
-        if (straightSequence[straightLength - 1] - straightSequence[0] === straightLength - 1) {
-          return true;
-        }
-      }
-    }
-  }
-  
-  // N pairs (algorithm-based: check if we can form at least 1 pair)
-  const pairCount = counts.reduce((sum, c) => sum + Math.floor(c / 2), 0);
-  if (pairCount >= 1) return true;
-  
-  // N triplets (algorithm-based: check if we have at least 2 triplets)
-  const tripletCount = counts.filter(c => c === 3).length;
-  if (tripletCount >= 2) return true;
-  
-  // N quadruplets (algorithm-based: check if we have at least 2 quadruplets)
-  const quadrupletCount = counts.filter(c => c === 4).length;
-  if (quadrupletCount >= 2) return true;
-  
-  // Pyramid (algorithm-based: check for pyramid pattern)
-  if (values.length >= 6) {
-    const sortedCounts = [...counts].filter(c => c > 0).sort((a, b) => b - a);
-    if (sortedCounts.length >= 3) {
-      let isPyramid = true;
-      for (let i = 0; i < sortedCounts.length - 1; i++) {
-        if (sortedCounts[i] - sortedCounts[i + 1] !== 1) {
-          isPyramid = false;
-          break;
-        }
-      }
-      if (isPyramid && sortedCounts[0] >= 3) return true;
-    }
-  }
-  
-  return false;
+  const selectedIndices = diceWithValues.map((_, index) => index);
+  const context: ScoringContext = { difficulty };
+  const combinations = findAllPossibleCombinations(values, selectedIndices, diceWithValues, context);
+  return combinations.length > 0;
 }
 

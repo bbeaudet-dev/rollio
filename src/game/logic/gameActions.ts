@@ -1,11 +1,11 @@
-import { GameState, RoundState, DieValue, LevelState, RollState } from '../types';
+import { GameState, RoundState, DieValue, LevelState, RollState, Die } from '../types';
 import { isFlop, canBankPoints, isLevelCompleted } from './gameLogic';
 import { getHighestPointsPartitioning, getAllPartitionings } from './scoring';
 import { getDiceIndicesToRemove, handleMirrorDiceRolling, shouldTriggerHotDice } from './materialSystem';
 import { createInitialRoundState, createInitialLevelState } from '../utils/factories';
 import { validateDiceSelection } from '../utils/effectUtils';
 import { getLevelConfig } from '../data/levels';
-import { calculateFinalScore } from './scoringElements';
+import { createCombinationKey } from '../utils/combinationTracking';
 
 interface ScoringContext {
   charms: any[];
@@ -153,6 +153,35 @@ export function updateRollHistory(gameState: GameState, entry: RollState): GameS
     rollHistory: [...roundState.rollHistory, entry]
   };
   return newGameState;
+}
+
+/**
+ * Add a roll to history
+ * Creates a roll entry and adds it to the roll history
+ */
+export function addRollToHistory(
+  gameState: GameState,
+  diceHand: Die[],
+  isFlop: boolean,
+  isReroll: boolean = false
+): GameState {
+  const roundState = gameState.currentLevel.currentRound!;
+  const currentRollNumber = (roundState.rollHistory?.length || 0) + 1;
+  
+  const rollEntry: RollState = {
+    rollNumber: currentRollNumber,
+    isReroll,
+    diceHand: diceHand.map(d => ({ ...d })),
+    selectedDice: [],
+    rollPoints: 0,
+    maxRollPoints: 0,
+    scoringSelection: [],
+    combinations: [],
+    isHotDice: false,
+    isFlop,
+  };
+  
+  return updateRollHistory(gameState, rollEntry);
 }
 
 /**
@@ -415,14 +444,13 @@ export function removeDiceAndCheckHotDice(
  * Process rolling dice
  * Pure function that rolls the dice in the current diceHand
  * Note: For hot dice scenarios, call processHotDice first to reset the dice hand
+ * Returns the new round state with rolled dice. Does NOT add to history.
+ * The caller should use addRollToHistory() after checking for flop.
  */
 export function processRoll(
   roundState: RoundState,
   diceSet: any[]
-): {
-  newRoundState: RoundState;
-  isFlop: boolean;
-} {
+): RoundState {
   const newRoundState = { ...roundState };
   
   // If diceHand is empty, populate it from diceSet (first roll of round)
@@ -433,9 +461,6 @@ export function processRoll(
   
   // Create a new diceHand array with new object references for immutability
   const diceHand = diceToRoll.map(d => ({ ...d }));
-  
-  // Simple roll number: just count entries in history + 1
-  const currentRollNumber = (newRoundState.rollHistory?.length || 0) + 1;
   
   // First, roll all dice (non-mirror dice get random values)
   for (const die of diceHand) {
@@ -450,28 +475,7 @@ export function processRoll(
   // Update round state with new diceHand
   newRoundState.diceHand = diceHand;
   
-  // Check for flop
-  const flopResult = isFlop(diceHand);
-  
-  // Add roll to history
-  newRoundState.rollHistory = newRoundState.rollHistory || [];
-  newRoundState.rollHistory.push({
-    rollNumber: currentRollNumber, 
-    isReroll: false,
-    diceHand: diceHand.map(d => ({ ...d })),
-    selectedDice: [],
-    rollPoints: 0, // Will be calculated when scored
-    maxRollPoints: 0,
-    scoringSelection: [],
-    combinations: [],
-    isHotDice: false, // Hot dice is detected during scoring, not rolling
-    isFlop: flopResult,
-  });
-  
-  return {
-    newRoundState,
-    isFlop: flopResult
-  };
+  return newRoundState;
 }
 
 /**
@@ -607,7 +611,7 @@ export function calculatePreviewScoring(
     
     const context: ScoringContext = { charms: gameState.charms || [] };
     const selectedIndicesFromInput = validateDiceSelection(input, roundState.diceHand.map(die => die.rolledValue) as DieValue[]);
-    const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndicesFromInput, context);
+    const allPartitionings = getAllPartitionings(roundState.diceHand, selectedIndicesFromInput, context, gameState);
     
     if (allPartitionings.length === 0) {
       return { isValid: false, points: 0, combinations: [] };
@@ -622,10 +626,15 @@ export function calculatePreviewScoring(
     // Calculate base points only (for display purposes)
     const basePoints = bestPartitioning.reduce((sum, c) => sum + c.points, 0);
     
+    // Convert combinations to composite keys (e.g., "single1", "nPairs:2")
+    const combinationKeys = bestPartitioning.map((c: any) => 
+      createCombinationKey(c, roundState.diceHand)
+    );
+    
     return {
       isValid: valid,
       points: basePoints, // Just base combination points, not final score
-      combinations: bestPartitioning.map((c: any) => c.type)
+      combinations: combinationKeys
     };
   } catch (error) {
     return { isValid: false, points: 0, combinations: [] };

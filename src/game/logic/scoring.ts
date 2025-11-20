@@ -14,13 +14,15 @@
 
 import { Die, DieValue, ScoringCombination, Charm, GameState, RoundState, ScoringBreakdown } from '../types';
 import { ScoringCombinationType, ALL_SCORING_TYPES } from '../data/combinations';
-import { findAllPossibleCombinations, hasAnyScoringCombination, countDice } from './findCombinations';
+import { findAllPossibleCombinations, hasAnyScoringCombination, countDice, ScoringContext } from './findCombinations';
 import { findAllValidPartitionings, getHighestPointsPartitioning } from './partitioning';
 import { applyMaterialEffects } from './materialSystem';
 import { applyAllPipEffects } from './pipEffectSystem';
 import { ScoringElements, createScoringElementsFromPoints, calculateFinalScore, multiplyMultiplier } from './scoringElements';
 import { createBreakdownBuilder } from './scoringBreakdown';
 import { CharmManager } from './charmSystem';
+import { getDifficulty } from './difficulty';
+import { createCombinationKey } from '../utils/combinationTracking';
 
 // Re-export types and constants for convenience (allows importing from scoring.ts)
 export type { ScoringCombinationType } from '../data/combinations';
@@ -29,12 +31,6 @@ export { ALL_SCORING_TYPES } from '../data/combinations';
 // Re-export combination and partitioning functions
 export { findAllPossibleCombinations, hasAnyScoringCombination, countDice } from './findCombinations';
 export { findAllValidPartitionings, getHighestPointsPartitioning } from './partitioning';
-
-interface ScoringContext {
-  charms: Charm[];
-  materials?: any[];
-  charmManager?: any;
-}
 
 /**
  * Get scoring combinations for validation purposes.
@@ -65,9 +61,14 @@ export function getScoringCombinations(
 export function getAllPartitionings(
   diceHand: Die[],
   selectedIndices: number[],
-  context: ScoringContext
+  context: ScoringContext,
+  gameState: GameState
 ): ScoringCombination[][] {
   const values = selectedIndices.map(i => diceHand[i].rolledValue!);
+  // Always require difficulty from gameState
+  if (!context.difficulty) {
+    context = { ...context, difficulty: getDifficulty(gameState) };
+  }
   return findAllValidPartitionings(values, selectedIndices, diceHand, context);
 }
 
@@ -78,12 +79,6 @@ export function rollDice(numDice: number, sides: number = 6): DieValue[] {
   return Array.from({ length: numDice }, () => (Math.floor(Math.random() * sides) + 1) as DieValue);
 }
 
-/**
- * Check if a dice hand is a flop (no scoring combinations)
- */
-export function isFlop(diceHand: Die[]): boolean {
-  return !hasAnyScoringCombination(diceHand);
-}
 
 /**
  * Calculate complete scoring breakdown for selected dice
@@ -113,9 +108,10 @@ export function calculateScoringBreakdown(
   const context: ScoringContext = {
     charms: gameState.charms || [],
     charmManager,
+    difficulty: getDifficulty(gameState),
   };
   
-  const allPartitionings = getAllPartitionings(diceHand, selectedIndices, context);
+  const allPartitionings = getAllPartitionings(diceHand, selectedIndices, context, gameState);
   
   if (allPartitionings.length === 0) {
     return null;
@@ -129,15 +125,17 @@ export function calculateScoringBreakdown(
   const basePoints = selectedPartitioning.reduce((sum: number, c: any) => sum + c.points, 0);
   let scoringElements = createScoringElementsFromPoints(basePoints);
 
-  // Store combination types for later extraction
-  const combinationTypes = selectedPartitioning.map((c: any) => c.type);
+  // Store combination keys (composite keys like "single1", "nPairs:2") for display
+  const combinationKeys = selectedPartitioning.map((c: any) => 
+    createCombinationKey(c, diceHand)
+  );
 
   // Create breakdown builder
   const breakdown = createBreakdownBuilder(scoringElements);
   breakdown.addStep(
     'baseCombinations',
     scoringElements,
-    `Combinations: ${combinationTypes.join(', ')} = ${basePoints} points`
+    `Combinations: ${combinationKeys.join(', ')} = ${basePoints} points`
   );
 
   // Step 3: Apply pip effects (in order of selected dice)
@@ -196,9 +194,9 @@ export function calculateScoringBreakdown(
   // Build and return final breakdown
   const finalBreakdown = breakdown.build();
   
-  // Add selectedPartitioning and combinationTypes to the final breakdown for tracking
+  // Add selectedPartitioning and combinationKeys to the final breakdown for tracking
   (finalBreakdown as any).selectedPartitioning = selectedPartitioning;
-  (finalBreakdown as any).combinationTypes = combinationTypes;
+  (finalBreakdown as any).combinationKeys = combinationKeys;
   
   return finalBreakdown;
 }
