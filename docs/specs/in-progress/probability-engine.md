@@ -2,7 +2,7 @@
 
 ## Overview
 
-A comprehensive probability calculation system for analyzing scoring combinations and balancing the game. The engine uses inclusive (non-exclusive) counting, meaning a roll can count for multiple combinations simultaneously (e.g., `123456` counts as `straightOfFour`, `straightOfFive`, and `straightOfSix`, but NOT as `onePair` - pairs require actual duplicate values).
+A comprehensive probability calculation system for analyzing scoring combinations and balancing the game. The engine uses inclusive (non-exclusive) counting, meaning a roll can count for multiple combinations simultaneously (e.g., `123456` counts as `straightOfFour`, `straightOfFive`, and `straightOfSix`, as well as a single5, single1, etc.
 
 **Note on Inclusive Counting**: When calculating probabilities, we count each roll in every category it satisfies. For example, a roll of `123456` counts for:
 
@@ -11,8 +11,6 @@ A comprehensive probability calculation system for analyzing scoring combination
 - `straightOfSix` (sequence 1-6)
 - `singleOne` (the 1)
 - `singleFive` (the 5)
-
-However, it does NOT count as `onePair` because there are no duplicate values. Pairs require at least two dice showing the same face value.
 
 ## Phase 1: Static 6 Dice Calculations ✅
 
