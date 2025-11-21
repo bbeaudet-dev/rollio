@@ -9,10 +9,10 @@ const connectionString = process.env.DATABASE_URL ||
 
 export const pool = new Pool({
   connectionString,
-  ssl: {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false // Required for Neon, Supabase, and other cloud PostgreSQL providers
-  },
-  max: 20, // Maximum number of clients in the pool (good for Render)
+  } : false, // Disable SSL in development if using local database
+  max: 5, // Maximum number of clients in the pool (reduced for Render free tier)
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 5000, // Wait 5 seconds for connection (Render can be slower)
 });

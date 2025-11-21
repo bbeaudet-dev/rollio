@@ -33,29 +33,6 @@ export const RoundInfo: React.FC<RoundInfoProps> = ({
         <div style={{ fontSize: '12px', fontWeight: 'normal' }}>Roll {rollNumber}</div>
       </div>
 
-      {/* Consecutive Flops warning - bottom left */}
-      {consecutiveFlops > 0 && (
-        <div style={{
-          position: 'absolute',
-          bottom: '10px',
-          left: '10px',
-          zIndex: 20,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          color: 'white',
-          padding: '6px 12px',
-          borderRadius: '6px',
-          fontSize: '13px',
-          fontWeight: 'bold',
-          maxWidth: '140px'
-        }}>
-          ⚠️ Consecutive flops: {consecutiveFlops}/3
-          {consecutiveFlops >= 3 && (
-            <div style={{ color: '#ff6b6b', fontWeight: 'bold', fontSize: '12px' }}>
-              Flop penalty: -1000
-            </div>
-          )}
-        </div>
-      )}
     </>
   );
 };

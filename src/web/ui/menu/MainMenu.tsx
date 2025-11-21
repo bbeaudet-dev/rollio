@@ -64,20 +64,36 @@ export const MainMenu: React.FC = () => {
         gap: '12px',
         marginTop: '30px'
       }}>
-        {/* Continue button - always shown, disabled if no save */}
-        <MainMenuButton
-          variant="success"
-          onClick={() => navigate('/game?load=true')}
-          disabled={!isAuthenticated || !hasSavedGame}
-        >
-          Continue Game
-        </MainMenuButton>
+        {/* Continue and New Game buttons on same row */}
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          width: '100%'
+        }}>
+          <MainMenuButton
+            variant="success"
+            onClick={() => navigate('/game?load=true')}
+            disabled={!isAuthenticated || !hasSavedGame}
+            style={{ flex: 1 }}
+          >
+            Continue Game
+          </MainMenuButton>
+          
+          <MainMenuButton
+            variant="primary"
+            onClick={() => navigate('/game')}
+            style={{ flex: 1 }}
+          >
+            New Game
+          </MainMenuButton>
+        </div>
         
+        {/* Multiplayer button */}
         <MainMenuButton
-          variant="primary"
-          onClick={() => navigate('/game')}
+          variant="secondary"
+          onClick={() => navigate('/multiplayer')}
         >
-          New Game
+          Multiplayer
         </MainMenuButton>
         
         <MainMenuButton

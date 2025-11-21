@@ -798,3 +798,7 @@ Add achievements
 Move to new Spec:
 - "View Dice Set" modal
 - Challenges, difficulties, levels, worlds
+
+
+new charm: turns your negative points positive
+    

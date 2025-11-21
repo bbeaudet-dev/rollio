@@ -19,6 +19,7 @@ import {
   incrementConsecutiveFlops,
   resetConsecutiveBanks,
   setForfeitedPoints,
+  applyFlopPenalty,
 } from '../logic/gameActions';
 import { isGameOver, isFlop, isHotDice, isLevelCompleted, canBankPoints as canBankPointsLogic } from '../logic/gameLogic';
 import { endGame, advanceToNextLevel } from '../logic/gameActions';
@@ -367,6 +368,7 @@ export class GameAPI {
     newGameState = resetConsecutiveBanks(newGameState);
     newGameState = setForfeitedPoints(newGameState, forfeitedPoints);
     newGameState = endRound(newGameState, 'flopped');
+    newGameState = applyFlopPenalty(newGameState);
     
     const consecutiveFlops = newGameState.currentLevel.consecutiveFlops;
     
