@@ -52,7 +52,12 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
           (None)
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ 
+          display: itemType === 'charm' ? 'grid' : 'flex', 
+          gridTemplateColumns: itemType === 'charm' ? '1fr 1fr' : undefined,
+          flexDirection: itemType === 'charm' ? undefined : 'column',
+          gap: '4px' 
+        }}>
           {items.map((item, index) => {
             const basePrice = getPrice(item);
             const finalPrice = applyDiscount(basePrice, discount);

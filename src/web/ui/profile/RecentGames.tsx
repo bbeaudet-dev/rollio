@@ -61,7 +61,7 @@ const GameHistoryCard: React.FC<{ game: GameHistory }> = ({ game }) => {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
-          })} • {game.diceSetName} • {formatDifficulty(game.difficulty)}
+          })}  •  {game.diceSetName}  •  {formatDifficulty(game.difficulty)}
         </div>
         <div style={{
           fontSize: '18px',

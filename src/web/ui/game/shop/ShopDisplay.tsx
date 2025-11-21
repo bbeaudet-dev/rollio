@@ -36,13 +36,8 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
     }}>
       <ShopHeader playerMoney={playerMoney} discount={discount} />
       
-      {/* Three Column Layout */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '12px',
-        marginBottom: '16px',
-        alignItems: 'flex-start'
-      }}>
+      {/* Charms Section - Full width, 2 columns */}
+      <div style={{ marginBottom: '16px' }}>
         <ShopItemList
           items={shopState.availableCharms}
           itemType="charm"
@@ -51,7 +46,16 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
           onPurchase={onPurchaseCharm}
           title="Charms"
         />
-        
+      </div>
+      
+      {/* Consumables and Blessings - Side by side */}
+      <div style={{ 
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '12px',
+        marginBottom: '16px',
+        alignItems: 'flex-start'
+      }}>
         <ShopItemList
           items={shopState.availableConsumables}
           itemType="consumable"

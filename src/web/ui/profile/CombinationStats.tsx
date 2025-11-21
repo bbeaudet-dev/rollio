@@ -62,45 +62,45 @@ export const CombinationStats: React.FC = () => {
     <div>
       <h2 style={{
         fontSize: '20px',
-        marginBottom: '15px',
+        marginBottom: '10px',
         color: '#2c3e50'
       }}>
         Combination Usage
       </h2>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '12px'
+        gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+        gap: '8px'
       }}>
         {combinations.map((combo) => (
           <div
             key={combo.combinationType}
             style={{
-              padding: '12px',
+              padding: '8px',
               backgroundColor: '#ffffff',
-              borderRadius: '8px',
+              borderRadius: '6px',
               border: '1px solid #e1e5e9'
             }}
           >
             <div style={{
-              fontSize: '14px',
+              fontSize: '12px',
               fontWeight: '600',
               color: '#2c3e50',
-              marginBottom: '8px'
+              marginBottom: '4px'
             }}>
               {formatCombinationKey(combo.combinationType)}
             </div>
             <div style={{
-              fontSize: '20px',
+              fontSize: '18px',
               fontWeight: 'bold',
               color: '#007bff'
             }}>
               {combo.timesUsed.toLocaleString()}
             </div>
             <div style={{
-              fontSize: '11px',
+              fontSize: '10px',
               color: '#6c757d',
-              marginTop: '4px'
+              marginTop: '2px'
             }}>
               times used
             </div>

@@ -64,10 +64,10 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
           position: 'absolute',
           bottom: '15px',
           right: '15px',
-          width: '50px',
-          height: '50px',
+          width: '40px',
+          height: '40px',
           border: '2px solid rgba(255, 255, 255, 0.5)',
-          borderRadius: '8px',
+          borderRadius: '6px',
           backgroundColor: 'rgba(0, 0, 0, 0.3)',
           cursor: 'pointer',
           display: 'flex',
@@ -75,7 +75,7 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
           justifyContent: 'center',
           zIndex: 20,
           transition: 'all 0.2s ease',
-          padding: '4px'
+          padding: '3px'
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
@@ -89,7 +89,7 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
         {diceSet.length > 0 && (
           <DiceFace
             value={diceSet[0].allowedValues[0] || 1}
-            size={40}
+            size={32}
             material={diceSet[0].material}
             pipEffect={diceSet[0].pipEffects?.[diceSet[0].allowedValues[0] || 1]}
           />
@@ -100,8 +100,8 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
 
   // Calculate width needed for expanded sides
   const maxSides = Math.max(...diceSet.map(die => die.allowedValues.length), 0);
-  const expandedWidth = maxSides * (45 + 6) + 16; // 45px die + 6px gap + 16px padding
-  const containerWidth = expandedDieId ? expandedWidth + 60 + 24 : 'auto'; // 60px die + 24px padding
+  const expandedWidth = maxSides * (32 + 4) + 12; // 32px die + 4px gap + 12px padding
+  const containerWidth = expandedDieId ? expandedWidth + 44 + 16 : 'auto'; // 44px die + 16px padding
 
   // Show column of all dice
   return (
@@ -113,46 +113,20 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-end',
-        gap: '8px',
+        gap: '4px',
         maxHeight: 'calc(100% - 30px)',
         overflowY: 'auto',
         overflowX: 'visible',
         zIndex: 25,
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        padding: '12px',
-        paddingTop: '40px',
-        borderRadius: '12px',
+        padding: '8px',
+        borderRadius: '8px',
         border: '2px solid rgba(255, 255, 255, 0.3)',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
         width: typeof containerWidth === 'number' ? `${containerWidth}px` : containerWidth,
         transition: 'width 0.2s ease'
       }}
     >
-      {/* Close button */}
-      <button
-        onClick={handleToggle}
-        style={{
-          position: 'absolute',
-          top: '12px',
-          right: '12px',
-          width: '28px',
-          height: '28px',
-          border: '1px solid rgba(255, 255, 255, 0.5)',
-          borderRadius: '4px',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          color: 'white',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '18px',
-          lineHeight: 1,
-          padding: 0
-        }}
-      >
-        ×
-      </button>
-
       {/* Dice column */}
       {diceSet.map((die) => {
         const isAnyExpanded = !!expandedDieId;
@@ -164,22 +138,22 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
             <button
               onClick={() => handleDieClick(die.id)}
               style={{
-                width: '60px',
-                height: '60px',
+                width: '44px',
+                height: '44px',
                 border: isAnyExpanded ? '2px solid #ffc107' : '2px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '8px',
+                borderRadius: '6px',
                 backgroundColor: isAnyExpanded ? 'rgba(255, 193, 7, 0.2)' : 'rgba(255, 255, 255, 0.1)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '4px',
+                padding: '3px',
                 transition: 'all 0.2s ease'
               }}
             >
               <DiceFace
                 value={currentValue}
-                size={50}
+                size={36}
                 material={die.material}
                 pipEffect={die.pipEffects?.[currentValue]}
               />
@@ -190,13 +164,13 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
               <div
                 style={{
                   position: 'absolute',
-                  right: 'calc(100% + 8px)',
+                  right: 'calc(100% + 6px)',
                   top: '0',
                   display: 'flex',
-                  gap: '6px',
+                  gap: '4px',
                   backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                  padding: '8px',
-                  borderRadius: '8px',
+                  padding: '6px',
+                  borderRadius: '6px',
                   border: '2px solid rgba(255, 255, 255, 0.3)',
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
                   zIndex: 30
@@ -209,12 +183,12 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '2px'
                     }}
                   >
                     <DiceFace
                       value={value}
-                      size={45}
+                      size={32}
                       material={die.material}
                       pipEffect={die.pipEffects?.[value]}
                     />
@@ -225,6 +199,32 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
           </div>
         );
       })}
+
+      {/* Close button at bottom */}
+      <button
+        onClick={handleToggle}
+        style={{
+          marginTop: '12px',
+          width: '100%',
+          padding: '6px 10px',
+          border: '1px solid rgba(255, 255, 255, 0.5)',
+          borderRadius: '4px',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          color: 'white',
+          cursor: 'pointer',
+          fontSize: '12px',
+          fontWeight: '500',
+          transition: 'background-color 0.2s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        }}
+      >
+        Close
+      </button>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { GameState } from '../types';
 import { debugLog } from '../utils/debug';
+import { CharmRegistry } from './charmSystem';
 
 /**
  * Calculates rerolls available for the current level
@@ -13,34 +14,37 @@ export function calculateRerollsForLevel(gameState: GameState, charmManager?: an
   let baseRerolls = gameState.baseLevelRerolls;
   
   // Apply modifiers from charms in order: overrides, bonuses, multipliers
-  if (charmManager) {
-    const activeCharms = charmManager.getActiveCharms?.() || [];
-    
-    // Collect all modifiers from charms
-    const modifiers = { add: 0, multiply: 1, override: null as number | null };
-    
-    for (const charm of activeCharms) {
-      if (charm.getRerollBonus) {
-        const bonus = charm.getRerollBonus(gameState);
-        if (bonus.override !== undefined) {
-          modifiers.override = bonus.override;
-        }
-        if (bonus.add !== undefined) {
-          modifiers.add += bonus.add;
-        }
-        if (bonus.multiply !== undefined) {
-          modifiers.multiply *= bonus.multiply;
-        }
+  // Read directly from gameState.charms to ensure we include newly purchased charms
+  const registry = CharmRegistry.getInstance();
+  const activeCharms = gameState.charms
+    .filter(charm => charm.active)
+    .map(charmData => registry.createCharm(charmData))
+    .filter(charm => charm !== null);
+  
+  // Collect all modifiers from charms
+  const modifiers = { add: 0, multiply: 1, override: null as number | null };
+  
+  for (const charm of activeCharms) {
+    if (charm && charm.getRerollBonus) {
+      const bonus = charm.getRerollBonus(gameState);
+      if (bonus.override !== undefined) {
+        modifiers.override = bonus.override;
+      }
+      if (bonus.add !== undefined) {
+        modifiers.add += bonus.add;
+      }
+      if (bonus.multiply !== undefined) {
+        modifiers.multiply *= bonus.multiply;
       }
     }
-    
-    // Apply in order: override, add, multiply
-    if (modifiers.override !== null) {
-      baseRerolls = modifiers.override;
-    } else {
-      baseRerolls += modifiers.add;
-      baseRerolls *= modifiers.multiply;
-    }
+  }
+  
+  // Apply in order: override, add, multiply
+  if (modifiers.override !== null) {
+    baseRerolls = modifiers.override;
+  } else {
+    baseRerolls += modifiers.add;
+    baseRerolls *= modifiers.multiply;
   }
   
   // Apply bonuses from blessings (affects base value, already in baseLevelRerolls)
@@ -63,28 +67,31 @@ export function calculateBanksForLevel(gameState: GameState, charmManager?: any)
   let baseBanks = gameState.baseLevelBanks || 5;
   
   // Apply bonuses and multipliers from charms
-  if (charmManager) {
-    const activeCharms = charmManager.getActiveCharms?.() || [];
-    
-    // Collect all modifiers from charms
-    const modifiers = { add: 0, multiply: 1 };
-    
-    for (const charm of activeCharms) {
-      if (charm.getBankBonus) {
-        const bonus = charm.getBankBonus(gameState);
-        if (bonus.add !== undefined) {
-          modifiers.add += bonus.add;
-        }
-        if (bonus.multiply !== undefined) {
-          modifiers.multiply *= bonus.multiply;
-        }
+  // Read directly from gameState.charms to ensure we include newly purchased charms
+  const registry = CharmRegistry.getInstance();
+  const activeCharms = gameState.charms
+    .filter(charm => charm.active)
+    .map(charmData => registry.createCharm(charmData))
+    .filter(charm => charm !== null);
+  
+  // Collect all modifiers from charms
+  const modifiers = { add: 0, multiply: 1 };
+  
+  for (const charm of activeCharms) {
+    if (charm && charm.getBankBonus) {
+      const bonus = charm.getBankBonus(gameState);
+      if (bonus.add !== undefined) {
+        modifiers.add += bonus.add;
+      }
+      if (bonus.multiply !== undefined) {
+        modifiers.multiply *= bonus.multiply;
       }
     }
-    
-    // Apply modifiers: add first, then multiply
-    baseBanks += modifiers.add;
-    baseBanks *= modifiers.multiply;
   }
+  
+  // Apply modifiers: add first, then multiply
+  baseBanks += modifiers.add;
+  baseBanks *= modifiers.multiply;
   
   // Apply bonuses from blessings (affects base value, already in baseLevelBanks)
   // Blessings that modify baseLevelBanks are permanent and already applied to gameState.baseLevelBanks

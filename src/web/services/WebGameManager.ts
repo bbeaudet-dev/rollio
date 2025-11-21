@@ -423,9 +423,16 @@ export class WebGameManager {
       return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
     }
 
-    // Check for flop
-    if (result.isFlop) {
-      if (result.flopShieldAvailable) {
+    // Check for flop shield availability first (even if isFlop is false, shield might be available)
+    // isFlop() returns false when shield is available, so we need to check shield separately
+    if (result.flopShieldAvailable) {
+      // Check if there are actually no scoring combinations (would be a flop without shield)
+      const { hasAnyScoringCombination } = await import('../../game/logic/findCombinations');
+      const difficulty = finalGameState.config.difficulty;
+      const hasScoringCombinations = hasAnyScoringCombination(newRoundState.diceHand, difficulty);
+      
+      if (!hasScoringCombinations) {
+        // No scoring combinations and shield is available - show prompt
         (this.gameInterface as any).pendingAction = {
           type: 'flopShieldChoice',
           canPrevent: true,
@@ -434,7 +441,10 @@ export class WebGameManager {
         // Clear breakdown state when starting a new roll
         return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
       }
-      
+    }
+    
+    // Check for flop
+    if (result.isFlop) {
       // Flop with no shield - check if we have rerolls
       if (this.gameAPI.canReroll(finalGameState)) {
         // Still have rerolls - ask for reroll
@@ -469,9 +479,15 @@ export class WebGameManager {
       const roundState = gameState.currentLevel.currentRound;
       if (!roundState) return state;
       
-      // If it's a flop, handle it
-      if (result.isFlop) {
-        if (result.flopShieldAvailable) {
+      // Check for flop shield availability first (even if isFlop is false, shield might be available)
+      if (result.flopShieldAvailable) {
+        // Check if there are actually no scoring combinations (would be a flop without shield)
+        const { hasAnyScoringCombination } = await import('../../game/logic/findCombinations');
+        const difficulty = gameState.config.difficulty;
+        const hasScoringCombinations = hasAnyScoringCombination(roundState.diceHand, difficulty);
+        
+        if (!hasScoringCombinations) {
+          // No scoring combinations and shield is available - show prompt
           (this.gameInterface as any).pendingAction = {
             type: 'flopShieldChoice',
             canPrevent: true,
@@ -479,7 +495,10 @@ export class WebGameManager {
           };
           return this.createWebGameState(gameState, roundState, [], null, false, false, false);
         }
-        
+      }
+      
+      // If it's a flop, handle it
+      if (result.isFlop) {
         // Flop with no shield - check if we have rerolls
         if (this.gameAPI.canReroll(gameState)) {
           // Still have rerolls - ask for reroll
@@ -520,9 +539,15 @@ export class WebGameManager {
       return this.createWebGameState(gameState, roundState, [], null, false, false, false, false);
     }
 
-    // No more rerolls - check for flop (trust result.isFlop from GameAPI)
-    if (result.isFlop) {
-      if (result.flopShieldAvailable) {
+    // No more rerolls - check for flop shield availability first
+    if (result.flopShieldAvailable) {
+      // Check if there are actually no scoring combinations (would be a flop without shield)
+      const { hasAnyScoringCombination } = await import('../../game/logic/findCombinations');
+      const difficulty = gameState.config.difficulty;
+      const hasScoringCombinations = hasAnyScoringCombination(roundState.diceHand, difficulty);
+      
+      if (!hasScoringCombinations) {
+        // No scoring combinations and shield is available - show prompt
         (this.gameInterface as any).pendingAction = {
           type: 'flopShieldChoice',
           canPrevent: true,
@@ -530,6 +555,10 @@ export class WebGameManager {
         };
         return this.createWebGameState(gameState, roundState, [], null, false, false, false);
       }
+    }
+    
+    // Check for flop (trust result.isFlop from GameAPI)
+    if (result.isFlop) {
       return await this.handleFlop(gameState, roundState);
     }
 
@@ -552,10 +581,15 @@ export class WebGameManager {
       if (flopResult.prevented) {
         const diceToRoll = roundState.diceHand.length;
         this.gameInterface.askForBankOrRoll(diceToRoll);
+        // Clear pending action after using shield
+        (this.gameInterface as any).pendingAction = { type: 'bankOrRoll' };
         return this.createWebGameState(gameState, roundState, [], null, false, false, false);
       }
     }
     
+    // User chose not to use shield - process the flop
+    // Clear pending action before handling flop
+    (this.gameInterface as any).pendingAction = { type: 'none' };
     return await this.handleFlop(gameState, roundState);
   }
 

@@ -541,6 +541,8 @@ export class GameAPI {
     const result = purchaseCharm(gameState, shopState, charmIndex);
     
     if (result.success && result.gameState) {
+      // Sync charm manager with updated gameState to include newly purchased charm
+      this.charmManager.syncFromGameState(result.gameState);
       this.emit('stateChanged', { gameState: result.gameState });
       return { ...result, gameState: result.gameState };
     }

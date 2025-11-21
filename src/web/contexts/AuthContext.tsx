@@ -50,7 +50,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       try {
-        const response = await authApi.getCurrentUser();
+        // Add a timeout wrapper to ensure we don't hang forever
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Authentication check timeout')), 8000);
+        });
+
+        const response = await Promise.race([
+          authApi.getCurrentUser(),
+          timeoutPromise,
+        ]);
+
         if (response.success && response.user) {
           setUser(response.user);
         } else {
@@ -59,8 +68,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (error) {
         console.error('Failed to load user:', error);
+        // On any error (including timeout), clear token and show login
         removeToken();
       } finally {
+        // Always set loading to false, even on errors
         setIsLoading(false);
       }
     };

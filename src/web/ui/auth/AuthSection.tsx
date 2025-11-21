@@ -10,7 +10,19 @@ export const AuthSection: React.FC = () => {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
   if (isLoading) {
-    return null;
+    return (
+      <div style={{
+        padding: '12px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '6px',
+        border: '1px solid #dee2e6',
+        textAlign: 'center',
+        color: '#6c757d',
+        fontSize: '14px'
+      }}>
+        Loading...
+      </div>
+    );
   }
 
   return (
@@ -36,12 +48,12 @@ export const AuthSection: React.FC = () => {
             <button
               onClick={() => navigate('/profile')}
               style={{
-                padding: '6px 12px',
+                padding: '10px 20px',
                 backgroundColor: '#6c757d',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
-                fontSize: '13px',
+                fontSize: '16px',
                 cursor: 'pointer',
                 fontWeight: '500',
                 whiteSpace: 'nowrap'

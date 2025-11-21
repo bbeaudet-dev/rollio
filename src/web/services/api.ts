@@ -47,17 +47,18 @@ export function removeToken(): void {
 }
 
 /**
- * Make an authenticated API request
+ * Make an authenticated API request with timeout
  */
 export async function apiRequest<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  timeoutMs: number = 10000 // 10 second default timeout
 ): Promise<ApiResponse<T>> {
   const token = getToken();
   
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string> || {}),
   };
 
   // Add authorization header if token exists
@@ -66,10 +67,19 @@ export async function apiRequest<T = any>(
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
+    // Create a timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
     });
+
+    // Race between fetch and timeout
+    const response = await Promise.race([
+      fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+      }),
+      timeoutPromise,
+    ]);
 
     const data = await response.json();
 

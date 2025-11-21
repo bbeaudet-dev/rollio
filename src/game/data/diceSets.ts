@@ -1,5 +1,8 @@
 import { DiceSetConfig, DiceMaterialType } from '../types';
 import { MATERIALS } from './materials';
+import { CHARMS } from './charms';
+import { CONSUMABLES } from './consumables';
+import { ALL_BLESSINGS } from './blessings';
 
 export const BASIC_DICE_SET: DiceSetConfig = {
   name: "Beginner Set",
@@ -12,10 +15,10 @@ export const BASIC_DICE_SET: DiceSetConfig = {
     { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "plastic" }
   ],
   startingMoney: 10,
-  charmSlots: 4,
+  charmSlots: 6,
   consumableSlots: 2,
-  baseLevelRerolls: 3,
-  baseLevelBanks: 3,
+  baseLevelRerolls: 5,
+  baseLevelBanks: 5,
   setType: 'standard',
 };
 
@@ -29,10 +32,10 @@ export const LOW_BALLER_SET: DiceSetConfig = {
     { id: "d5", sides: 6, allowedValues: [1,1,2,2,3,3], material: "plastic" }
   ],
   startingMoney: 5,
-  charmSlots: 4,
+  charmSlots: 6,
   consumableSlots: 2,
   baseLevelRerolls: 0,
-  baseLevelBanks: 4,
+  baseLevelBanks: 5,
   setType: 'standard',
   startingCharms: ['lowHangingFruit'],
   startingConsumables: [],
@@ -52,10 +55,10 @@ export const COLLECTOR_SET: DiceSetConfig = {
         { id: "d8", sides: 6, allowedValues: [1,2,3,4,5,6], material: "plastic" }
     ],
     startingMoney: 5,
-    charmSlots: 3,
+    charmSlots: 5,
     consumableSlots: 1,
-    baseLevelRerolls: 2,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 4,
+    baseLevelBanks: 5,
     setType: 'standard',
     startingCharms: [],
     startingConsumables: [],
@@ -65,6 +68,12 @@ export const COLLECTOR_SET: DiceSetConfig = {
 export function RANDOM_SET(): DiceSetConfig {
   // Helper to pick a random element
   const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+  // Helper to pick multiple random unique elements
+  const pickMultiple = <T,>(arr: T[], count: number): T[] => {
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(count, arr.length));
+  };
+  
   const materials: DiceMaterialType[] = MATERIALS.map(m => m.id) as DiceMaterialType[];
   const numDice = Math.floor(Math.random() * 6) + 3; // 3-8 dice
   const dice = Array.from({ length: numDice }, (_, i) => {
@@ -78,15 +87,35 @@ export function RANDOM_SET(): DiceSetConfig {
       material,
     };
   });
+  
+  // Random base stats
+  const baseLevelRerolls = Math.floor(Math.random() * 19) + 1; // 1-20
+  const baseLevelBanks = Math.floor(Math.random() * 19) + 1; // 1-20
+  const charmSlots = Math.floor(Math.random() * 19) + 1; // 1-20
+  const consumableSlots = Math.floor(Math.random() * 19) + 1; // 1-20
+  
+  // Random starting items
+  
+  const numStartingCharms = Math.floor(Math.random() * (charmSlots + 1)); // 0 to charmSlots
+  const numStartingConsumables = Math.floor(Math.random() * (consumableSlots + 1)); // 0 to consumableSlots
+  const numStartingBlessings = Math.floor(Math.random() * 4); // 0-3
+  
+  const startingCharms: string[] = pickMultiple(CHARMS.map((c: { id: string }) => c.id), numStartingCharms);
+  const startingConsumables: string[] = pickMultiple(CONSUMABLES.map((c: { id: string }) => c.id), numStartingConsumables);
+  const startingBlessings: string[] = pickMultiple(ALL_BLESSINGS.map((b: { id: string }) => b.id), numStartingBlessings);
+  
   return {
     name: "Random Set",
     dice,
     startingMoney: Math.floor(Math.random() * 20) + 1, // $1-$20
-    charmSlots: Math.floor(Math.random() * 5) + 1, // 1-5
-    consumableSlots: Math.floor(Math.random() * 4), // 0-3
-    baseLevelRerolls: 3,
-    baseLevelBanks: 3,
+    charmSlots,
+    consumableSlots,
+    baseLevelRerolls,
+    baseLevelBanks,
     setType: 'standard',
+    startingCharms: startingCharms.length > 0 ? startingCharms : undefined,
+    startingConsumables: startingConsumables.length > 0 ? startingConsumables : undefined,
+    startingBlessings: startingBlessings.length > 0 ? startingBlessings : undefined,
   };
 }
 
@@ -102,10 +131,10 @@ export const PLASTIC_SET: DiceSetConfig = {
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "plastic" }
     ],
     startingMoney: 5,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
 };
 
@@ -120,10 +149,10 @@ export const CRYSTAL_SET: DiceSetConfig = {
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "crystal" }
     ],
     startingMoney: 5,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['crystalClear', 'resonance'],
     startingConsumables: [],
@@ -141,10 +170,10 @@ export const FLOWER_SET: DiceSetConfig = {
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "flower" }
     ],
     startingMoney: 5,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['flowerPower', 'bloom'],
     startingConsumables: [],
@@ -162,10 +191,10 @@ export const GOLDEN_SET: DiceSetConfig = {
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "golden" }
     ],
     startingMoney: 20,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['goldenTouch', 'moneyMagnet', 'hedgeFund'],
     startingConsumables: ['moneyDoubler'],
@@ -183,10 +212,10 @@ export const VOLCANO_SET: DiceSetConfig = {
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "volcano" }
     ],
     startingMoney: 5,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['vesuvius', 'hotDiceHero', 'hotPocket', 'perfectionist'],
     startingConsumables: [],
@@ -204,10 +233,10 @@ export const MIRROR_SET: DiceSetConfig = {
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "plastic" }
     ],
     startingMoney: 5,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: [],
     startingConsumables: [],
@@ -225,10 +254,10 @@ export const RAINBOW_SET: DiceSetConfig = {
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "rainbow" }
     ],
     startingMoney: 5,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['weightedDice', 'rabbitsFoot', 'inheritance'],
     startingConsumables: ['freebie'],
@@ -246,10 +275,10 @@ export const GHOST_SET: DiceSetConfig = {
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "ghost" }
     ],
     startingMoney: 5,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['ghostWhisperer', 'bodyDouble'],
     startingConsumables: ['createLastConsumable', 'createTwoConsumables'],
@@ -267,10 +296,10 @@ export const LEAD_SET: DiceSetConfig = {
         { id: "d6", sides: 6, allowedValues: [1,2,3,4,5,6], material: "lead" }
     ],
     startingMoney: 5,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['ironFortress', 'leadTitan', 'swordInTheStone'],
     startingConsumables: ['sacrifice'],
@@ -293,11 +322,11 @@ export const MIXED_MATERIAL_SET: DiceSetConfig = {
         { id: "d8", sides: 6, allowedValues: [1,2,3,4,5,6], material: "ghost" },
         { id: "d9", sides: 6, allowedValues: [1,2,3,4,5,6], material: "lead" }
     ],
-    startingMoney: 10,
-    charmSlots: 4,
-    consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 4,
+  startingMoney: 10,
+  charmSlots: 6,
+  consumableSlots: 2,
+    baseLevelRerolls: 5,
+    baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['tasteTheRainbow'],
     startingConsumables: [],
@@ -428,10 +457,10 @@ export const PIP_EFFECTS_TEST_SET: DiceSetConfig = {
         }
     ],
     startingMoney: 20,
-    charmSlots: 4,
+    charmSlots: 6,
     consumableSlots: 2,
-    baseLevelRerolls: 3,
-    baseLevelBanks: 3,
+  baseLevelRerolls: 5,
+  baseLevelBanks: 5,
     setType: 'cheat',
 };
 

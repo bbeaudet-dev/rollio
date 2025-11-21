@@ -191,6 +191,21 @@ export class CharmManager {
     return this.charms;
   }
 
+  /**
+   * Sync charm manager with gameState.charms
+   * This ensures newly purchased charms are included in charm effects
+   * Should be called after purchasing charms or when gameState.charms changes
+   */
+  syncFromGameState(gameState: { charms: Charm[] }): void {
+    // Clear existing charms
+    this.charms = [];
+    
+    // Re-add all charms from gameState
+    gameState.charms.forEach(charmData => {
+      this.addCharm(charmData);
+    });
+  }
+
 
 
   /**
