@@ -167,9 +167,9 @@ export interface GameConfig {
 // Shop state and data
 export interface ShopState {
   isOpen: boolean;
-  availableCharms: Charm[];
-  availableConsumables: Consumable[];
-  availableBlessings: Blessing[];  // One random blessing per shop
+  availableCharms: (Charm | null)[];
+  availableConsumables: (Consumable | null)[];
+  availableBlessings: (Blessing | null)[];
 }
 
 // LEVEL STATE (nested for hierarchy)

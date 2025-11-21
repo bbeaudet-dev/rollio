@@ -2,6 +2,7 @@ import { ReactGameInterface, PendingAction } from './ReactGameInterface';
 import { resetLevelColors } from '../utils/levelColors';
 import { GameAPI } from '../../game/api';
 import { GameState, RoundState, ShopState, ScoringBreakdown } from '../../game/types';
+import { playDiceRollSound } from '../utils/sounds';
 
 export interface WebGameState {
   gameState: GameState | null;
@@ -415,6 +416,10 @@ export class WebGameManager {
 
     if (!newRoundState) return state;
 
+    // Play dice roll sound
+    const numDice = newRoundState.diceHand.length;
+    playDiceRollSound(numDice);
+
     // Check if rerolls available
     if (this.gameAPI.canReroll(finalGameState)) {
       this.gameInterface.askForReroll(newRoundState.diceHand, finalGameState.currentLevel.rerollsRemaining || 0);
@@ -530,6 +535,10 @@ export class WebGameManager {
 
     if (!roundState) return state;
 
+    // Play dice roll sound
+    const numDice = roundState.diceHand.length;
+    playDiceRollSound(numDice);
+
     this.gameInterface.resolvePendingAction(selectedIndices.map(i => i + 1).join(' '));
 
     // Check if more rerolls available
@@ -614,7 +623,9 @@ export class WebGameManager {
   }
 
   async useConsumable(state: WebGameState, index: number): Promise<WebGameState> {
-    if (!state.gameState || !state.roundState) return state;
+    if (!state.gameState) {
+      return state;
+    }
     
     // Use GameAPI for consumable effects
     const result = await this.gameAPI.useConsumable(state.gameState, index);
@@ -624,13 +635,24 @@ export class WebGameManager {
     }
     
     const gameState = result.gameState;
-    const roundState = result.roundState || state.roundState;
+    // Use the roundState from result if available, otherwise use the existing one (might be null between rounds)
+    const roundState = result.roundState !== undefined ? result.roundState : state.roundState;
     
     if (result.requiresInput && result.requiresInput.type === 'dieSelection') {
       // Requires die selection input - handled by GameAPI
     }
     
-    return this.createWebGameState(gameState, roundState, state.selectedDice, state.previewScoring, state.justBanked, state.justFlopped, state.isProcessing);
+    const newState = this.createWebGameState(gameState, roundState, state.selectedDice, state.previewScoring, state.justBanked, state.justFlopped, state.isProcessing);
+    
+    // Preserve shop state - don't switch views when using consumables from shop
+    return {
+      ...newState,
+      isInShop: state.isInShop,
+      shopState: state.shopState,
+      levelRewards: state.levelRewards,
+      showTallyModal: state.showTallyModal,
+      pendingRewards: state.pendingRewards,
+    };
   }
 
   async purchaseCharm(state: WebGameState, charmIndex: number): Promise<WebGameState> {
@@ -639,7 +661,13 @@ export class WebGameManager {
     const result = await this.gameAPI.purchaseCharm(state.gameState, state.shopState, charmIndex);
     
     if (result.success) {
-      const newShopState = this.gameAPI.generateShop(result.gameState);
+      // Mark the purchased item as null instead of regenerating the shop
+      const newShopState = {
+        ...state.shopState,
+        availableCharms: state.shopState.availableCharms.map((charm, idx) => 
+          idx === charmIndex ? null : charm
+        ) as (typeof state.shopState.availableCharms[0] | null)[]
+      };
       const webState = this.createWebGameState(result.gameState, null, [], null, false, false, false);
       return {
         ...webState,
@@ -658,7 +686,13 @@ export class WebGameManager {
     const result = await this.gameAPI.purchaseConsumable(state.gameState, state.shopState, consumableIndex);
     
     if (result.success) {
-      const newShopState = this.gameAPI.generateShop(result.gameState);
+      // Mark the purchased item as null instead of regenerating the shop
+      const newShopState = {
+        ...state.shopState,
+        availableConsumables: state.shopState.availableConsumables.map((consumable, idx) => 
+          idx === consumableIndex ? null : consumable
+        ) as (typeof state.shopState.availableConsumables[0] | null)[]
+      };
       const webState = this.createWebGameState(result.gameState, null, [], null, false, false, false);
       return {
         ...webState,
@@ -677,7 +711,13 @@ export class WebGameManager {
     const result = await this.gameAPI.purchaseBlessing(state.gameState, state.shopState, blessingIndex);
     
     if (result.success) {
-      const newShopState = this.gameAPI.generateShop(result.gameState);
+      // Mark the purchased item as null instead of regenerating the shop
+      const newShopState = {
+        ...state.shopState,
+        availableBlessings: state.shopState.availableBlessings.map((blessing, idx) => 
+          idx === blessingIndex ? null : blessing
+        ) as (typeof state.shopState.availableBlessings[0] | null)[]
+      };
       const webState = this.createWebGameState(result.gameState, null, [], null, false, false, false);
       return {
         ...webState,
@@ -688,6 +728,20 @@ export class WebGameManager {
     }
     
     return state;
+  }
+
+  async refreshShop(state: WebGameState): Promise<WebGameState> {
+    if (!state.gameState || !state.isInShop) return state;
+    
+    // Regenerate the entire shop
+    const newShopState = this.gameAPI.generateShop(state.gameState);
+    const webState = this.createWebGameState(state.gameState, null, [], null, false, false, false);
+    return {
+      ...webState,
+      isInShop: true,
+      shopState: newShopState,
+      levelRewards: state.levelRewards,
+    };
   }
 
   async confirmTally(state: WebGameState): Promise<WebGameState> {

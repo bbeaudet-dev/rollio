@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Modal } from '../components/Modal';
+import { StandardButton } from '../components/StandardButton';
 import { LevelRewards as LevelRewardsType } from '../../../game/logic/tallying';
+import { playLevelCompleteSound } from '../../utils/sounds';
 
 interface TallyModalProps {
   isOpen: boolean;
@@ -17,6 +19,12 @@ export const TallyModal: React.FC<TallyModalProps> = ({
   banksRemaining,
   onContinue
 }) => {
+  // Play level complete sound when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      playLevelCompleteSound();
+    }
+  }, [isOpen]);
   const containerStyle: React.CSSProperties = {
     fontFamily: 'Arial, sans-serif',
     padding: '12px',
@@ -60,18 +68,6 @@ export const TallyModal: React.FC<TallyModalProps> = ({
     marginTop: '10px'
   };
 
-  const buttonStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 20px',
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    marginTop: '12px'
-  };
 
   return (
     <Modal isOpen={isOpen} onClose={() => {}} title="" showCloseButton={false}>
@@ -111,9 +107,11 @@ export const TallyModal: React.FC<TallyModalProps> = ({
           </div>
         </div>
 
-        <button onClick={onContinue} style={buttonStyle}>
-          Continue to Shop
-        </button>
+        <div style={{ marginTop: '12px', width: '100%' }}>
+          <StandardButton onClick={onContinue} variant="success" size="large" style={{ width: '100%' }}>
+            Continue to Shop
+          </StandardButton>
+        </div>
       </div>
     </Modal>
   );
