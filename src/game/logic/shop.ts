@@ -176,6 +176,11 @@ export function purchaseCharm(
   
   const charm = shopState.availableCharms[charmIndex];
   
+  // Check if item was already purchased (null)
+  if (!charm) {
+    return { success: false, message: 'This item has already been purchased' };
+  }
+  
   // Check if already owned
   if (gameState.charms.some(c => c.id === charm.id)) {
     return { success: false, message: 'You already own this charm' };
@@ -226,6 +231,11 @@ export function purchaseConsumable(
   
   const consumable = shopState.availableConsumables[consumableIndex];
   
+  // Check if item was already purchased (null)
+  if (!consumable) {
+    return { success: false, message: 'This item has already been purchased' };
+  }
+  
   // Check slot availability
   if (gameState.consumables.length >= gameState.consumableSlots) {
     return { success: false, message: 'No consumable slots available' };
@@ -270,6 +280,11 @@ export function purchaseBlessing(
   }
   
   const blessing = shopState.availableBlessings[blessingIndex];
+  
+  // Check if item was already purchased (null)
+  if (!blessing) {
+    return { success: false, message: 'This item has already been purchased' };
+  }
   
   // Check if already purchased
   if (gameState.blessings.some(b => b.id === blessing.id)) {

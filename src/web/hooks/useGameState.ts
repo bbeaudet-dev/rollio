@@ -238,6 +238,12 @@ export function useGameState() {
         const newState = await gameManagerRef.current.exitShop(webState);
         setWebState(newState);
       }, [webState]),
+      
+      handleRefreshShop: useCallback(async () => {
+        if (!webState || !gameManagerRef.current) return;
+        const newState = await gameManagerRef.current.refreshShop(webState);
+        setWebState(newState);
+      }, [webState]),
     },
     
     // Game board data (from round state)

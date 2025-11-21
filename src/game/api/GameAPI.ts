@@ -721,39 +721,39 @@ export class GameAPI {
    */
   async useConsumable(gameState: GameState, index: number): Promise<{ success: boolean; gameState: GameState; roundState?: RoundState; requiresInput?: any; shouldRemove: boolean }> {
     const roundState = gameState.currentLevel.currentRound || null;
-    const newGameState = { ...gameState };
+    
+    // Create a proper deep copy to avoid mutation issues
+    const newGameState = {
+      ...gameState,
+      consumables: [...gameState.consumables],
+      currentLevel: {
+        ...gameState.currentLevel,
+        currentRound: roundState ? { ...roundState } : undefined
+      }
+    };
     const newRoundState = roundState ? { ...roundState } : undefined;
     
     const result = applyConsumableEffect(index, newGameState, newRoundState || null, this.charmManager);
     
-    // Update game state
-    Object.assign(newGameState, result.gameState);
-    if (result.roundState && newRoundState) {
-      Object.assign(newRoundState, result.roundState);
-    }
+    // Use the gameState from result (it has all the updates)
+    const finalGameState = result.gameState;
     
     // Remove consumable if needed
     if (result.shouldRemove) {
-      newGameState.consumables.splice(index, 1);
-    }
-    
-    // Check if consumable has 0 uses
-    const consumable = newGameState.consumables[index];
-    if (consumable && consumable.uses !== undefined && consumable.uses <= 0) {
-      newGameState.consumables.splice(index, 1);
+      finalGameState.consumables.splice(index, 1);
     }
     
     // Update round state if it exists
     if (newRoundState && result.roundState) {
-      newGameState.currentLevel.currentRound = newRoundState;
+      finalGameState.currentLevel.currentRound = result.roundState;
     }
     
-    this.emit('stateChanged', { gameState: newGameState });
+    this.emit('stateChanged', { gameState: finalGameState });
     
     return {
       success: result.success,
-      gameState: newGameState,
-      roundState: newRoundState,
+      gameState: finalGameState,
+      roundState: result.roundState || newRoundState,
       requiresInput: result.requiresInput,
       shouldRemove: result.shouldRemove
     };

@@ -5,12 +5,11 @@ import { useDifficulty } from '../../../contexts/DifficultyContext';
 import { getCharmPrice, getConsumablePrice, getBlessingPrice, applyDiscount } from '../../../../game/logic/shop';
 
 interface ShopItemListProps {
-  items: (Charm | Consumable | Blessing)[];
+  items: (Charm | Consumable | Blessing | null)[];
   itemType: 'charm' | 'consumable' | 'blessing';
   playerMoney: number;
   discount: number;
   onPurchase: (index: number) => void;
-  title: string;
 }
 
 export const ShopItemList: React.FC<ShopItemListProps> = ({
@@ -18,12 +17,12 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
   itemType,
   playerMoney,
   discount,
-  onPurchase,
-  title
+  onPurchase
 }) => {
   const difficulty = useDifficulty();
   
-  const getPrice = (item: Charm | Consumable | Blessing) => {
+  const getPrice = (item: Charm | Consumable | Blessing | null) => {
+    if (!item) return 0;
     // Convert string to DifficultyLevel type when calling game functions
     const difficultyLevel = difficulty as any;
     if (itemType === 'charm') {
@@ -37,9 +36,6 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
 
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
-      <h3 style={{ marginBottom: '8px', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}>
-        {title}
-      </h3>
       {items.length === 0 ? (
         <div style={{ 
           padding: '8px', 
@@ -53,19 +49,43 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
         </div>
       ) : (
         <div style={{ 
-          display: itemType === 'charm' ? 'grid' : 'flex', 
-          gridTemplateColumns: itemType === 'charm' ? '1fr 1fr' : undefined,
-          flexDirection: itemType === 'charm' ? undefined : 'column',
-          gap: '4px' 
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '8px',
+          justifyContent: 'center'
         }}>
           {items.map((item, index) => {
+            // Show blank spot if item was purchased (null)
+            if (!item) {
+              return (
+                <div
+                  key={`empty-${index}`}
+                  style={{
+                    padding: '6px 8px',
+                    border: '1px dashed #ccc',
+                    borderRadius: '3px',
+                    backgroundColor: '#f5f5f5',
+                    fontSize: '11px',
+                    minHeight: '50px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#999',
+                    fontStyle: 'italic'
+                  }}
+                >
+                  Sold
+                </div>
+              );
+            }
+
             const basePrice = getPrice(item);
             const finalPrice = applyDiscount(basePrice, discount);
             const canAfford = playerMoney >= finalPrice;
 
             return (
               <ShopItem
-                key={item.id}
+                key={item.id || `item-${index}`}
                 item={item}
                 itemType={itemType}
                 basePrice={basePrice}

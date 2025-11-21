@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal } from '../components/Modal';
+import { StandardButton } from '../components/StandardButton';
 
 interface GameOverModalProps {
   isOpen: boolean;
@@ -43,32 +44,6 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     gap: '12px'
   };
 
-  const primaryButtonStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '12px 20px',
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s ease'
-  };
-
-  const secondaryButtonStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '12px 20px',
-    backgroundColor: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s ease'
-  };
-
   const getHeaderText = () => {
     return endReason === 'win' ? '🏆 Victory! 🏆' : '💀 Game Over 💀';
   };
@@ -87,30 +62,22 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           {getMessage()}
         </div>
         <div style={buttonContainerStyle}>
-          <button 
+          <StandardButton 
             onClick={onNewGame}
-            style={primaryButtonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#45a049';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#4CAF50';
-            }}
+            variant="success"
+            size="large"
+            style={{ width: '100%' }}
           >
             New Game
-          </button>
-          <button 
+          </StandardButton>
+          <StandardButton 
             onClick={onReturnToMenu}
-            style={secondaryButtonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#5a6268';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#6c757d';
-            }}
+            variant="secondary"
+            size="large"
+            style={{ width: '100%' }}
           >
             Return to Menu
-          </button>
+          </StandardButton>
         </div>
       </div>
     </Modal>

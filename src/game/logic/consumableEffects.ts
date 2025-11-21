@@ -42,6 +42,10 @@ export function applyConsumableEffect(
 
   const newGameState = { ...gameState };
   const newRoundState = roundState ? { ...roundState } : undefined;
+  
+  // Create a copy of the consumables array
+  newGameState.consumables = [...newGameState.consumables];
+  let wasSuccessfullyUsed = true;
   let shouldRemove = true;
 
   switch (consumable.id) {
@@ -70,6 +74,7 @@ export function applyConsumableEffect(
       
       if (plasticDice.length === 0) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       
@@ -82,6 +87,7 @@ export function applyConsumableEffect(
       // Check if enchantment succeeds
       if (Math.random() >= baseProbability) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       
@@ -436,10 +442,24 @@ export function applyConsumableEffect(
 
     default:
       shouldRemove = false;
+      wasSuccessfullyUsed = false;
   }
 
+  // All consumables have 1 use, so if successfully used (shouldRemove = true), always remove it
+  if (shouldRemove) {
+    // Consumable was successfully used, mark as such
+    wasSuccessfullyUsed = true;
+    // All consumables have 1 use, so always remove after successful use
+    shouldRemove = true;
+  } else {
+    // shouldRemove is false, so the consumable couldn't be used
+    wasSuccessfullyUsed = false;
+  }
+
+  // success = true if the consumable was successfully used
+  // success = false if the consumable couldn't be used (e.g., no valid targets)
   return {
-    success: true,
+    success: wasSuccessfullyUsed,
     shouldRemove,
     gameState: newGameState,
     roundState: newRoundState
