@@ -184,12 +184,22 @@ export function findAllPossibleCombinations(
     // Generate pair combinations (algorithm-based: detect all N pairs)
     const pairCount = counts.reduce((sum, c) => sum + Math.floor(c / 2), 0);
     
+    // Find the highest face value among all pairs
+    let highestPairValue = 0;
+    for (let i = 0; i < counts.length; i++) {
+      const value = i + 1;
+      const count = counts[i];
+      if (count >= 2) {
+        highestPairValue = Math.max(highestPairValue, value);
+      }
+    }
+    
     // Generate N pairs (algorithm-based) for any number of pairs >= 1
     if (pairCount >= 1 && subsetSize === pairCount * 2) {
       combinations.push({
         type: 'nPairs',
         dice: subsetIndices,
-        points: calculateCombinationPoints('nPairs', { n: pairCount }),
+        points: calculateCombinationPoints('nPairs', { n: pairCount, faceValue: highestPairValue }),
       });
     }
     

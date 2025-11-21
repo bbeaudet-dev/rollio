@@ -4,6 +4,7 @@ import { MainMenu, SettingsPage } from './ui/menu';
 import { CollectionPage } from './ui/collection';
 import { ProfilePage } from './ui/profile/ProfilePage';
 import { CalculatorPage } from './ui/calculator';
+import { MultiplayerPage } from './ui/multiplayer/MultiplayerPage';
 
 function App() {
   return (
@@ -26,6 +27,9 @@ function App() {
         
         {/* Profile page */}
         <Route path="/profile" element={<ProfilePage />} />
+        
+        {/* Multiplayer page */}
+        <Route path="/multiplayer" element={<MultiplayerPage />} />
         
         {/* Future routes */}
         {/* <Route path="/setup" element={<GameSetup />} /> */}

@@ -192,6 +192,50 @@ router.get('/combinations', requireAuth, async (req: Request, res: Response) => 
 });
 
 /**
+ * Get leaderboard (all users' highest scores)
+ * GET /api/stats/leaderboard
+ */
+router.get('/leaderboard', async (req: Request, res: Response) => {
+  try {
+    const result = await query(
+      `SELECT 
+        u.id,
+        u.username,
+        u.profile_picture,
+        COALESCE(us.high_score_bank, 0) as high_bank,
+        COALESCE(us.high_score_single_roll, 0) as high_roll
+      FROM users u
+      LEFT JOIN user_statistics us ON u.id = us.user_id
+      WHERE u.is_guest = false
+      ORDER BY 
+        COALESCE(us.high_score_bank, 0) DESC,
+        COALESCE(us.high_score_single_roll, 0) DESC
+      LIMIT 100`
+    );
+
+    const leaderboard = result.rows.map((row: any) => ({
+      userId: String(row.id),
+      username: String(row.username || ''),
+      profilePictureId: row.profile_picture ? String(row.profile_picture) : null,
+      highBank: parseInt(String(row.high_bank || 0), 10),
+      highRoll: parseInt(String(row.high_roll || 0), 10),
+    }));
+
+    return res.json({
+      success: true,
+      leaderboard
+    });
+  } catch (error: any) {
+    console.error('Get leaderboard error:', error);
+    console.error('Stack:', error?.stack);
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Failed to get leaderboard'
+    });
+  }
+});
+
+/**
  * Get available profile pictures
  * GET /api/stats/profile-pictures
  */

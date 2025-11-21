@@ -13,6 +13,7 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
 }) => {
   const bankedPercentage = threshold > 0 ? Math.min((current / threshold) * 100, 100) : 0;
   const potPercentage = threshold > 0 ? Math.min((pot / threshold) * 100, 100) : 0;
+  const isNegative = current < 0;
   
   return (
     <div style={{
@@ -40,7 +41,7 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
         )}
         <div style={{
           fontSize: '16px',
-          color: 'white',
+          color: isNegative ? '#dc3545' : 'white',
           fontWeight: '600'
         }}>
           {current} / {threshold}
@@ -86,10 +87,10 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
           border: '1px solid rgba(255, 255, 255, 0.5)'
         }}>
           <div style={{
-            width: `${bankedPercentage}%`,
+            width: `${Math.max(bankedPercentage, 0)}%`,
             height: '100%',
-            backgroundColor: '#28a745',
-            transition: 'width 0.3s ease',
+            backgroundColor: isNegative ? '#dc3545' : '#28a745',
+            transition: 'width 0.3s ease, background-color 0.3s ease',
             borderRadius: '9px'
           }} />
         </div>

@@ -2,9 +2,20 @@
  * Centralized API client for making authenticated requests to the backend
  */
 
+// Helper to access Vite env variables with proper typing
+function getEnvVar(key: string): string | undefined {
+  // @ts-ignore - Vite provides import.meta.env at runtime
+  return typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env[key] : undefined;
+}
+
+function isProd(): boolean {
+  // @ts-ignore - Vite provides import.meta.env at runtime
+  return typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.PROD : false;
+}
+
 // API base URL - points to Render backend in production, local server in development
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.PROD ? 'https://your-backend.onrender.com' : 'http://localhost:5173');
+const API_BASE_URL = getEnvVar('VITE_API_URL') || 
+  (isProd() ? 'https://your-backend.onrender.com' : 'http://localhost:5173');
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -18,6 +29,7 @@ export interface ApiResponse<T = any> {
   games?: any[]; // For game history responses
   pictures?: any[]; // For profile pictures responses
   combinations?: any[]; // For combination stats responses
+  leaderboard?: any[]; // For leaderboard responses
 }
 
 export interface ApiError {
@@ -73,15 +85,60 @@ export async function apiRequest<T = any>(
     });
 
     // Race between fetch and timeout
-    const response = await Promise.race([
-      fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-      }),
-      timeoutPromise,
-    ]);
+    let response: Response;
+    try {
+      response = await Promise.race([
+        fetch(`${API_BASE_URL}${endpoint}`, {
+          ...options,
+          headers,
+        }),
+        timeoutPromise,
+      ]);
+    } catch (fetchError: any) {
+      // Handle network errors (CORS, connection refused, etc.)
+      const errorDetails = {
+        error: fetchError,
+        url: `${API_BASE_URL}${endpoint}`,
+        message: fetchError?.message,
+        apiBaseUrl: API_BASE_URL,
+        isProduction: isProd(),
+        hasViteApiUrl: !!getEnvVar('VITE_API_URL')
+      };
+      console.error('Fetch error:', errorDetails);
+      
+      // Provide more helpful error message
+      let errorMessage = `Network error: ${fetchError?.message || 'Failed to connect to server'}`;
+      if (API_BASE_URL.includes('your-backend.onrender.com')) {
+        errorMessage += '. Please configure VITE_API_URL environment variable with your backend URL.';
+      }
+      errorMessage += ' Check console for details.';
+      
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
 
-    const data = await response.json();
+    // Check if response is JSON before parsing
+    const contentType = response.headers.get('content-type');
+    let data;
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      // If not JSON, read as text to see what we got
+      const text = await response.text();
+      console.error('Non-JSON response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType,
+        url: `${API_BASE_URL}${endpoint}`,
+        preview: text.substring(0, 200)
+      });
+      return {
+        success: false,
+        error: `Server returned non-JSON response (status: ${response.status}). Check console for details.`,
+      };
+    }
 
     // Handle 401 Unauthorized - token expired or invalid
     if (response.status === 401) {
@@ -289,6 +346,13 @@ export const statsApi = {
    */
   async getProfilePictures(): Promise<ApiResponse> {
     return apiRequest('/api/stats/profile-pictures');
+  },
+  
+  /**
+   * Get leaderboard (all users' highest scores)
+   */
+  async getLeaderboard(): Promise<ApiResponse> {
+    return apiRequest('/api/stats/leaderboard');
   },
 };
 

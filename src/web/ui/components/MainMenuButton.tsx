@@ -7,6 +7,7 @@ interface MainMenuButtonProps {
   children: React.ReactNode;
   variant?: ButtonVariant;
   disabled?: boolean;
+  style?: React.CSSProperties;
 }
 
 const getVariantStyles = (variant: ButtonVariant) => {
@@ -34,7 +35,8 @@ export const MainMenuButton: React.FC<MainMenuButtonProps> = ({
   onClick,
   children,
   variant = 'secondary',
-  disabled = false
+  disabled = false,
+  style
 }) => {
   const variantStyles = getVariantStyles(variant);
 
@@ -54,7 +56,8 @@ export const MainMenuButton: React.FC<MainMenuButtonProps> = ({
         transition: 'background-color 0.2s ease',
         fontFamily: 'Arial, sans-serif',
         minHeight: '44px',
-        opacity: disabled ? 0.6 : 1
+        opacity: disabled ? 0.6 : 1,
+        ...style
       }}
       onMouseEnter={(e) => {
         if (!disabled) {

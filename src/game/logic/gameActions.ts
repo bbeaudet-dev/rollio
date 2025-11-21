@@ -252,6 +252,25 @@ export function resetConsecutiveFlops(gameState: GameState): GameState {
 }
 
 /**
+ * Apply flop penalty: subtract 10% of level threshold from banked points (can go negative)
+ * This penalty is applied on every flop, regardless of consecutive flop count
+ */
+export function applyFlopPenalty(gameState: GameState): GameState {
+  const newGameState = { ...gameState };
+  newGameState.currentLevel = { ...gameState.currentLevel };
+  const levelThreshold = newGameState.currentLevel.levelThreshold;
+  const penaltyAmount = levelThreshold * 0.1;
+  const currentBanked = newGameState.currentLevel.pointsBanked;
+  const newBanked = currentBanked - penaltyAmount;
+  newGameState.currentLevel.pointsBanked = newBanked;
+  
+  // Debug log to verify penalty is applied
+  console.log(`[FLOP PENALTY] Banked points reduced from ${currentBanked} to ${newBanked} (penalty: -${penaltyAmount.toFixed(1)}, 10% of threshold ${levelThreshold})`);
+  
+  return newGameState;
+}
+
+/**
  * Increment consecutive banks counter
  */
 export function incrementConsecutiveBanks(gameState: GameState): GameState {

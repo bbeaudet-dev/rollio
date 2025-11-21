@@ -45,37 +45,6 @@ export const ALL_SCORING_TYPES: ScoringCombinationType[] = [
 ];
 
 /**
- * Combination categories for difficulty levels
- */
-export type CombinationCategory = 'beginner' | 'intermediate' | 'advanced';
-
-/**
- * Combination category definitions
- */
-export const COMBINATION_CATEGORIES: Record<CombinationCategory, ScoringCombinationType[]> = {
-  beginner: [
-    'singleN',
-    'nPairs',      // n >= 1 (one pair)
-    'nOfAKind',    // n >= 3 (three of a kind)
-  ],
-  intermediate: [
-    'nPairs',      // n >= 2 (two pairs)
-    'nOfAKind',    // n >= 4 (four of a kind)
-    'straightOfN', // n >= 4 (small straight)
-    'nTriplets',   // n >= 2 (two triplets)
-  ],
-  advanced: [
-    'nPairs',      // n >= 3 (three pairs)
-    'nOfAKind',    // n >= 5 (five of a kind)
-    'straightOfN', // n >= 6 (large straight)
-    'nTriplets',   // n >= 3 (triple triplets)
-    'nQuadruplets', // n >= 2 (two quadruplets)
-    'pyramidOfN',  // n >= 6 (pyramid patterns)
-  ],
-};
-
-
-/**
  * Point calculation algorithms for each combination type
  */
 
@@ -96,27 +65,29 @@ export function calculateSingleNPoints(faceValue: number): number {
 
 /**
  * Calculate points for nPairs combination
- * Algorithm: Base value scales with number of pairs
- * Base: 10 points for 1 pair, scales up
+ * Algorithm:
+ * - 1 pair: faceValue * 10
+ * - 2 pairs: 5 * (faceValue + 9)
+ * - 3 pairs: 30 * (faceValue + 9)
+ * faceValue is the highest face value among all pairs
  */
-export function calculateNPairsPoints(n: number): number {
-  if (n === 1) return 10;
-  if (n === 2) return 150;
-  if (n === 3) return 1200;
-  if (n === 4) return 3500;
-  // For n >= 5, scale from base: 1200 * (n / 3)
-  return 1200 * (n / 3);
+export function calculateNPairsPoints(n: number, faceValue: number): number {
+  if (n === 1) return faceValue * 10;
+  if (n === 2) return 5 * (faceValue + 9);
+  if (n === 3) return 30 * (faceValue + 9);
+  // For n >= 4, use the 3 pairs formula as base and scale
+  return 30 * (faceValue + 9) * (n / 3);
 }
 
 /**
  * Calculate points for nOfAKind combination
- * Algorithm: 10 * (faceValue + 9) * (n - 2)^2
+ * Algorithm: 20 * (faceValue + 9) * (n - 2)^2
  */
 export function calculateNOfAKindPoints(faceValue: number, n: number): number {
   // Special case: 1s are worth more
   if (faceValue === 1 && n === 3) return 1000;
   // Algorithm: 10 * (faceValue + 9) * (n - 2)^2
-  return 10 * (faceValue + 9) * Math.pow(n - 2, 2);
+  return 20 * (faceValue + 9) * Math.pow(n - 2, 2);
 }
 
 /**
@@ -200,7 +171,7 @@ export function calculateStraightOfNPoints(length: number): number {
  */
 export function calculatePyramidOfNPoints(n: number): number {
   // Base: 3000 for 6-dice pyramid, scales with N
-  return 3000 * (n / 6);
+  return 500 * (n / 6);
 }
 
 /**
@@ -221,8 +192,8 @@ export function calculateCombinationPoints(
       return calculateSingleNPoints(params.faceValue);
     
     case 'nPairs':
-      if (params.n === undefined) return 0;
-      return calculateNPairsPoints(params.n);
+      if (params.n === undefined || params.faceValue === undefined) return 0;
+      return calculateNPairsPoints(params.n, params.faceValue);
     
     case 'nOfAKind':
       if (params.faceValue === undefined || params.count === undefined) return 0;

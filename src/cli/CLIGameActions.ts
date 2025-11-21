@@ -6,7 +6,7 @@
 
 import { GameState, DieValue } from '../game/types';
 import { DEFAULT_GAME_CONFIG } from '../game/utils/factories';
-import { incrementConsecutiveFlops, resetConsecutiveFlops, advanceToNextLevel, endGame } from '../game/logic/gameActions';
+import { incrementConsecutiveFlops, resetConsecutiveFlops, advanceToNextLevel, endGame, applyFlopPenalty } from '../game/logic/gameActions';
 import { isLevelCompleted } from '../game/logic/gameLogic';
 import { MAX_LEVEL } from '../game/data/levels';
 
@@ -114,6 +114,9 @@ export function updateGameStateAfterRound(
     
     // Mark round as flopped for displayBetweenRounds
     roundState.flopped = true;
+    
+    // Apply flop penalty: reduce level threshold by 10% (can go negative)
+    Object.assign(gameState, applyFlopPenalty(gameState));
         
     // Check for game over: 3 consecutive flops = game over
     const consecutiveFlopLimit = gameState.config?.penalties?.consecutiveFlopLimit ?? DEFAULT_GAME_CONFIG.penalties.consecutiveFlopLimit;
