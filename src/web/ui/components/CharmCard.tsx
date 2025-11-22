@@ -4,6 +4,30 @@ import { CHARM_PRICES } from '../../../game/data/charms';
 import { RarityDot } from '../../utils/rarityColors';
 import { getItemTypeColor } from '../../utils/colors';
 
+/**
+ * Convert charm ID to image filename
+ * e.g., 'eyeOfHorus' -> 'Eye_of_Horus.jpeg'
+ */
+function getCharmImagePath(charmId: string): string | null {
+  // Map of charm IDs to their image filenames
+  const imageMap: Record<string, string> = {
+    'eyeOfHorus': 'Eye_of_Horus.jpeg',
+    'kingslayer': 'Kingslayer.jpeg',
+    'mustBeThisTallToRide': 'Must_Be_This_Tall_To_Ride.jpeg',
+    'paranoia': 'Paranoia.jpeg',
+    'queensGambit': 'Queens_Gambit.jpeg',
+    'stairstepper': 'Stairstepper.jpeg',
+    'swordInTheStone': 'Sword_in_the_Stone.jpeg',
+  };
+
+  const filename = imageMap[charmId];
+  if (!filename) {
+    return null;
+  }
+
+  return `/assets/images/charms/${filename}`;
+}
+
 interface CharmCardProps {
   charm: Charm;
   onClick?: () => void;
@@ -14,6 +38,7 @@ interface CharmCardProps {
   canAfford?: boolean;
   showBuyButton?: boolean;
   onBuy?: () => void;
+  highlighted?: boolean;
 }
 
 export const CharmCard: React.FC<CharmCardProps> = ({
@@ -25,7 +50,8 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   discount = 0,
   canAfford = true,
   showBuyButton = false,
-  onBuy
+  onBuy,
+  highlighted = false
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -33,6 +59,7 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   const rarity = charm.rarity || 'common';
   const sellValue = CHARM_PRICES[rarity]?.sell || 2;
   const backgroundColor = getItemTypeColor('charm');
+  const imagePath = getCharmImagePath(charm.id);
   
   // Square aspect ratio (1:1)
   const cardSize = 120; // Base size, can be adjusted
@@ -63,7 +90,7 @@ export const CharmCard: React.FC<CharmCardProps> = ({
           width: `${cardSize}px`,
           height: `${cardSize}px`,
           backgroundColor: backgroundColor,
-          border: '2px solid #333',
+          border: highlighted ? '3px solid #ffc107' : '2px solid #333',
           borderRadius: '8px',
           cursor: onClick || showBuyButton ? 'pointer' : 'default',
           opacity: canAfford ? 1 : 0.6,
@@ -72,9 +99,14 @@ export const CharmCard: React.FC<CharmCardProps> = ({
           display: 'flex',
           flexDirection: 'column',
           boxSizing: 'border-box',
-          transition: 'transform 0.2s ease',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
           transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-          boxShadow: isHovered ? '0 4px 8px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.2)'
+          boxShadow: highlighted 
+            ? '0 0 15px 5px rgba(255, 193, 7, 0.6), 0 4px 8px rgba(0,0,0,0.3)' 
+            : isHovered 
+              ? '0 4px 8px rgba(0,0,0,0.3)' 
+              : '0 2px 4px rgba(0,0,0,0.2)',
+          animation: highlighted ? 'charmHighlight 0.6s ease-out' : 'none'
         }}
       >
         {/* Image will fill the whole card as background */}
@@ -85,6 +117,7 @@ export const CharmCard: React.FC<CharmCardProps> = ({
           right: 0,
           bottom: 0,
           backgroundColor: backgroundColor,
+          backgroundImage: imagePath ? `url(${imagePath})` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           zIndex: 0
@@ -199,6 +232,20 @@ export const CharmCard: React.FC<CharmCardProps> = ({
           </div>
         </div>
       )}
+      
+      <style>{`
+        @keyframes charmHighlight {
+          0% {
+            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+          }
+          50% {
+            box-shadow: 0 0 20px 8px rgba(255, 193, 7, 0.8);
+          }
+          100% {
+            box-shadow: 0 0 15px 5px rgba(255, 193, 7, 0.6);
+          }
+        }
+      `}</style>
     </div>
   );
 };

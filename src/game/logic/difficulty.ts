@@ -7,7 +7,7 @@
 import { ScoringCombinationType } from '../data/combinations';
 import { GameState } from '../types';
 
-export type DifficultyLevel = 'plastic' | 'copper' | 'silver' | 'gold' | 'platinum' | 'sapphire' | 'emerald' | 'ruby' | 'diamond' | 'quantum';
+export type DifficultyLevel = 'plastic' | 'copper' | 'silver' | 'gold' | 'roseGold' | 'platinum' | 'sapphire' | 'emerald' | 'ruby' | 'diamond' | 'quantum';
 
 /**
  * Minimum N values for each combination type at each difficulty level
@@ -60,6 +60,15 @@ export const DIFFICULTY_MIN_VALUES: Record<DifficultyLevel, CombinationMinValues
     nTriplets: 2,
     nQuadruplets: 2,
     straightOfN: 5,     // Straight of (5) or more
+    pyramidOfN: 6,
+  },
+  roseGold: {
+    singleN: [1], 
+    nPairs: 3,
+    nOfAKind: 3,
+    nTriplets: 2,
+    nQuadruplets: 2,
+    straightOfN: 5,
     pyramidOfN: 6,
   },
   platinum: {
@@ -145,6 +154,7 @@ export interface DifficultyConfig {
   moneyModifier?: number; // Multiplier for money rewards
   pointThresholdModifier?: number; // Multiplier for level thresholds
   shopPriceModifier?: number; // Multiplier for shop prices (e.g., 1.5 for 50% more expensive)
+  maxFlopsPerLevel?: number; // Maximum flops allowed per level (game over if exceeded)
 }
 
 /**
@@ -183,6 +193,16 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     pointThresholdModifier: 1.0,
     rerollsModifier: -1,
     banksModifier: -1,
+  },
+  roseGold: {
+    id: 'roseGold',
+    name: 'Rose Gold',
+    description: 'Maximum of 10 Flops per Level',
+    minValues: DIFFICULTY_MIN_VALUES.roseGold,
+    pointThresholdModifier: 1.0,
+    rerollsModifier: -1,
+    banksModifier: -1,
+    maxFlopsPerLevel: 10,
   },
   platinum: {
     id: 'platinum',

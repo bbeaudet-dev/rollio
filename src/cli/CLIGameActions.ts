@@ -6,7 +6,8 @@
 
 import { GameState, DieValue } from '../game/types';
 import { DEFAULT_GAME_CONFIG } from '../game/utils/factories';
-import { incrementConsecutiveFlops, resetConsecutiveFlops, advanceToNextLevel, endGame, applyFlopPenalty } from '../game/logic/gameActions';
+import { advanceToNextLevel, endGame } from '../game/logic/gameActions';
+import { incrementConsecutiveFlops, resetConsecutiveFlops, applyFlopPenalty } from '../game/logic/flops';
 import { isLevelCompleted } from '../game/logic/gameLogic';
 import { MAX_LEVEL } from '../game/data/levels';
 

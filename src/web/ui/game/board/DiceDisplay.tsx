@@ -1,13 +1,35 @@
 import React from 'react';
 import { DiceFace } from './dice/DiceFace';
 
+// CSS keyframes for dice wiggle animation
+const wiggleStyle = document.createElement('style');
+wiggleStyle.textContent = `
+  @keyframes diceWiggle {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    10% { transform: translateX(-3px) rotate(-2deg); }
+    20% { transform: translateX(3px) rotate(2deg); }
+    30% { transform: translateX(-3px) rotate(-2deg); }
+    40% { transform: translateX(3px) rotate(2deg); }
+    50% { transform: translateX(-2px) rotate(-1deg); }
+    60% { transform: translateX(2px) rotate(1deg); }
+    70% { transform: translateX(-1px) rotate(-0.5deg); }
+    80% { transform: translateX(1px) rotate(0.5deg); }
+    90% { transform: translateX(0) rotate(0deg); }
+  }
+`;
+if (!document.head.querySelector('style[data-dice-wiggle]')) {
+  wiggleStyle.setAttribute('data-dice-wiggle', 'true');
+  document.head.appendChild(wiggleStyle);
+}
+
 interface DiceDisplayProps {
   allDice: any[]; // Full dice array (for index mapping)
   rolledDice: any[]; // Already filtered and sorted rolled dice
   selectedIndices: number[];
   onDiceSelect: (index: number) => void;
   canSelect: boolean;
-  animatingDiceIds: Set<string>; // Dice IDs that should animate
+  animatingDiceIds: Set<string>; // Dice IDs that should animate (for reroll)
+  allDiceWiggling?: boolean; // If true, all dice should wiggle (for initial roll)
   highlightedDiceIndices?: number[]; // Dice indices to highlight during breakdown
 }
 
@@ -18,6 +40,7 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
   onDiceSelect,
   canSelect,
   animatingDiceIds,
+  allDiceWiggling = false,
   highlightedDiceIndices = []
 }) => {
   return (
@@ -49,6 +72,7 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
         const material = die.material || 'plastic';
         const isAnimating = animatingDiceIds.has(die.id);
         const isHighlighted = highlightedDiceIndices.includes(originalIndex);
+        const shouldWiggle = allDiceWiggling || isAnimating;
         
         return (
           <button
@@ -75,8 +99,15 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
               justifyContent: 'center',
               opacity: !canSelect ? 0.6 : 1,
               padding: '4px',
-              transition: isAnimating ? 'transform 0.3s ease-in-out' : isHighlighted ? 'all 0.3s ease' : 'none',
-              transform: isAnimating ? 'rotate(360deg) scale(1.1)' : isHighlighted ? 'scale(1.1)' : 'none',
+              transition: shouldWiggle ? 'transform 0.3s ease-in-out' : isHighlighted ? 'all 0.3s ease' : 'none',
+              transform: isAnimating 
+                ? 'rotate(360deg) scale(1.1)' 
+                : allDiceWiggling 
+                  ? 'translateX(0) rotate(0deg)' 
+                  : isHighlighted 
+                    ? 'scale(1.1)' 
+                    : 'none',
+              animation: allDiceWiggling ? 'diceWiggle 0.5s ease-in-out' : 'none',
               zIndex: isHighlighted ? 15 : isSelected ? 10 : 1,
               boxShadow: isHighlighted ? '0 0 15px rgba(255, 193, 7, 0.6)' : 'none'
             }}

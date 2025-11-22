@@ -3,12 +3,12 @@ import { ScoringBreakdown, ScoringBreakdownStep } from '../../../../game/types';
 import { ScoringElements, calculateFinalScore } from '../../../../game/logic/scoringElements';
 import { getAnimationSpeed } from '../../../utils/uiSettings';
 import { formatCombinationKey } from '../../../../game/utils/combinationTracking';
+import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
 
 interface ScoringBreakdownProps {
   breakdown: ScoringBreakdown & { selectedIndices?: number[] };
   selectedDiceIndices: number[];
   onComplete: () => void;
-  onHighlightDice?: (indices: number[]) => void;
 }
 
 function formatScoreFormula(elements: ScoringElements): string {
@@ -98,13 +98,34 @@ function parseDiceIndicesFromStep(step: ScoringBreakdownStep, selectedIndices: n
   return [];
 }
 
+function parseCharmIdFromStep(step: ScoringBreakdownStep): string | null {
+  const stepId = step.step;
+  
+  // charm_${charmId} or charm_perDie_${charmId}_die${number}
+  if (stepId.startsWith('charm_')) {
+    // Handle charm_perDie_${charmId}_die${number} format
+    const perDieMatch = stepId.match(/^charm_perDie_(.+?)_die\d+$/);
+    if (perDieMatch) {
+      return perDieMatch[1];
+    }
+    
+    // Handle charm_${charmId} format
+    const charmMatch = stepId.match(/^charm_(.+)$/);
+    if (charmMatch) {
+      return charmMatch[1];
+    }
+  }
+  
+  return null;
+}
+
 
 export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
   breakdown,
   selectedDiceIndices,
-  onComplete,
-  onHighlightDice
+  onComplete
 }) => {
+  const { setHighlightedDice, setHighlightedCharms } = useScoringHighlights();
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
   const [currentElements, setCurrentElements] = useState<ScoringElements | null>(null);
   const [isComplete, setIsComplete] = useState(false);
@@ -122,7 +143,6 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
   const selectedIndicesRef = useRef<number[]>(selectedDiceIndices);
   const stepTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const onCompleteRef = useRef(onComplete);
-  const onHighlightDiceRef = useRef(onHighlightDice);
 
   // Keep selected indices ref up to date
   useEffect(() => {
@@ -132,8 +152,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
   // Keep refs up to date
   useEffect(() => {
     onCompleteRef.current = onComplete;
-    onHighlightDiceRef.current = onHighlightDice;
-  }, [onComplete, onHighlightDice]);
+  }, [onComplete]);
 
   useEffect(() => {
     // Create a stable ID for this breakdown
@@ -186,9 +205,8 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
     setIsComplete(false);
     
     // Clear any existing highlights
-    if (onHighlightDiceRef.current) {
-      onHighlightDiceRef.current([]);
-    }
+    setHighlightedDice([]);
+    setHighlightedCharms([]);
 
     // Start with step 0 (base combinations)
     const baseStep = breakdown.steps[0];
@@ -197,9 +215,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
     setCurrentStepIndex(0);
     
     // Highlight all dice for base combinations
-    if (onHighlightDiceRef.current) {
-      onHighlightDiceRef.current(selectedIndicesRef.current);
-    }
+    setHighlightedDice(selectedIndicesRef.current);
 
     // Animate through each step
     const stepTimeouts: NodeJS.Timeout[] = [];
@@ -218,9 +234,15 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
         previousElementsRef.current = step.input;
         
         // Highlight dice for this step (use ref to get current value)
-        if (onHighlightDiceRef.current) {
-          const diceToHighlight = parseDiceIndicesFromStep(step, selectedIndicesRef.current);
-          onHighlightDiceRef.current(diceToHighlight);
+        const diceToHighlight = parseDiceIndicesFromStep(step, selectedIndicesRef.current);
+        setHighlightedDice(diceToHighlight);
+        
+        // Highlight charms for this step
+        const charmId = parseCharmIdFromStep(step);
+        if (charmId) {
+          setHighlightedCharms([charmId]);
+        } else {
+          setHighlightedCharms([]);
         }
         
         // Show output after a brief delay
@@ -262,9 +284,8 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
       setIsComplete(true);
       
       // Clear highlights
-      if (onHighlightDiceRef.current) {
-        onHighlightDiceRef.current([]);
-      }
+      setHighlightedDice([]);
+      setHighlightedCharms([]);
       
       // Combine scoring elements into final score
       setShowFinalScore(true);

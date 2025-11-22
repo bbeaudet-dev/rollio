@@ -1,8 +1,10 @@
 import React from 'react';
 import { CharmInventoryProps } from '../../../types/inventory';
 import { CharmCard } from '../../components/CharmCard';
+import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
 
 export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms }) => {
+  const { highlightedCharmIds } = useScoringHighlights();
   return (
     <div>
       {charms.length === 0 ? (
@@ -17,6 +19,7 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms }) => {
             <CharmCard
               key={charm.id}
               charm={charm}
+              highlighted={highlightedCharmIds.includes(charm.id)}
             />
           ))}
         </div>

@@ -143,6 +143,7 @@ export function createInitialLevelState(levelNumber: number, gameState: GameStat
     rerollsRemaining: rerolls,
     banksRemaining: banks,
     consecutiveFlops: 0,  // Reset at start of each level
+    flopsThisLevel: 0,  // Reset at start of each level (for progressive penalty)
     pointsBanked: 0,  // Initialize to 0 at level start
     shop: DEFAULT_SHOP_STATE,
     currentRound: firstRound,
