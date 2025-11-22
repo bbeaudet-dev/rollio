@@ -800,7 +800,7 @@ Move to new Spec:
 - Challenges, difficulties, levels, worlds
 
 
-new charm: turns your negative points positive
+new charm/consumable: turns your negative points positive
     
 new charm - save 50% of points lost when flopping
 new charm - gain some other bonus that scales with flop penalty
@@ -809,3 +809,8 @@ new charm - gain some other bonus that scales with flop penalty
 Rework difficulties?
 We have a d6 now?
 But don't want to flood the game with sooooo many difficulties.
+
+Wasnt there a consumable to change the material of a selected die? Not implemented
+
+Some kind of assassin charm based on reroll ranger 2 picture
+Charm: against the grain: provides bonus when playing straights, pyramids, n=3 pairs? with a mirror die

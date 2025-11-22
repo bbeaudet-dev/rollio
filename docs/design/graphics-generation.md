@@ -1,3 +1,29 @@
+
+
+
+## UPDATED PROMPT
+
+This worked VERY well for the first round of image generation:
+
+### CHARMS
+
+Pixel art charm design for dice rolling game, [CHARM_NAME] gives player [CHARM_EFFECT] when [CHARM_TRIGGER]. Retro indie game style similar to Balatro, clean bold pixel art lines with no words, letters, or numbers; limited vibrant color palette, game asset ready, detailed sprite art
+
+If the effect is ever nuanced or hard to understand, or if you otherwise want a specfic icon to show up, just throw in a bunch of keywords. 
+
+### CONSUMABLES
+
+Pixel art common consumable item design for dice rolling game, [CCONSUMABLE_NAME] gives player [CONSUMABLE_EFFECT]. Retro indie game style similar to Balatro, clean bold pixel art lines with no words, letters, or numbers; limited vibrant color palette, game asset ready, detailed sprite art
+
+Pixel art rare consumable item design for dice rolling game, [CCONSUMABLE_NAME] gives player [CONSUMABLE_EFFECT]. Retro indie game style similar to Balatro, clean bold pixel art lines with no words, letters, or numbers; limited vibrant color palette, game asset ready, detailed sprite art
+
+### BLESSINGS
+
+Pixel art blessing bonus design for dice rolling game, tier [#] of 3, [BLESSING_NAME] gives player [BLESSING_EFFECT]. Retro indie game style similar to Balatro, clean bold pixel art lines with no words, letters, or numbers; limited vibrant color palette, game asset ready, detailed sprite art
+
+
+-----------------
+
 Here's an adjusted prompt template for your Rollio charms with the leprechaun/fortune/luck theme:
 
 Base Prompt Template:

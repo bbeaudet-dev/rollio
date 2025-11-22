@@ -9,17 +9,17 @@ export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 export function getRarityColor(rarity: Rarity | string): string {
   switch (rarity.toLowerCase()) {
     case 'common':
-      return '#ffffff'; // White
+      return '#95a5a6'; // Gray
     case 'uncommon':
-      return '#4CAF50'; // Green
+      return '#3498db'; // Blue
     case 'rare':
-      return '#2196F3'; // Blue
+      return '#9b59b6'; // Purple
     case 'epic':
       return '#9C27B0'; // Purple
     case 'legendary':
-      return '#FF9800'; // Orange
+      return '#ff6b35'; // Orange/Red
     default:
-      return '#ffffff'; // White (default)
+      return '#95a5a6'; // Gray (default)
   }
 }
 

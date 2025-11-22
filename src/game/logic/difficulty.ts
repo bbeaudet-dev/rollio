@@ -164,14 +164,14 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   plastic: {
     id: 'plastic',
     name: 'Plastic',
-    description: 'All scoring combinations available',
+    description: 'All scoring Combinations available',
     minValues: DIFFICULTY_MIN_VALUES.plastic,
     pointThresholdModifier: 1.0,
   },
   copper: {
     id: 'copper',
     name: 'Copper',
-    description: '-1 reroll per level',
+    description: '-1 Reroll per Level',
     minValues: DIFFICULTY_MIN_VALUES.copper,
     pointThresholdModifier: 1.0,
     rerollsModifier: -1, // new
@@ -179,7 +179,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   silver: {
     id: 'silver',
     name: 'Silver',
-    description: '-1 bank per level',
+    description: '-1 Bank per Level',
     minValues: DIFFICULTY_MIN_VALUES.silver,
     pointThresholdModifier: 1.0,
     rerollsModifier: -1,
@@ -188,7 +188,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   gold: {
     id: 'gold',
     name: 'Gold',
-    description: 'No beginner scoring combinations',
+    description: 'No beginner scoring Combinations',
     minValues: DIFFICULTY_MIN_VALUES.gold,
     pointThresholdModifier: 1.0,
     rerollsModifier: -1,
@@ -207,7 +207,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   platinum: {
     id: 'platinum',
     name: 'Platinum',
-    description: 'Level completion bonus only for miniboss and boss levels',
+    description: 'Level completion bonus only for Miniboss and Boss levels',
     minValues: DIFFICULTY_MIN_VALUES.platinum,
     pointThresholdModifier: 1.0,
     rerollsModifier: -1, 
@@ -216,7 +216,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   sapphire: {
     id: 'sapphire',
     name: 'Sapphire',
-    description: 'Faster level threshold scaling (1.5x)',
+    description: 'Faster Level threshold scaling (1.5x)',
     minValues: DIFFICULTY_MIN_VALUES.sapphire,
     pointThresholdModifier: 1.5, // new
     rerollsModifier: -1, 
@@ -225,7 +225,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   emerald: {
     id: 'emerald',
     name: 'Emerald',
-    description: '-1 consumable slot and -1 charm slot',
+    description: '-1 Consumable slot and -1 Charm slot',
     minValues: DIFFICULTY_MIN_VALUES.emerald,
     pointThresholdModifier: 1.5,
     rerollsModifier: -1, 
@@ -236,7 +236,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   ruby: {
     id: 'ruby',
     name: 'Ruby',
-    description: 'Everything in the shop is 50% more expensive',
+    description: 'Everything in the Shop is 50% more expensive',
     minValues: DIFFICULTY_MIN_VALUES.ruby,
     pointThresholdModifier: 1.5, // From sapphire
     rerollsModifier: -1, // From copper
@@ -248,7 +248,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   diamond: {
     id: 'diamond',
     name: 'Diamond',
-    description: 'No intermediate scoring combinations',
+    description: 'No intermediate scoring Combinations',
     minValues: DIFFICULTY_MIN_VALUES.diamond,
     pointThresholdModifier: 1.5, // From sapphire
     rerollsModifier: -1, // From copper
@@ -260,7 +260,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   quantum: {
     id: 'quantum',
     name: 'Quantum',
-    description: 'Much faster level scaling (5x)',
+    description: 'Much faster Level scaling (5x)',
     minValues: DIFFICULTY_MIN_VALUES.quantum,
     pointThresholdModifier: 5, // Much faster scaling - its own (replaces 1.5x)
     rerollsModifier: -1, // From copper

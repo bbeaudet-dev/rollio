@@ -2,7 +2,66 @@ import React, { useState } from 'react';
 import { Blessing } from '../../../game/types';
 import { getBlessingName, getBlessingDescription } from '../../../game/data/blessings';
 import { getItemTypeColor } from '../../utils/colors';
+import { getRarityColor } from '../../utils/rarityColors';
 import { StandardButton } from './StandardButton';
+
+/**
+ * Convert blessing ID to image filename based on blessing type and tier
+ */
+function getBlessingImagePath(blessing: Blessing): string | null {
+  const { id, tier, effect } = blessing;
+  
+  // Slot blessings
+  if (id.startsWith('slot')) {
+    if (tier === 1) return '/assets/images/blessings/Extra_Charm_Slot.png';
+    if (tier === 2) return '/assets/images/blessings/Extra_Consumable_Slot.png';
+    if (tier === 3) return '/assets/images/blessings/ExtraExtra_Charm_Slot.png';
+  }
+  
+  // Discount blessings
+  if (id.startsWith('discount')) {
+    if (tier === 1) return '/assets/images/blessings/Discount_Tier_1.png';
+    if (tier === 2) return '/assets/images/blessings/Discount_Tier_2.png';
+    if (tier === 3) return '/assets/images/blessings/Discount_Tier_3.png';
+  }
+  
+  // Banks blessings (baseLevelBanks)
+  if (id.startsWith('banks')) {
+    if (tier === 1) return '/assets/images/blessings/Gun_Hand_Tier_1.png';
+    if (tier === 2) return '/assets/images/blessings/Gun_Hand_Tier_2.png';
+    if (tier === 3) return '/assets/images/blessings/Gun_Hand_Tier_3.png';
+  }
+  
+  // Reroll ability blessings
+  if (id.startsWith('rerollAbility')) {
+    if (effect.type === 'rerollOnFlop') return '/assets/images/blessings/Reroll_Flop.png';
+    if (effect.type === 'rerollOnBank') return '/assets/images/blessings/Reroll_Bank.png';
+    if (effect.type === 'moneyOnRerollUsed') return '/assets/images/blessings/Reroll_Money.png';
+  }
+  
+  // Reroll blessings (baseLevelRerolls)
+  if (id.startsWith('reroll') && !id.startsWith('rerollAbility')) {
+    if (tier === 1) return '/assets/images/blessings/Hand_Tier_1.png';
+    if (tier === 2) return '/assets/images/blessings/Hand_Tier_2_2.png';
+    if (tier === 3) return '/assets/images/blessings/Hand_Tier_3_2.png';
+  }
+  
+  // Flop subversion blessings
+  if (id.startsWith('flopSubversion')) {
+    if (tier === 1) return '/assets/images/blessings/Holy_Hand_Tier_1.png';
+    if (tier === 2) return '/assets/images/blessings/Holy_Hand_Tier_2.png';
+    if (tier === 3) return '/assets/images/blessings/Holy_Hand_Tier_3.png';
+  }
+  
+  // Money blessings (moneyPerBank)
+  if (id.startsWith('money')) {
+    if (tier === 1) return '/assets/images/blessings/Remaining_Banks_Tier_1.png';
+    if (tier === 2) return '/assets/images/blessings/Remaining_Banks_Tier_2.png';
+    if (tier === 3) return '/assets/images/blessings/Remaining_Banks_Tier_3.png'; 
+  }
+  
+  return null;
+}
 
 const BLESSING_PRICE = 5;
 const BLESSING_SELL_VALUE = 5; // Same as buy price
@@ -36,6 +95,32 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
   const name = getBlessingName(blessing);
   const description = getBlessingDescription(blessing);
   const backgroundColor = getItemTypeColor('blessing');
+  const imagePath = getBlessingImagePath(blessing);
+  
+  // Map blessing tier to rarity for border/glow
+  const rarity = blessing.tier === 1 ? 'common' : blessing.tier === 2 ? 'uncommon' : 'rare';
+  const borderColor = getRarityColor(rarity);
+  
+  // Get glow effect based on tier
+  const getGlowStyle = () => {
+    switch (blessing.tier) {
+      case 3:
+        return {
+          boxShadow: '0 0 10px 4px rgba(155, 89, 182, 0.4), 0 0 20px 6px rgba(155, 89, 182, 0.2)',
+          animation: 'rareGlow 2.5s ease-in-out infinite alternate'
+        };
+      case 2:
+        return {
+          boxShadow: '0 0 12px 5px rgba(52, 152, 219, 0.5), 0 0 24px 8px rgba(52, 152, 219, 0.3)'
+        };
+      default: // tier 1
+        return {
+          boxShadow: 'none'
+        };
+    }
+  };
+  
+  const glowStyle = getGlowStyle();
   
   // Square aspect ratio (1:1) - same as charms
   const cardSize = 120; // Base size, can be adjusted
@@ -66,7 +151,7 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
           width: `${cardSize}px`,
           height: `${cardSize}px`,
           backgroundColor: backgroundColor,
-          border: '2px solid #333',
+          border: `3px solid ${borderColor}`,
           borderRadius: '8px',
           cursor: onClick || showBuyButton ? 'pointer' : 'default',
           opacity: canAfford ? 1 : 0.6,
@@ -75,9 +160,15 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
           display: 'flex',
           flexDirection: 'column',
           boxSizing: 'border-box',
-          transition: 'transform 0.2s ease',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
           transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-          boxShadow: isHovered ? '0 4px 8px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.2)'
+          ...(isHovered
+            ? {
+                boxShadow: glowStyle.boxShadow || '0 4px 8px rgba(0,0,0,0.3)',
+                ...(glowStyle.animation ? { animation: glowStyle.animation } : {})
+              }
+            : glowStyle
+          )
         }}
       >
         {/* Image will fill the whole card as background */}
@@ -88,70 +179,11 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
           right: 0,
           bottom: 0,
           backgroundColor: backgroundColor,
+          backgroundImage: imagePath ? `url(${imagePath})` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           zIndex: 0
         }} />
-        
-        {/* Bottom overlay with info */}
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          padding: '4px 6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '4px',
-          zIndex: 1
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            flex: 1,
-            minWidth: 0
-          }}>
-            {/* Price if shown */}
-            {showPrice && price !== undefined && (
-              <div style={{
-                fontSize: '9px',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
-              }}>
-                <span>${price}</span>
-                {discount > 0 && basePrice !== undefined && basePrice !== price && (
-                  <span style={{
-                    fontSize: '7px',
-                    color: '#999',
-                    textDecoration: 'line-through'
-                  }}>
-                    ${basePrice}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* Buy button if shown */}
-          {showBuyButton && onBuy && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <StandardButton
-                onClick={onBuy}
-                disabled={!canAfford}
-                variant="success"
-                size="small"
-                style={{ padding: '2px 6px', fontSize: '8px' }}
-              >
-                Buy
-              </StandardButton>
-            </div>
-          )}
-        </div>
       </div>
       
       {/* Tooltip on hover/click */}
@@ -186,6 +218,17 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
           </div>
         </div>
       )}
+      
+      <style>{`
+        @keyframes rareGlow {
+          0% {
+            box-shadow: 0 0 10px 4px rgba(155, 89, 182, 0.4), 0 0 20px 6px rgba(155, 89, 182, 0.2);
+          }
+          100% {
+            box-shadow: 0 0 14px 6px rgba(155, 89, 182, 0.6), 0 0 28px 10px rgba(155, 89, 182, 0.3);
+          }
+        }
+      `}</style>
     </div>
   );
 };
