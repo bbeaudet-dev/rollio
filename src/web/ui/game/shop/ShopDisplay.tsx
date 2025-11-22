@@ -3,28 +3,20 @@ import { StandardButton } from '../../components/StandardButton';
 import { ShopState } from '../../../../game/types';
 import { calculateShopDiscount } from '../../../../game/logic/shop';
 import { ShopItemList } from './ShopItemList';
+import { useShopActions } from '../../../contexts/ShopActionsContext';
 
 interface ShopDisplayProps {
   shopState: ShopState;
   playerMoney: number;
   blessings?: any[];
-  onPurchaseCharm: (index: number) => void;
-  onPurchaseConsumable: (index: number) => void;
-  onPurchaseBlessing: (index: number) => void;
-  onContinue: () => void;
-  onRefresh?: () => void;
 }
 
 export const ShopDisplay: React.FC<ShopDisplayProps> = ({ 
   shopState,
   playerMoney,
-  blessings = [],
-  onPurchaseCharm,
-  onPurchaseConsumable,
-  onPurchaseBlessing,
-  onContinue,
-  onRefresh
+  blessings = []
 }) => {
+  const { purchaseCharm, purchaseConsumable, purchaseBlessing, exitShop, refreshShop } = useShopActions();
   const discount = calculateShopDiscount({ money: playerMoney, blessings } as any);
   return (
     <div style={{
@@ -91,15 +83,13 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
           <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
             Money: <span style={{ color: '#2d5a2d' }}>${playerMoney}</span>
           </div>
-          {onRefresh && (
-            <StandardButton
-              onClick={onRefresh}
-              variant="secondary"
-              size="small"
-            >
-              Refresh Shop
-            </StandardButton>
-          )}
+          <StandardButton
+            onClick={refreshShop}
+            variant="secondary"
+            size="small"
+          >
+            Refresh Shop
+          </StandardButton>
         </div>
         
         {discount > 0 && (
@@ -125,7 +115,7 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
               itemType="charm"
               playerMoney={playerMoney}
               discount={discount}
-              onPurchase={onPurchaseCharm}
+              onPurchase={purchaseCharm}
             />
           </div>
           
@@ -142,7 +132,7 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
               itemType="consumable"
               playerMoney={playerMoney}
               discount={discount}
-              onPurchase={onPurchaseConsumable}
+              onPurchase={purchaseConsumable}
             />
             
             <ShopItemList
@@ -150,7 +140,7 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
               itemType="blessing"
               playerMoney={playerMoney}
               discount={discount}
-              onPurchase={onPurchaseBlessing}
+              onPurchase={purchaseBlessing}
             />
           </div>
         </div>
@@ -158,7 +148,7 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
         {/* Continue button at bottom */}
         <div style={{ marginTop: '8px', textAlign: 'center', flexShrink: 0 }}>
           <div style={{ display: 'inline-block' }}>
-            <StandardButton onClick={onContinue} variant="success" size="medium">
+            <StandardButton onClick={exitShop} variant="success" size="medium">
               Continue to Next Level
             </StandardButton>
           </div>

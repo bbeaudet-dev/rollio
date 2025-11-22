@@ -12,6 +12,7 @@ const DIFFICULTY_ORDER: DifficultyLevel[] = [
   'copper',
   'silver',
   'gold',
+  'roseGold',
   'platinum',
   'sapphire',
   'emerald',

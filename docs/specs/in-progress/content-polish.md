@@ -802,3 +802,10 @@ Move to new Spec:
 
 new charm: turns your negative points positive
     
+new charm - save 50% of points lost when flopping
+new charm - gain some other bonus that scales with flop penalty
+
+
+Rework difficulties?
+We have a d6 now?
+But don't want to flood the game with sooooo many difficulties.

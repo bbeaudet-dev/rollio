@@ -17,7 +17,7 @@ export const Inventory: React.FC<InventoryProps> = ({
   consumables, 
   blessings,
   money,
-  onConsumableUse 
+  onConsumableUse
 }) => {
   return (
     <div style={{ 

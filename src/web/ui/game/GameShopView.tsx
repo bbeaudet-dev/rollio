@@ -4,6 +4,7 @@ import { Inventory } from './Inventory';
 import { SettingsButton, MainMenuReturnButton } from '../components';
 import { SettingsModal } from '../menu';
 import { DifficultyProvider } from '../../contexts/DifficultyContext';
+import { ShopActionsProvider } from '../../contexts/ShopActionsContext';
 
 interface GameShopViewProps {
   gameState: any;
@@ -38,23 +39,25 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
         onClose={() => setIsSettingsOpen(false)} 
       />
       <DifficultyProvider difficulty={difficulty}>
-        <div style={{ 
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0',
-          position: 'relative',
-          zIndex: 1
-        }}>
+        <ShopActionsProvider
+          purchaseCharm={shopActions.handlePurchaseCharm}
+          purchaseConsumable={shopActions.handlePurchaseConsumable}
+          purchaseBlessing={shopActions.handlePurchaseBlessing}
+          exitShop={shopActions.handleExitShop}
+          refreshShop={shopActions.handleRefreshShop}
+        >
+            <div style={{ 
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0',
+              position: 'relative',
+              zIndex: 1
+            }}>
           <ShopDisplay
             shopState={shopState}
             playerMoney={gameState.money || 0}
             blessings={gameState.blessings || []}
-            onPurchaseCharm={shopActions.handlePurchaseCharm}
-            onPurchaseConsumable={shopActions.handlePurchaseConsumable}
-            onPurchaseBlessing={shopActions.handlePurchaseBlessing}
-            onContinue={shopActions.handleExitShop}
-            onRefresh={shopActions.handleRefreshShop}
           />
           
           <div style={{ position: 'relative', zIndex: 2, backgroundColor: '#f8f9fa' }}>
@@ -82,7 +85,8 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
               style={{ position: 'relative', top: 'auto', right: 'auto' }}
             />
           </div>
-        </div>
+            </div>
+          </ShopActionsProvider>
       </DifficultyProvider>
     </>
   );

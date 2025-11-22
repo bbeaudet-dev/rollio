@@ -8,6 +8,7 @@ import { SettingsModal } from '../menu';
 import { TallyModal } from './TallyModal';
 import { GameOverModal } from './GameOverModal';
 import { DifficultyProvider } from '../../contexts/DifficultyContext';
+import { ScoringHighlightProvider } from '../../contexts/ScoringHighlightContext';
 
 // Intermediary interfaces for logical groups
 interface RollActions {
@@ -83,7 +84,7 @@ export const Game: React.FC<GameProps> = ({
   gameActions, 
   inventoryActions,
   shopActions,
-  board, 
+  board,
   gameState, 
   roundState, 
   inventory,
@@ -192,12 +193,13 @@ export const Game: React.FC<GameProps> = ({
         onClose={() => setIsSettingsOpen(false)} 
       />
       <DifficultyProvider difficulty={difficulty}>
-        <div style={{ 
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0' // No gap between sections
-        }}>
+        <ScoringHighlightProvider>
+          <div style={{ 
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0' // No gap between sections
+          }}>
       {/* Dice-Rolling Area */}
       <div style={{ position: 'relative', marginTop: '0' }}>
         <Board
@@ -313,7 +315,8 @@ export const Game: React.FC<GameProps> = ({
           onNewGame={onNewGame}
         />
       )}
-        </div>
+          </div>
+        </ScoringHighlightProvider>
       </DifficultyProvider>
     </>
   );

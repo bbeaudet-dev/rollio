@@ -16,11 +16,14 @@ import {
   processHotDice,
   randomizeSelectedDice,
   decrementRerolls,
-  incrementConsecutiveFlops,
   resetConsecutiveBanks,
   setForfeitedPoints,
-  applyFlopPenalty,
 } from '../logic/gameActions';
+import {
+  incrementConsecutiveFlops,
+  applyFlopPenalty,
+  checkMaxFlopsPerLevel,
+} from '../logic/flops';
 import { isGameOver, isFlop, isHotDice, isLevelCompleted, canBankPoints as canBankPointsLogic } from '../logic/gameLogic';
 import { endGame, advanceToNextLevel } from '../logic/gameActions';
 import { tallyLevel as tallyLevelFunction, calculateLevelRewards, LevelRewards } from '../logic/tallying';
@@ -369,6 +372,7 @@ export class GameAPI {
     newGameState = setForfeitedPoints(newGameState, forfeitedPoints);
     newGameState = endRound(newGameState, 'flopped');
     newGameState = applyFlopPenalty(newGameState);
+    newGameState = checkMaxFlopsPerLevel(newGameState);
     
     const consecutiveFlops = newGameState.currentLevel.consecutiveFlops;
     

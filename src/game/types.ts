@@ -184,7 +184,8 @@ export interface LevelState {
   // Current level only
   rerollsRemaining?: number;
   banksRemaining?: number;
-  consecutiveFlops: number; 
+  consecutiveFlops: number;
+  flopsThisLevel: number; // Track total flops in this level (for progressive penalty)
   pointsBanked: number; 
   shop?: ShopState;
   currentRound?: RoundState;

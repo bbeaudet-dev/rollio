@@ -9,6 +9,7 @@ import { ScoringBreakdown, Die } from '../../../../game/types';
 import { ViewDiceSet } from './ViewDiceSet';
 import { DifficultyDiceDisplay } from '../../components/DifficultyDiceDisplay';
 import { useDifficulty } from '../../../contexts/DifficultyContext';
+import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
 
 interface BoardProps {
   dice: any[];
@@ -57,21 +58,23 @@ export const Board: React.FC<BoardProps> = ({
   diceSet = []
 }) => {
   const difficulty = useDifficulty();
+  const { highlightedDiceIndices, setHighlightedDice, clearAll } = useScoringHighlights();
+  
   // Get level color (memoized to avoid recalculating on every render)
   const levelColor = useMemo(() => getLevelColor(levelNumber), [levelNumber]);
   
-  // Track which dice should animate (only selected dice on reroll)
+  // Track which dice should animate (only selected dice on reroll, all dice on initial roll)
   const [animatingDiceIds, setAnimatingDiceIds] = useState<Set<string>>(new Set());
+  const [allDiceWiggling, setAllDiceWiggling] = useState<boolean>(false);
   const [lastRollNumber, setLastRollNumber] = useState<number>(rollNumber);
   const [lastSelectedDiceIds, setLastSelectedDiceIds] = useState<Set<string>>(new Set());
-  const [highlightedDiceIndices, setHighlightedDiceIndices] = useState<number[]>([]);
   
   // Clear highlights when breakdown is no longer showing
   useEffect(() => {
-    if (breakdownState === 'hidden' && highlightedDiceIndices.length > 0) {
-      setHighlightedDiceIndices([]);
+    if (breakdownState === 'hidden') {
+      clearAll();
     }
-  }, [breakdownState, highlightedDiceIndices.length]);
+  }, [breakdownState, clearAll]);
   
   // Filter dice to only show rolled dice (have rolledValue), sorted by dice id
   const rolledDice = useMemo(() => {
@@ -87,21 +90,33 @@ export const Board: React.FC<BoardProps> = ({
     );
   }, [selectedIndices, dice]);
   
-  // Detect reroll: if roll number increased, animate dice that were selected before the reroll
+  // Detect roll/reroll: if roll number increased, animate dice appropriately
   useEffect(() => {
     if (rollNumber > lastRollNumber) {
-      // Roll number increased - check if we had selected dice before
-      if (lastSelectedDiceIds.size > 0) {
-        // Reroll happened with selected dice - animate those dice
-        setAnimatingDiceIds(new Set(lastSelectedDiceIds));
+      // Roll number increased - check if we have selected dice now (for reroll)
+      // OR if we had selected dice before the roll
+      if (currentSelectedDiceIds.size > 0 || lastSelectedDiceIds.size > 0) {
+        // Reroll happened - animate the dice that are currently selected
+        // (or were selected before, in case selection was cleared)
+        const diceToAnimate = currentSelectedDiceIds.size > 0 
+          ? currentSelectedDiceIds 
+          : lastSelectedDiceIds;
+        setAnimatingDiceIds(new Set(diceToAnimate));
+        setAllDiceWiggling(false);
         
         // Clear animation after a short delay
         setTimeout(() => {
           setAnimatingDiceIds(new Set());
         }, 600);
       } else {
-        // New roll without selection - no animation
+        // Initial roll - wiggle all dice
+        setAllDiceWiggling(true);
         setAnimatingDiceIds(new Set());
+        
+        // Clear wiggle after animation completes
+        setTimeout(() => {
+          setAllDiceWiggling(false);
+        }, 500);
       }
       setLastRollNumber(rollNumber);
     }
@@ -152,10 +167,9 @@ export const Board: React.FC<BoardProps> = ({
           breakdown={scoringBreakdown}
           selectedDiceIndices={selectedIndices}
           onComplete={() => {
-            setHighlightedDiceIndices([]);
+            clearAll();
             onCompleteBreakdown();
           }}
-          onHighlightDice={(indices) => setHighlightedDiceIndices(indices)}
         />
       )}
       
@@ -173,6 +187,7 @@ export const Board: React.FC<BoardProps> = ({
           onDiceSelect={onDiceSelect}
           canSelect={canSelect && !justFlopped && breakdownState !== 'animating'}
           animatingDiceIds={animatingDiceIds}
+          allDiceWiggling={allDiceWiggling}
           highlightedDiceIndices={highlightedDiceIndices}
         />
       )}

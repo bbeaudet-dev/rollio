@@ -220,7 +220,7 @@ const DICE_DATA: Record<string, DiceData> = {
 const getDiceType = (difficulty: DifficultyLevelString): keyof typeof DICE_DATA => {
   if (difficulty === 'plastic') return 'D4';
   if (difficulty === 'copper' || difficulty === 'silver') return 'D8';
-  if (difficulty === 'gold' || difficulty === 'platinum') return 'D10';
+  if (difficulty === 'gold' || difficulty === 'roseGold' || difficulty === 'platinum') return 'D10';
   if (difficulty === 'sapphire' || difficulty === 'emerald' || difficulty === 'ruby') return 'D12';
   if (difficulty === 'diamond' || difficulty === 'quantum') return 'D20';
   return 'D4'; // Default to D4
@@ -328,6 +328,7 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
     if (difficulty === 'copper') return '#4a2a0a';
     if (difficulty === 'silver') return '#606060';
     if (difficulty === 'gold') return '#8b6914';
+    if (difficulty === 'roseGold') return '#c08081'; 
     if (difficulty === 'platinum') return '#707070';
     if (isGem) {
       // For gems, use darker gem colors
@@ -423,6 +424,30 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                 <stop offset="0%" stopColor="transparent" />
                 <stop offset="25%" stopColor="rgba(255,215,0,0.6)" />
                 <stop offset="75%" stopColor="rgba(255,215,0,0.6)" />
+                <stop offset="100%" stopColor="transparent" />
+                <animateTransform
+                  attributeName="gradientTransform"
+                  type="translate"
+                  values="0,0; 120,0; 0,0"
+                  dur="2s"
+                  repeatCount="indefinite"
+                />
+              </linearGradient>
+            </>
+          )}
+          {difficulty === 'roseGold' && (
+            <>
+              <linearGradient id="roseGoldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#e8b4b8" stopOpacity="1" />
+                <stop offset="25%" stopColor="#f4c2c2" stopOpacity="1" />
+                <stop offset="50%" stopColor="#ffb6c1" stopOpacity="1" />
+                <stop offset="75%" stopColor="#ffc0cb" stopOpacity="1" />
+                <stop offset="100%" stopColor="#ffd1dc" stopOpacity="1" />
+              </linearGradient>
+              <linearGradient id="roseGoldFlash" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="transparent" />
+                <stop offset="25%" stopColor="rgba(255,182,193,0.6)" />
+                <stop offset="75%" stopColor="rgba(255,192,203,0.6)" />
                 <stop offset="100%" stopColor="transparent" />
                 <animateTransform
                   attributeName="gradientTransform"
@@ -716,7 +741,7 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
           {difficulty !== 'plastic' && hullPath && (
             <>
             {/* Use facets if available for multi-colored rendering */}
-            {diceData.facets && (isGem || difficulty === 'copper' || difficulty === 'silver' || difficulty === 'gold' || difficulty === 'platinum' || isDiamond || isQuantum) ? (
+            {diceData.facets && (isGem || difficulty === 'copper' || difficulty === 'silver' || difficulty === 'gold' || difficulty === 'roseGold' || difficulty === 'platinum' || isDiamond || isQuantum) ? (
               diceData.facets.map((facet, facetIdx) => {
                 const facetPoints = facet.points
                   .map(id => pixelVertices[id])
@@ -793,7 +818,7 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                   const brightness = 0.8 + (reverseIdx % 3) * 0.1;
                   facetColor = `rgba(${Math.floor(color.r * brightness)}, ${Math.floor(color.g * brightness)}, ${Math.floor(color.b * brightness)}, 0.9)`;
                 } else if (difficulty === 'copper') {
-                  // Varying shades of copper/bronze (reversed, more orangey)
+                  // Varying shades of copper/bronze 
                   // Make the 2 sides (indices 2 and 3) darker
                   const isSide = facetIdx === 2 || facetIdx === 3;
                   const baseR = isSide ? 150 + reverseIdx * 6 : 180 + reverseIdx * 8;  // More red for orange
@@ -801,7 +826,7 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                   const baseB = isSide ? 20 + reverseIdx * 1 : 30 + reverseIdx * 2;   // Less blue
                   facetColor = `rgba(${baseR}, ${baseG}, ${baseB}, 0.9)`;
                 } else if (difficulty === 'silver') {
-                  // Varying shades of silver/gray (reversed)
+                  // Varying shades of silver/gray 
                   const base = 160 + reverseIdx * 15;
                   facetColor = `rgba(${base}, ${base}, ${base}, 0.9)`;
                 } else if (difficulty === 'gold') {
@@ -810,8 +835,14 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                   const baseG = 165 + reverseIdx * 5;
                   const baseB = 32 + reverseIdx * 3;
                   facetColor = `rgba(${baseR}, ${baseG}, ${baseB}, 0.9)`;
+                } else if (difficulty === 'roseGold') {
+                  // Varying shades of rose gold/pink 
+                  const baseR = 232 + reverseIdx * 6;  // Pink/rose tones
+                  const baseG = 180 + reverseIdx * 5;
+                  const baseB = 184 + reverseIdx * 4;
+                  facetColor = `rgba(${baseR}, ${baseG}, ${baseB}, 0.9)`;
                 } else if (difficulty === 'platinum') {
-                  // Varying shades of platinum/white (reversed)
+                  // Varying shades of platinum/white 
                   const base = 220 + reverseIdx * 8;
                   facetColor = `rgba(${base}, ${base}, ${base}, 0.9)`;
                 } else {
@@ -869,6 +900,7 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                     difficulty === 'copper' ? 'url(#copperGradient)' :
                     difficulty === 'silver' ? 'url(#silverGradient)' :
                     difficulty === 'gold' ? 'url(#goldGradient)' :
+                    difficulty === 'roseGold' ? 'url(#roseGoldGradient)' :
                     difficulty === 'platinum' ? 'url(#platinumGradient)' :
                     isGem ? `url(#gemGradient-${difficulty})` :
                     isDiamond ? 'url(#diamondGradient)' :
@@ -922,6 +954,15 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                     points={hullPath}
                     fill="url(#goldShine)"
                     opacity={0.5}
+                  />
+                </>
+              )}
+              {difficulty === 'roseGold' && (
+                <>
+                  <polygon
+                    points={hullPath}
+                    fill="url(#roseGoldFlash)"
+                    opacity={0.6}
                   />
                 </>
               )}

@@ -6,6 +6,7 @@ export type DifficultyLevelString =
   | 'copper' 
   | 'silver' 
   | 'gold' 
+  | 'roseGold'
   | 'platinum' 
   | 'sapphire' 
   | 'emerald' 

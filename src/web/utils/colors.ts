@@ -75,6 +75,11 @@ export const DIFFICULTY_COLORS = {
     border: '#b8860b', 
     number: '#8b4513',
   },
+  roseGold: {
+    background: 'linear-gradient(135deg, #e8b4b8, #f4c2c2, #ffb6c1, #ffc0cb, #ffd1dc)', 
+    border: '#c08081', 
+    number: '#8b4a4a',
+  },
   platinum: { 
     background: 'linear-gradient(135deg, #e5e4e2, #f5f5f5, #ffffff)', 
     border: '#c0c0c0', 
