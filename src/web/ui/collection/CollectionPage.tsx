@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MainMenuReturnButton } from '../components';
+import { MainMenuReturnButton, CharmCard, ConsumableCard, BlessingCard } from '../components';
+import { DifficultyDiceDisplay } from '../components/DifficultyDiceDisplay';
 import { MATERIALS } from '../../../game/data/materials';
 import { CHARMS } from '../../../game/data/charms';
-import { CONSUMABLES, WHIMS, WISHES } from '../../../game/data/consumables';
-import { getConsumableColor, getItemTypeColor } from '../../utils/colors';
-import { ALL_BLESSINGS, getBlessingName, getBlessingDescription } from '../../../game/data/blessings';
+import { CONSUMABLES } from '../../../game/data/consumables';
+import { ALL_BLESSINGS } from '../../../game/data/blessings';
 import { STATIC_DICE_SETS } from '../../../game/data/diceSets';
 import { PIP_EFFECTS } from '../../../game/data/pipEffects';
 import { DIFFICULTY_CONFIGS } from '../../../game/logic/difficulty';
 import { DiceFace } from '../game/board/dice/DiceFace';
-import { PipEffectIcon } from './PipEffectIcon';
 
 // Simple hover tooltip component
 const HoverTooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => {
@@ -49,8 +47,6 @@ const HoverTooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ t
 };
 
 export const CollectionPage: React.FC = () => {
-  const navigate = useNavigate();
-
   const containerStyle: React.CSSProperties = {
     fontFamily: 'Arial, sans-serif',
     maxWidth: '1400px',
@@ -80,17 +76,6 @@ export const CollectionPage: React.FC = () => {
     marginBottom: '8px',
     color: '#2c3e50',
     textAlign: 'center'
-  };
-
-  const backButtonStyle: React.CSSProperties = {
-    marginBottom: '20px',
-    padding: '8px 16px',
-    backgroundColor: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px'
   };
 
   // Grid layouts
@@ -130,69 +115,52 @@ export const CollectionPage: React.FC = () => {
       <MainMenuReturnButton />
       <h1 style={titleStyle}>Collection</h1>
 
-      {/* Materials */}
+      {/* Charms */}
       <div style={sectionStyle}>
-        <h2 style={headerStyle}>Materials ({MATERIALS.length})</h2>
-        <div style={grid3ColStyle}>
-          {MATERIALS.map((material) => (
-            <div key={material.id} style={{
-              padding: '20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              border: '2px solid #dee2e6',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '15px'
-            }}>
-              <DiceFace value={3} size={80} material={material.id} />
-              <div>
-                <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '8px' }}>
-                  {material.name}
-                </div>
-                <div style={{ fontSize: '14px', color: '#6c757d' }}>
-                  {material.description}
-                </div>
-              </div>
-            </div>
+        <h2 style={headerStyle}>Charms ({CHARMS.length})</h2>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+          gap: '15px',
+          justifyContent: 'center'
+        }}>
+          {CHARMS.map((charm) => (
+            <CharmCard
+              key={charm.id}
+              charm={{ ...charm, active: false }}
+            />
           ))}
         </div>
       </div>
 
-      {/* Dice Sets */}
+      {/* Materials */}
       <div style={sectionStyle}>
-        <h2 style={headerStyle}>Dice Sets ({STATIC_DICE_SETS.length})</h2>
-        <div style={grid2ColStyle}>
-          {STATIC_DICE_SETS.map((set) => (
-            <div key={set.name} style={{
-              padding: '20px',
+        <h2 style={headerStyle}>Materials ({MATERIALS.length})</h2>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '10px'
+        }}>
+          {MATERIALS.map((material) => (
+            <div key={material.id} style={{
+              padding: '10px',
               backgroundColor: 'white',
-              borderRadius: '8px',
-              border: '2px solid #dee2e6'
+              borderRadius: '6px',
+              border: '1px solid #dee2e6',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              <div style={{ marginBottom: '15px' }}>
-                <h3 style={{ margin: 0, fontSize: '18px', color: '#2c3e50', marginBottom: '8px' }}>{set.name}</h3>
-                <div style={{ fontSize: '13px', color: '#6c757d' }}>
-                  {set.dice.length} dice | ${set.startingMoney} | 
-                  {set.charmSlots} charm slots | {set.consumableSlots} consumable slots
+              <DiceFace value={3} size={50} material={material.id} />
+              <div>
+                <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>
+                  {material.name}
                 </div>
-              </div>
-              <div style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: '8px',
-                alignItems: 'center',
-                justifyContent: 'flex-start'
-              }}>
-                {set.dice.map((die, idx) => (
-                  <DiceFace 
-                    key={`${set.name}-${die.id}-${idx}`}
-                    value={3} 
-                    size={45} 
-                    material={die.material} 
-                  />
-                ))}
+                <div style={{ fontSize: '11px', color: '#6c757d' }}>
+                  {material.description}
+                </div>
               </div>
             </div>
           ))}
@@ -202,86 +170,17 @@ export const CollectionPage: React.FC = () => {
       {/* Consumables */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Consumables ({CONSUMABLES.length})</h2>
-        <div style={grid8ColStyle}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+          gap: '15px',
+          justifyContent: 'center'
+        }}>
           {CONSUMABLES.map((consumable) => (
-            <HoverTooltip key={consumable.id} text={consumable.description}>
-              <div style={{
-                padding: '12px',
-                backgroundColor: getConsumableColor(consumable.id, WHIMS, WISHES),
-                borderRadius: '6px',
-                border: '2px solid #dee2e6',
-                textAlign: 'center',
-                cursor: 'help',
-                transition: 'all 0.2s',
-                minHeight: '100px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#007bff';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#dee2e6';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}>
-                <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>
-                  {consumable.name}
-                </div>
-              </div>
-            </HoverTooltip>
-          ))}
-        </div>
-      </div>
-
-      {/* Charms */}
-      <div style={sectionStyle}>
-        <h2 style={headerStyle}>Charms ({CHARMS.length})</h2>
-        <div style={grid8ColStyle}>
-          {CHARMS.map((charm) => (
-            <HoverTooltip key={charm.id} text={charm.description}>
-              <div style={{
-                padding: '12px',
-                backgroundColor: getItemTypeColor('charm'),
-                borderRadius: '6px',
-                border: '2px solid #dee2e6',
-                textAlign: 'center',
-                cursor: 'help',
-                transition: 'all 0.2s',
-                minHeight: '100px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#007bff';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#dee2e6';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}>
-                <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>
-                  {charm.name}
-                </div>
-                {charm.rarity && (
-                  <span style={{ 
-                    padding: '2px 6px', 
-                    backgroundColor: charm.rarity === 'legendary' ? '#ff6b35' : 
-                                     charm.rarity === 'rare' ? '#9b59b6' :
-                                     charm.rarity === 'uncommon' ? '#3498db' : '#95a5a6',
-                    color: 'white',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    textTransform: 'capitalize',
-                    display: 'inline-block'
-                  }}>
-                    {charm.rarity}
-                  </span>
-                )}
-              </div>
-            </HoverTooltip>
+            <ConsumableCard
+              key={consumable.id}
+              consumable={consumable}
+            />
           ))}
         </div>
       </div>
@@ -289,50 +188,34 @@ export const CollectionPage: React.FC = () => {
       {/* Blessings */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Blessings ({ALL_BLESSINGS.length})</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           {Object.entries(groupedBlessings).map(([type, blessings]) => (
             <div key={type} style={{
-              padding: '15px',
+              padding: '12px',
               backgroundColor: 'white',
-              borderRadius: '8px',
+              borderRadius: '6px',
               border: '1px solid #dee2e6'
             }}>
               <div style={{ 
-                fontSize: '16px', 
+                fontSize: '14px', 
                 fontWeight: 'bold', 
-                marginBottom: '15px',
+                marginBottom: '10px',
                 color: '#2c3e50',
                 textTransform: 'capitalize'
               }}>
                 {type.replace(/([A-Z])/g, ' $1').trim()}
               </div>
-              <div style={grid3ColStyle}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                gap: '10px',
+                justifyContent: 'center'
+              }}>
                 {blessings.map((blessing) => (
-                  <div key={blessing.id} style={{
-                    padding: '15px',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '6px',
-                    border: '2px solid #dee2e6',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
-                      {getBlessingName(blessing)}
-                    </div>
-                    <div style={{ 
-                      marginBottom: '8px',
-                      padding: '4px 8px', 
-                      backgroundColor: '#27ae60',
-                      color: 'white',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      display: 'inline-block'
-                    }}>
-                      Tier {blessing.tier}
-                    </div>
-                    <div style={{ fontSize: '13px', color: '#6c757d' }}>
-                      {getBlessingDescription(blessing)}
-                    </div>
-                  </div>
+                  <BlessingCard
+                    key={blessing.id}
+                    blessing={blessing}
+                  />
                 ))}
               </div>
             </div>
@@ -393,26 +276,42 @@ export const CollectionPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Levels & Worlds */}
+      {/* Dice Sets */}
       <div style={sectionStyle}>
-        <h2 style={headerStyle}>Levels & Worlds</h2>
-        <div style={{
-          padding: '20px',
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          border: '2px solid #dee2e6',
-          textAlign: 'center',
-          color: '#6c757d'
-        }}>
-          <div style={{ fontSize: '18px', marginBottom: '10px' }}>
-            Level System
-          </div>
-          <div style={{ fontSize: '14px', marginBottom: '20px' }}>
-            Every 5 levels is a World. Levels 3, 8, 13... are Minibosses. Levels 5, 10, 15... are Main Bosses.
-          </div>
-          <div style={{ fontSize: '14px', fontStyle: 'italic' }}>
-            More details coming soon...
-          </div>
+        <h2 style={headerStyle}>Dice Sets ({STATIC_DICE_SETS.length})</h2>
+        <div style={grid2ColStyle}>
+          {STATIC_DICE_SETS.map((set) => (
+            <div key={set.name} style={{
+              padding: '20px',
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              border: '2px solid #dee2e6'
+            }}>
+              <div style={{ marginBottom: '15px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', color: '#2c3e50', marginBottom: '8px' }}>{set.name}</h3>
+                <div style={{ fontSize: '13px', color: '#6c757d' }}>
+                  {set.dice.length} dice | ${set.startingMoney} | 
+                  {set.charmSlots} charm slots | {set.consumableSlots} consumable slots
+                </div>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: '8px',
+                alignItems: 'center',
+                justifyContent: 'flex-start'
+              }}>
+                {set.dice.map((die, idx) => (
+                  <DiceFace 
+                    key={`${set.name}-${die.id}-${idx}`}
+                    value={3} 
+                    size={45} 
+                    material={die.material} 
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -429,7 +328,11 @@ export const CollectionPage: React.FC = () => {
                 border: '2px solid #dee2e6',
                 textAlign: 'center',
                 cursor: 'help',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '12px'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = '#007bff';
@@ -439,7 +342,8 @@ export const CollectionPage: React.FC = () => {
                 e.currentTarget.style.borderColor = '#dee2e6';
                 e.currentTarget.style.transform = 'translateY(0)';
               }}>
-                <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '8px' }}>
+                <DifficultyDiceDisplay difficulty={difficulty.id as any} size={60} />
+                <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '4px' }}>
                   {difficulty.name}
                 </div>
                 <div style={{ fontSize: '12px', color: '#666' }}>
