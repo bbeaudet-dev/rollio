@@ -10,7 +10,6 @@ import {
   endRound,
   removeDiceAndCheckHotDice,
   addPointsToRound,
-  incrementCrystalsScored,
   updateRollHistory,
   addRollToHistory,
   processHotDice,
@@ -24,10 +23,11 @@ import {
   applyFlopPenalty,
   checkMaxFlopsPerLevel,
 } from '../logic/flops';
-import { isGameOver, isFlop, isHotDice, isLevelCompleted, canBankPoints as canBankPointsLogic } from '../logic/gameLogic';
-import { endGame, advanceToNextLevel } from '../logic/gameActions';
+import { isGameOver, isFlop, isHotDice, isLevelCompleted, canBankPoints as canBankPointsLogic, canRoll as canRollLogic, canSelectDice as canSelectDiceLogic } from '../logic/gameLogic';
+import { endGame, advanceToNextLevel, selectNextWorld } from '../logic/gameActions';
+import { getAvailableWorldChoices, getWorldIdForNode } from '../logic/mapGeneration';
 import { tallyLevel as tallyLevelFunction, calculateLevelRewards, LevelRewards } from '../logic/tallying';
-import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing } from '../logic/shop';
+import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, sellCharm as sellCharmLogic, sellConsumable as sellConsumableLogic } from '../logic/shop';
 import { validateRerollSelection } from '../logic/rerollLogic';
 import { applyConsumableEffect } from '../logic/consumableEffects';
 import { calculateScoringBreakdown } from '../logic/scoring';
@@ -119,11 +119,17 @@ export class GameAPI {
    * Initialize a level (creates level state and first round)
    */
   async initializeLevel(gameState: GameState, levelNumber: number): Promise<{ gameState: GameState }> {
+    if (!gameState.currentWorld) {
+      throw new Error('Cannot initialize level without currentWorld');
+    }
+    
     const newGameState = { ...gameState };
+    newGameState.currentWorld = { ...gameState.currentWorld };
     
     // Use pure function to create level state (includes first round)
-    newGameState.currentLevel = createInitialLevelState(levelNumber, newGameState, this.charmManager);
-    const roundState = newGameState.currentLevel.currentRound;
+    const levelState = createInitialLevelState(levelNumber, newGameState, this.charmManager);
+    newGameState.currentWorld.currentLevel = levelState;
+    const roundState = levelState.currentRound;
     
     if (!roundState) {
       throw new Error('Failed to create round state for level');
@@ -152,7 +158,7 @@ export class GameAPI {
     gameState: GameState,
     selectedIndices: number[]
   ): { isValid: boolean; points: number; combinations: string[]; breakdown?: any } {
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) {
       return { isValid: false, points: 0, combinations: [] };
     }
@@ -167,7 +173,7 @@ export class GameAPI {
     selectedIndices: number[]
 
   ): Promise<ScoreDiceResult> {
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) {
       throw new Error('No active round to score dice');
     }
@@ -217,22 +223,12 @@ export class GameAPI {
     // Add points to round
     currentGameState = addPointsToRound(currentGameState, finalPoints);
     
-    // Increment crystals scored
-    const scoredCrystals = selectedIndices.filter((idx: number) => {
-      const die = roundState.diceHand[idx];
-      return die && die.material === 'crystal';
-    }).length;
-    
-    if (scoredCrystals > 0) {
-      currentGameState = incrementCrystalsScored(currentGameState, scoredCrystals);
-    }
-    
     if (wasHotDice) {
       currentGameState = processHotDice(currentGameState);
     }
     
     // Update roll history
-    const currentRoundState = currentGameState.currentLevel.currentRound!;
+    const currentRoundState = currentGameState.currentWorld!.currentLevel.currentRound!;
     const lastRollEntry = currentRoundState.rollHistory.length > 0 
       ? currentRoundState.rollHistory[currentRoundState.rollHistory.length - 1]
       : null;
@@ -276,7 +272,7 @@ export class GameAPI {
    * Bank points from current round
    */
   async bankPoints(gameState: GameState): Promise<BankPointsResult> {
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) {
       throw new Error('No active round to bank points');
     }
@@ -292,7 +288,7 @@ export class GameAPI {
     // Check if game should end (no banks remaining) - only if level not completed
     // If level is completed, player proceeds to tally/shop, not game over
     if (!result.levelCompleted && isGameOver(result.newGameState)) {
-      const finalGameState = endGame(result.newGameState, 'lost');
+      const finalGameState = endGame(result.newGameState, false);
       this.emit('gameEnded', {
         reason: 'lost',
         gameState: finalGameState
@@ -311,7 +307,7 @@ export class GameAPI {
     });
     this.emit('roundEnded', {
       roundNumber: result.newRoundState.roundNumber,
-      reason: 'banked',
+      reason: 'bank',
       gameState: result.newGameState
     });
     
@@ -319,7 +315,7 @@ export class GameAPI {
       // Level is complete 
       // Don't advance level yet - happens after shop
       this.emit('levelCompleted', {
-        levelNumber: result.newGameState.currentLevel.levelNumber,
+        levelNumber: result.newGameState.currentWorld!.currentLevel.levelNumber,
         gameState: result.newGameState
       });
     }
@@ -340,7 +336,7 @@ export class GameAPI {
    * This is the "cashing out" phase - applies rewards and prepares for shop
    */
   async tallyLevel(gameState: GameState): Promise<{ gameState: GameState; rewards: LevelRewards }> {
-    const completedLevelNumber = gameState.currentLevel.levelNumber;
+    const completedLevelNumber = gameState.currentWorld!.currentLevel.levelNumber;
     const result = tallyLevelFunction(gameState, completedLevelNumber, this.charmManager);
     
     this.emit('levelTallied', {
@@ -360,7 +356,7 @@ export class GameAPI {
    * Handle flop (no valid scoring combinations)
    */
   async handleFlop(gameState: GameState): Promise<FlopResult> {
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) {
       throw new Error('No active round to handle flop');
     }
@@ -370,11 +366,11 @@ export class GameAPI {
     let newGameState = incrementConsecutiveFlops(gameState);
     newGameState = resetConsecutiveBanks(newGameState);
     newGameState = setForfeitedPoints(newGameState, forfeitedPoints);
-    newGameState = endRound(newGameState, 'flopped');
+    newGameState = endRound(newGameState, 'flop');
     newGameState = applyFlopPenalty(newGameState);
     newGameState = checkMaxFlopsPerLevel(newGameState);
     
-    const consecutiveFlops = newGameState.currentLevel.consecutiveFlops;
+    const consecutiveFlops = newGameState.consecutiveFlops;
     
     this.emit('flopOccurred', {
       forfeitedPoints,
@@ -382,13 +378,13 @@ export class GameAPI {
       gameState: newGameState
     });
     this.emit('roundEnded', {
-      roundNumber: newGameState.currentLevel.currentRound?.roundNumber || 0,
-      reason: 'flopped',
+      roundNumber: newGameState.currentWorld!.currentLevel.currentRound?.roundNumber || 0,
+      reason: 'flop',
       gameState: newGameState
     });
     
     // Game over check for consecutive flops is handled in updateGameStateAfterRound
-    if (!newGameState.isActive && newGameState.endReason === 'lost') {
+    if (!newGameState.isActive && newGameState.won === false) {
       this.emit('gameEnded', {
         reason: 'lost',
         gameState: newGameState
@@ -411,7 +407,7 @@ export class GameAPI {
     const result = startNewRound(gameState, this.charmManager);
     
     this.emit('roundStarted', {
-      roundNumber: result.newGameState.currentLevel.currentRound?.roundNumber || 1,
+      roundNumber: result.newGameState.currentWorld!.currentLevel.currentRound?.roundNumber || 1,
       gameState: result.newGameState
     });
     this.emit('stateChanged', { gameState: result.newGameState });
@@ -426,7 +422,7 @@ export class GameAPI {
     gameState: GameState,
     diceToReroll: number[]
   ): Promise<RerollDiceResult> {
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) {
       throw new Error('No active round to reroll dice');
     }
@@ -469,7 +465,7 @@ export class GameAPI {
     newGameState = decrementRerolls(newGameState);
     
     // Check for flop
-    const newRoundState = newGameState.currentLevel.currentRound;
+    const newRoundState = newGameState.currentWorld!.currentLevel.currentRound;
     if (!newRoundState) {
       throw new Error('Round state lost after reroll');
     }
@@ -495,7 +491,7 @@ export class GameAPI {
    * processRoll already handles empty diceHand (populates from diceSet)
    */
   async rollDice(gameState: GameState): Promise<RollDiceResult> {
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) {
       throw new Error('No active round to roll dice');
     }
@@ -504,8 +500,19 @@ export class GameAPI {
     
     // Update game state with new round state
     let newGameState = { ...gameState };
-    newGameState.currentLevel = { ...gameState.currentLevel };
-    newGameState.currentLevel.currentRound = newRoundState;
+    if (!newGameState.currentWorld) {
+      throw new Error('Cannot roll dice without currentWorld');
+    }
+    if (!gameState.currentWorld) {
+      throw new Error('Cannot roll dice without currentWorld');
+    }
+    newGameState.currentWorld = {
+      ...gameState.currentWorld,
+      currentLevel: {
+        ...gameState.currentWorld.currentLevel,
+        currentRound: newRoundState
+      }
+    };
     
     // Check for flop (this already checks for flop shield availability)
     const isFlopResult = isFlop(newRoundState.diceHand, newGameState);
@@ -513,7 +520,7 @@ export class GameAPI {
     // Add roll to history
     newGameState = addRollToHistory(newGameState, newRoundState.diceHand, isFlopResult, false);
     
-    const roundStateAfterRoll = newGameState.currentLevel.currentRound!;
+    const roundStateAfterRoll = newGameState.currentWorld!.currentLevel.currentRound!;
     const rollNumber = roundStateAfterRoll.rollHistory[roundStateAfterRoll.rollHistory.length - 1]?.rollNumber || 1;
     
     // Check if flop shield is available (for UI purposes)
@@ -588,20 +595,9 @@ export class GameAPI {
    * Check if a roll is a flop (no valid scoring combinations)
    */
   checkFlop(gameState: GameState): boolean {
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) return false;
     return isFlop(roundState.diceHand, gameState);
-  }
-
-  /**
-   * Check if player can reroll
-   */
-  canReroll(gameState: GameState): boolean {
-    const roundState = gameState.currentLevel.currentRound;
-    if (!roundState) return false;
-    return roundState.isActive 
-      && roundState.diceHand.length > 0
-      && (gameState.currentLevel.rerollsRemaining || 0) > 0;
   }
 
   /**
@@ -609,7 +605,7 @@ export class GameAPI {
    * Handles hot dice, empty dice hand, and ended round cases
    */
   getDiceToRollCount(gameState: GameState): number {
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) {
       // No round state - use full dice set
       return gameState.diceSet.length;
@@ -638,16 +634,16 @@ export class GameAPI {
     previousTotal: number;
     newTotal: number;
   } | null {
-    if (!justBanked || !gameState?.currentLevel) {
+    if (!justBanked || !gameState.currentWorld) {
       return null;
     }
     
-    const currentPointsBanked = gameState.currentLevel.pointsBanked || 0;
+    const currentPointsBanked = gameState.currentWorld.currentLevel.pointsBanked || 0;
     
     // When we bank, the previous round is stored in currentLevel.currentRound with isActive=false
     // The roundPoints from that round is what was just banked
-    const currentRound = gameState.currentLevel.currentRound;
-    if (currentRound && !currentRound.isActive && currentRound.banked) {
+    const currentRound = gameState.currentWorld.currentLevel.currentRound;
+    if (currentRound && !currentRound.isActive && currentRound.endReason === 'bank') {
       // This is the round that was just banked
       const pointsJustBanked = currentRound.roundPoints || 0;
       const previousTotal = currentPointsBanked - pointsJustBanked;
@@ -667,13 +663,26 @@ export class GameAPI {
    * Check if player can roll
    */
   canRoll(gameState: GameState): boolean {
-    if (!gameState.isActive) return false;
-    if ((gameState.currentLevel.banksRemaining || 0) <= 0) return false;
-    const roundState = gameState.currentLevel.currentRound;
-    if (!roundState) return true; // Can start new round
-    if (!roundState.isActive) return true; // Can start new round
-    // Can roll if no dice rolled yet in this round
-    return roundState.rollHistory.length === 0;
+    return canRollLogic(gameState);
+  }
+
+  /**
+   * Check if player can select dice
+   */
+  canSelectDice(gameState: GameState): boolean {
+    return canSelectDiceLogic(gameState);
+  }
+
+  /**
+   * Check if player can reroll (before scoring - after rolling dice)
+   */
+  canReroll(gameState: GameState): boolean {
+    if (!gameState.currentWorld) return false;
+    const roundState = gameState.currentWorld.currentLevel.currentRound;
+    if (!roundState) return false;
+    return roundState.isActive
+      && roundState.diceHand.length > 0
+      && (gameState.currentWorld.currentLevel.rerollsRemaining || 0) > 0;
   }
 
   /**
@@ -708,7 +717,7 @@ export class GameAPI {
    * Validate reroll selection
    */
   validateReroll(gameState: GameState, selectedIndices: number[]): { valid: boolean; error?: string } {
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) {
       return { valid: false, error: 'No active round' };
     }
@@ -719,24 +728,32 @@ export class GameAPI {
    * Calculate level rewards (without applying them)
    */
   calculateLevelRewards(levelNumber: number, gameState: GameState): LevelRewards {
-    return calculateLevelRewards(levelNumber, gameState.currentLevel, gameState, this.charmManager);
+    if (!gameState.currentWorld) {
+      throw new Error('Cannot calculate level rewards without currentWorld');
+    }
+    return calculateLevelRewards(levelNumber, gameState.currentWorld.currentLevel, gameState, this.charmManager);
   }
 
   /**
    * Use a consumable
    */
   async useConsumable(gameState: GameState, index: number): Promise<{ success: boolean; gameState: GameState; roundState?: RoundState; requiresInput?: any; shouldRemove: boolean }> {
-    const roundState = gameState.currentLevel.currentRound || null;
+    const roundState = gameState.currentWorld!.currentLevel.currentRound || null;
     
     // Create a proper deep copy to avoid mutation issues
     const newGameState = {
       ...gameState,
       consumables: [...gameState.consumables],
-      currentLevel: {
-        ...gameState.currentLevel,
-        currentRound: roundState ? { ...roundState } : undefined
-      }
     };
+    if (gameState.currentWorld) {
+      newGameState.currentWorld = {
+        ...gameState.currentWorld,
+        currentLevel: {
+          ...gameState.currentWorld.currentLevel,
+          currentRound: roundState ? { ...roundState } : undefined
+        }
+      };
+    }
     const newRoundState = roundState ? { ...roundState } : undefined;
     
     const result = applyConsumableEffect(index, newGameState, newRoundState || null, this.charmManager);
@@ -750,8 +767,14 @@ export class GameAPI {
     }
     
     // Update round state if it exists
-    if (newRoundState && result.roundState) {
-      finalGameState.currentLevel.currentRound = result.roundState;
+    if (newRoundState && result.roundState && finalGameState.currentWorld) {
+      finalGameState.currentWorld = {
+        ...finalGameState.currentWorld,
+        currentLevel: {
+          ...finalGameState.currentWorld.currentLevel,
+          currentRound: result.roundState
+        }
+      };
     }
     
     this.emit('stateChanged', { gameState: finalGameState });
@@ -777,10 +800,101 @@ export class GameAPI {
   }
 
   /**
+   * Get available world choices from current map position
+   */
+  getAvailableWorlds(gameState: GameState): { nodeId: number; worldId: string; worldNumber: number }[] {
+    if (!gameState.gameMap) {
+      return [];
+    }
+
+    // If no world selected yet (game start), show world 1 options (column 1)
+    // Otherwise, show choices from current position
+    let availableNodeIds: number[];
+    if (!gameState.currentWorld) {
+      // Game start - show world 1 options
+      const world1Nodes = gameState.gameMap.nodes.filter(n => n.column === 1 && n.worldNumber === 1);
+      availableNodeIds = world1Nodes.map(n => n.nodeId);
+    } else {
+      availableNodeIds = getAvailableWorldChoices(gameState.gameMap);
+    }
+    
+    return availableNodeIds.map(nodeId => {
+      const worldId = getWorldIdForNode(gameState.gameMap!, nodeId);
+      const node = gameState.gameMap!.nodes.find(n => n.nodeId === nodeId);
+      return {
+        nodeId,
+        worldId: worldId || '',
+        worldNumber: node?.worldNumber || 0,
+      };
+    });
+  }
+
+  /**
+   * Select a world and advance to first level of that world
+   */
+  async selectWorld(gameState: GameState, selectedWorldId: string): Promise<{ gameState: GameState }> {
+    if (!gameState.gameMap) {
+      throw new Error('Game map not found - cannot select world');
+    }
+
+    // Validate that the world is available
+    const availableWorlds = this.getAvailableWorlds(gameState);
+    const isAvailable = availableWorlds.some(w => w.worldId === selectedWorldId);
+    
+    if (!isAvailable) {
+      throw new Error(`World ${selectedWorldId} is not available from current position`);
+    }
+
+    const newGameState = selectNextWorld(gameState, selectedWorldId, this.charmManager);
+    
+    this.emit('worldSelected', {
+      worldId: selectedWorldId,
+      gameState: newGameState
+    });
+    this.emit('stateChanged', { gameState: newGameState });
+    this.emit('levelStarted', {
+      levelNumber: newGameState.currentWorld!.currentLevel.levelNumber,
+      gameState: newGameState,
+    });
+    
+    return { gameState: newGameState };
+  }
+
+  /**
    * Get charm manager (for charm-specific operations)
    */
   getCharmManager(): CharmManager {
     return this.charmManager;
+  }
+
+  /**
+   * Sell a charm
+   */
+  async sellCharm(gameState: GameState, charmIndex: number): Promise<{ success: boolean; message: string; gameState: GameState }> {
+    const result = sellCharmLogic(gameState, charmIndex);
+    if (result.success && result.gameState) {
+      this.emit('stateChanged', { gameState: result.gameState });
+    }
+    return {
+      success: result.success,
+      message: result.message,
+      gameState: result.gameState || gameState
+    };
+  }
+
+  /**
+   * Sell a consumable
+   */
+  async sellConsumable(gameState: GameState, consumableIndex: number): Promise<{ success: boolean; message: string; gameState: GameState }> {
+    const result = sellConsumableLogic(gameState, consumableIndex);
+    if (result.success && result.gameState) {
+      this.emit('stateChanged', { gameState: result.gameState });
+    }
+    return {
+      success: result.success,
+      message: result.message,
+      gameState: result.gameState || gameState
+    };
   }
 }
 
