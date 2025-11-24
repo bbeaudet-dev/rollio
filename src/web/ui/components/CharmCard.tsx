@@ -103,7 +103,10 @@ interface CharmCardProps {
   canAfford?: boolean;
   showBuyButton?: boolean;
   onBuy?: () => void;
+  showSellButton?: boolean;
+  onSell?: () => void;
   highlighted?: boolean;
+  isInShop?: boolean; // true if in shop, false if in inventory
 }
 
 export const CharmCard: React.FC<CharmCardProps> = ({
@@ -116,7 +119,10 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   canAfford = true,
   showBuyButton = false,
   onBuy,
-  highlighted = false
+  showSellButton = false,
+  onSell,
+  highlighted = false,
+  isInShop = false
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -159,7 +165,7 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   const handleClick = (e: React.MouseEvent) => {
     // On mobile/touch devices, toggle tooltip on click
     // On desktop, only show tooltip on hover
-    if (!onClick && !showBuyButton) {
+    if (!onClick && !showBuyButton && !showSellButton) {
       e.preventDefault();
       setIsClicked(!isClicked);
     } else if (onClick) {
@@ -186,7 +192,7 @@ export const CharmCard: React.FC<CharmCardProps> = ({
             ? `3px solid #ffc107` 
             : `3px solid ${borderColor}`,
           borderRadius: '8px',
-          cursor: onClick || showBuyButton ? 'pointer' : 'default',
+          cursor: onClick || showBuyButton || showSellButton ? 'pointer' : 'default',
           opacity: canAfford ? 1 : 0.6,
           position: 'relative',
           overflow: 'hidden',
@@ -245,19 +251,21 @@ export const CharmCard: React.FC<CharmCardProps> = ({
           whiteSpace: 'normal',
           wordWrap: 'break-word'
         }}>
-          <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '6px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '8px' }}>
             {charm.name}
+          </div>
+          <div style={{ fontSize: '12px', lineHeight: '1.4', color: '#ddd', marginBottom: '8px' }}>
+            {charm.description}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
             <RarityDot rarity={rarity} />
             <span style={{ textTransform: 'capitalize', color: '#ccc' }}>{rarity}</span>
           </div>
-          <div style={{ marginBottom: '6px', fontSize: '11px', color: '#aaa' }}>
-            Sell Value: ${sellValue}
-          </div>
-          <div style={{ fontSize: '11px', lineHeight: '1.4', color: '#ddd' }}>
-            {charm.description}
-          </div>
+          {showPrice && (
+            <div style={{ marginBottom: '6px', fontSize: '11px', color: '#aaa' }}>
+              {isInShop ? `Buy: $${price || 0}` : `Sell: $${sellValue}`}
+            </div>
+          )}
         </div>
       )}
       

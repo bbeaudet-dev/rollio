@@ -4,17 +4,25 @@ import { ShopState } from '../../../../game/types';
 import { calculateShopDiscount } from '../../../../game/logic/shop';
 import { ShopItemList } from './ShopItemList';
 import { useShopActions } from '../../../contexts/ShopActionsContext';
+import { NextLevelPreview } from './NextLevelPreview';
+import { DifficultyLevel } from '../../../../game/logic/difficulty';
 
 interface ShopDisplayProps {
   shopState: ShopState;
   playerMoney: number;
   blessings?: any[];
+  currentLevelNumber?: number;
+  difficulty?: DifficultyLevel;
+  gameState?: any; // For accessing pre-generated level configs
 }
 
 export const ShopDisplay: React.FC<ShopDisplayProps> = ({ 
   shopState,
   playerMoney,
-  blessings = []
+  blessings = [],
+  currentLevelNumber,
+  difficulty,
+  gameState
 }) => {
   const { purchaseCharm, purchaseConsumable, purchaseBlessing, exitShop, refreshShop } = useShopActions();
   const discount = calculateShopDiscount({ money: playerMoney, blessings } as any);
@@ -37,10 +45,9 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
           rgba(101, 67, 33, 0.2) 50px
         )
       `,
-      height: '500px',
       minHeight: '500px',
       position: 'relative',
-      overflow: 'hidden',
+      overflow: 'visible', // No scrollbar - everything should be visible
       boxSizing: 'border-box'
     }}>
       {/* Shop counter/shelves background */}
@@ -68,14 +75,13 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
         maxWidth: '1200px',
         margin: '0 auto',
         backgroundColor: 'rgba(249, 249, 249, 0.85)',
-        padding: '12px 20px 100px 20px', // Extra bottom padding for tooltips
+        padding: '20px 30px 20px 30px', 
         borderRadius: '8px',
         border: '2px solid #4CAF50',
         boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-        height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'auto',
+        overflow: 'visible', // No scrollbar - everything should be visible
         boxSizing: 'border-box'
       }}>
         {/* Money and Refresh at top */}
@@ -106,8 +112,8 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
           </div>
         )}
       
-        {/* Scrollable content area */}
-        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+        {/* Content area */}
+        <div style={{ flex: 1, overflow: 'visible', minHeight: 0 }}>
           {/* Charms Section - Full width, 2 columns */}
           <div style={{ marginBottom: '12px' }}>
             <ShopItemList
@@ -143,6 +149,19 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
               onPurchase={purchaseBlessing}
             />
           </div>
+          
+          {/* Next Level Preview - Below shop items, aligned to the right */}
+          {currentLevelNumber !== undefined && difficulty && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+              <div style={{ maxWidth: '400px', width: '100%' }}>
+                <NextLevelPreview 
+                  currentLevelNumber={currentLevelNumber}
+                  difficulty={difficulty}
+                  gameState={gameState}
+                />
+              </div>
+            </div>
+          )}
         </div>
       
         {/* Continue button at bottom */}

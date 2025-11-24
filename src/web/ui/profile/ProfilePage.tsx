@@ -70,6 +70,7 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
+    <>
     <div style={{
       fontFamily: 'Arial, sans-serif',
       maxWidth: '800px',
@@ -129,6 +130,37 @@ export const ProfilePage: React.FC = () => {
         />
       )}
     </div>
+    
+    {/* Self-plug and Report bugs - Outside the profile border */}
+    <div style={{
+      fontFamily: 'Arial, sans-serif',
+      maxWidth: '800px',
+      margin: '20px auto',
+      padding: '0 30px',
+      textAlign: 'center',
+      fontSize: '12px',
+      color: '#6c757d'
+    }}>
+      <div style={{ marginBottom: '8px' }}>
+        a game by <a 
+          href="https://benbeaudet.com" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          style={{ color: '#007bff', textDecoration: 'none' }}
+        >ben</a>
+      </div>
+      <div>
+        <a 
+          href="https://github.com/bbeaudet-dev/rollio/issues" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          style={{ color: '#007bff', textDecoration: 'none' }}
+        >
+          Report bugs
+        </a>
+      </div>
+    </div>
+    </>
   );
 };
 

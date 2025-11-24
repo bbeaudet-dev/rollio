@@ -118,6 +118,9 @@ export const CollectionPage: React.FC = () => {
       {/* Charms */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Charms ({CHARMS.length})</h2>
+        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
+          CHARMS are items gained through the Shop (and a few other means) that provide scoring bonuses and other abilities as long as they are held in the player's Inventory. 
+        </p>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
@@ -133,43 +136,12 @@ export const CollectionPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Materials */}
-      <div style={sectionStyle}>
-        <h2 style={headerStyle}>Materials ({MATERIALS.length})</h2>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: '10px'
-        }}>
-          {MATERIALS.map((material) => (
-            <div key={material.id} style={{
-              padding: '10px',
-              backgroundColor: 'white',
-              borderRadius: '6px',
-              border: '1px solid #dee2e6',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <DiceFace value={3} size={50} material={material.id} />
-              <div>
-                <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>
-                  {material.name}
-                </div>
-                <div style={{ fontSize: '11px', color: '#6c757d' }}>
-                  {material.description}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Consumables */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Consumables ({CONSUMABLES.length})</h2>
+        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
+          The two types of consumable items, WHIMS and WISHES, are one-time-use items providing the player with money, dice set manipulation, and other special actions.
+        </p>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
@@ -188,6 +160,9 @@ export const CollectionPage: React.FC = () => {
       {/* Blessings */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Blessings ({ALL_BLESSINGS.length})</h2>
+        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
+          BLESSINGS are permanent upgrades that each have 3 tiers of effects (purchased separately)and cannot be sold. 
+        </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           {Object.entries(groupedBlessings).map(([type, blessings]) => (
             <div key={type} style={{
@@ -223,9 +198,49 @@ export const CollectionPage: React.FC = () => {
         </div>
       </div>
       
+      {/* Materials */}
+      <div style={sectionStyle}>
+        <h2 style={headerStyle}>Materials ({MATERIALS.length})</h2>
+        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
+          Each of the die in your set have one MATERIAL. Plastic, the default material, is the only material without a special effect, many of which are very powerful and essential for getting far in the game.
+        </p>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '10px'
+        }}>
+          {MATERIALS.map((material) => (
+            <div key={material.id} style={{
+              padding: '10px',
+              backgroundColor: 'white',
+              borderRadius: '6px',
+              border: '1px solid #dee2e6',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <DiceFace value={3} size={50} material={material.id} />
+              <div>
+                <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>
+                  {material.name}
+                </div>
+                <div style={{ fontSize: '11px', color: '#6c757d' }}>
+                  {material.description}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Pip Effects */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Pip Effects ({PIP_EFFECTS.length + 1})</h2>
+        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
+          Each side of a die has a number of PIPS (these are how you know you've rolled a 5, or a 1, for example). You can apply special PIP EFFECTS to individual sides of your dice that can be activated when that side is face-up.
+        </p>
         <div style={grid3ColStyle}>
           <div style={{
             padding: '20px',
@@ -279,6 +294,9 @@ export const CollectionPage: React.FC = () => {
       {/* Dice Sets */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Dice Sets ({STATIC_DICE_SETS.length})</h2>
+        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
+          Before starting each run, you'll choose a DICE SET, which each have pros and cons based on play style, strategy, and gameplay variation.
+        </p>
         <div style={grid2ColStyle}>
           {STATIC_DICE_SETS.map((set) => (
             <div key={set.name} style={{
@@ -318,6 +336,8 @@ export const CollectionPage: React.FC = () => {
       {/* Difficulties */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Difficulty Levels ({Object.keys(DIFFICULTY_CONFIGS).length})</h2>
+        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
+          In addition to a selected dice set, each run of Rollio has a DIFFICULTY.         </p>
         <div style={grid2ColStyle}>
           {Object.values(DIFFICULTY_CONFIGS).map((difficulty) => (
             <HoverTooltip key={difficulty.id} text={difficulty.description}>
