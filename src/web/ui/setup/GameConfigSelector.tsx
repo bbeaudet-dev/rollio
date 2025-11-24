@@ -20,7 +20,7 @@ interface GameConfigSelectorProps {
   }) => void;
 }
 
-type GameMode = 'newGame' | 'challenges' | 'bonus';
+type GameMode = 'newGame' | 'challenges' | 'extras';
 
 interface GameConfig {
   diceSetIndex: number;
@@ -29,6 +29,7 @@ interface GameConfig {
   selectedBlessings: number[];
   difficulty: DifficultyLevel;
   selectedPipEffects: Record<number, Record<number, PipEffectType>>; // Map of dieIndex -> { sideValue -> pipEffectType }
+  selectedChallengeId?: string; // For challenges mode
 }
 
 // Dummy challenges for now
@@ -74,7 +75,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
     loadData();
   }, []);
 
-  // Filter dice sets - New Game only shows standard sets, Bonus shows all
+  // Filter dice sets - New Game only shows standard sets, Extras shows all config
   const getAvailableDiceSets = () => {
     if (mode === 'newGame') {
       // Only show Standard sets for New Game
@@ -85,7 +86,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
                diceSetConfig.name === 'Hoarder Set';
       });
     }
-    // Bonus mode shows all dice sets
+    // Extras mode shows all dice sets
     return allDiceSets;
   };
 
@@ -210,11 +211,11 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
         gap: '10px',
         marginBottom: '30px'
       }}>
-        {(['newGame', 'challenges', 'bonus'] as GameMode[]).map((m) => (
+        {(['newGame', 'challenges', 'extras'] as GameMode[]).map((m) => (
           <button
             key={m}
             onClick={() => setMode(m)}
-            style={{
+            style={{  
               padding: '12px 24px',
               fontSize: '16px',
               fontWeight: mode === m ? 'bold' : 'normal',
@@ -239,7 +240,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
               }
             }}
           >
-            {m === 'newGame' ? 'New Game' : m === 'challenges' ? 'Challenges' : 'Bonus'}
+            {m === 'newGame' ? 'New Game' : m === 'challenges' ? 'Challenges' : 'Extras'}
           </button>
         ))}
       </div>
@@ -248,75 +249,162 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
       {mode === 'newGame' && (
         <>
           {/* Main configuration sections - Dice Set and Difficulty only */}
-          <div style={{ 
-            display: 'grid', 
+      <div style={{ 
+        display: 'grid', 
             gridTemplateColumns: '1fr 1fr', 
             gap: '20px',
             marginBottom: '20px'
-          }}>
-            <DiceSetSelector
-              diceSets={availableDiceSets}
-              selectedIndex={config.diceSetIndex}
-              onDiceSetSelect={handleDiceSetSelect}
-            />
+      }}>
+        <DiceSetSelector
+          diceSets={availableDiceSets}
+          selectedIndex={config.diceSetIndex}
+          onDiceSetSelect={handleDiceSetSelect}
+        />
 
-            <DifficultySelector
-              difficulty={config.difficulty}
-              onChange={handleDifficultyChange}
-            />
+        <DifficultySelector
+          difficulty={config.difficulty}
+          onChange={handleDifficultyChange}
+        />
           </div>
         </>
       )}
 
       {mode === 'challenges' && (
         <div style={{
-          padding: '40px',
-          textAlign: 'center',
-          backgroundColor: '#fff',
-          borderRadius: '8px',
-          border: '1px solid #dee2e6'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
         }}>
-          <h2 style={{ marginBottom: '20px', color: '#2c3e50' }}>Challenges</h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '20px',
-            marginTop: '20px',
-            marginBottom: '20px'
+          {/* Challenge Selector - similar to DifficultySelector but for challenges */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: '15px',
+            padding: '15px',
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            border: '2px solid #dee2e6',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
           }}>
-            {DUMMY_CHALLENGES.map((challenge) => (
-              <div
-                key={challenge.id}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: '15px'
+            }}>
+              {/* Previous arrow */}
+              <button
+                onClick={() => {
+                  const currentIndex = DUMMY_CHALLENGES.findIndex(c => c.id === (config.selectedChallengeId || DUMMY_CHALLENGES[0].id));
+                  if (currentIndex > 0) {
+                    setConfig({ ...config, selectedChallengeId: DUMMY_CHALLENGES[currentIndex - 1].id });
+                  }
+                }}
+                disabled={DUMMY_CHALLENGES.findIndex(c => c.id === (config.selectedChallengeId || DUMMY_CHALLENGES[0].id)) === 0}
                 style={{
-                  padding: '20px',
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '8px',
+                  width: '40px',
+                  height: '40px',
                   border: '2px solid #dee2e6',
+                  borderRadius: '8px',
+                  backgroundColor: '#fff',
+                  color: '#2c3e50',
+                  fontSize: '20px',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   transition: 'all 0.2s ease'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#007bff';
-                  e.currentTarget.style.transform = 'scale(1.05)';
+              >
+                ‹
+              </button>
+
+              {/* Challenge Display */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                gap: '8px',
+                minWidth: '200px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: '600', 
+                  color: '#2c3e50',
+                  textAlign: 'center'
+                }}>
+                  {DUMMY_CHALLENGES.find(c => c.id === (config.selectedChallengeId || DUMMY_CHALLENGES[0].id))?.name || DUMMY_CHALLENGES[0].name}
+                </div>
+                <div style={{ 
+                  fontSize: '14px', 
+                  color: '#6c757d',
+                  textAlign: 'center',
+                  padding: '0 10px'
+                }}>
+                  {DUMMY_CHALLENGES.find(c => c.id === (config.selectedChallengeId || DUMMY_CHALLENGES[0].id))?.description || DUMMY_CHALLENGES[0].description}
+                </div>
+              </div>
+
+              {/* Next arrow */}
+              <button
+                onClick={() => {
+                  const currentIndex = DUMMY_CHALLENGES.findIndex(c => c.id === (config.selectedChallengeId || DUMMY_CHALLENGES[0].id));
+                  if (currentIndex < DUMMY_CHALLENGES.length - 1) {
+                    setConfig({ ...config, selectedChallengeId: DUMMY_CHALLENGES[currentIndex + 1].id });
+                  }
                 }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#dee2e6';
-                  e.currentTarget.style.transform = 'scale(1)';
+                disabled={DUMMY_CHALLENGES.findIndex(c => c.id === (config.selectedChallengeId || DUMMY_CHALLENGES[0].id)) === DUMMY_CHALLENGES.length - 1}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  border: '2px solid #dee2e6',
+                  borderRadius: '8px',
+                  backgroundColor: '#fff',
+                  color: '#2c3e50',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
                 }}
               >
-                <h3 style={{ marginBottom: '10px', color: '#2c3e50' }}>{challenge.name}</h3>
-                <p style={{ color: '#6c757d', fontSize: '14px' }}>{challenge.description}</p>
-              </div>
-            ))}
+                ›
+              </button>
+            </div>
+
+            {/* Dot indicators */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '8px',
+              paddingTop: '5px'
+            }}>
+              {DUMMY_CHALLENGES.map((challenge, index) => {
+                const currentIndex = DUMMY_CHALLENGES.findIndex(c => c.id === (config.selectedChallengeId || DUMMY_CHALLENGES[0].id));
+                return (
+                  <div
+                    key={challenge.id}
+                    onClick={() => setConfig({ ...config, selectedChallengeId: challenge.id })}
+                    style={{
+                      width: index === currentIndex ? '12px' : '8px',
+                      height: index === currentIndex ? '12px' : '8px',
+                      borderRadius: '50%',
+                      backgroundColor: index === currentIndex ? '#007bff' : '#dee2e6',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      border: index === currentIndex ? '2px solid #0056b3' : '2px solid transparent'
+                    }}
+                  />
+                );
+              })}
+            </div>
           </div>
-          <DifficultySelector
-            difficulty={config.difficulty}
-            onChange={handleDifficultyChange}
-          />
         </div>
       )}
 
-      {mode === 'bonus' && (
+      {mode === 'extras' && (
         <>
           {/* Main configuration sections - Dice Set and Difficulty */}
           <div style={{ 
@@ -337,7 +425,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
             />
           </div>
 
-          {/* Charms and Consumables - always shown in Bonus mode */}
+          {/* Charms and Consumables - always shown in Extras mode */}
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: '1fr 1fr', 
@@ -396,8 +484,8 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
               }}
             />
           </div>
-        </>
-      )}
+          </>
+        )}
 
       {/* Start button at the bottom */}
       {mode !== 'challenges' && (

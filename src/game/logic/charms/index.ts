@@ -40,6 +40,7 @@ import {
   LowHangingFruitCharm,
   HoarderCharm,
   ComebackKidCharm,
+  ConsumableGeneratorCharm,
 } from './CommonCharms';
 
 import {
@@ -141,6 +142,7 @@ export function registerCharms(): void {
   registry.register(LowHangingFruitCharm, 'lowHangingFruit'); // legacy charm, might be duplicate
   registry.register(HoarderCharm, 'hoarder');
   registry.register(ComebackKidCharm, 'comebackKid');
+  registry.register(ConsumableGeneratorCharm, 'consumableGenerator');
   
   // Uncommon charms
   registry.register(QuadBoostersCharm, 'quadBoosters');

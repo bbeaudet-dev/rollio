@@ -2,7 +2,41 @@ import React, { useState } from 'react';
 import { Consumable } from '../../../game/types';
 import { WHIMS, WISHES } from '../../../game/data/consumables';
 import { getConsumableColor } from '../../utils/colors';
+import { getRarityColor } from '../../utils/rarityColors';
 import { StandardButton } from './StandardButton';
+
+/**
+ * Convert consumable ID to image filename
+ * Maps consumable IDs to their corresponding image filenames (using first version, not _2 or _3)
+ */
+function getConsumableImagePath(consumableId: string): string | null {
+  // Map of consumable IDs to their image filenames
+  const imageMap: Record<string, string> = {
+    'chisel': 'Chisel.png',
+    'distortion': 'Distortion.png',
+    'echo': 'Echo.png',
+    'frankenstein': 'Frankenstein.png',
+    'freebie': 'Freebie.png',
+    'garagesale': 'Garage_Sale.png',
+    'grabBag': 'Grab_Bag.png',
+    'groceryList': 'Grocery_List.png',
+    'hospital': 'Hospital.png',
+    'liquidation': 'Liquidation.png',
+    'midasTouch': 'Midas_Touch.png',
+    'origin': 'Origin.png',
+    'potteryWheel': 'Pottery_Wheel.png',
+    'sacrifice': 'Sacrifice.png',
+    'welfare': 'Welfare.png',
+    'youGetACharm': 'You_Get_A_Charm.png',
+  };
+
+  const filename = imageMap[consumableId];
+  if (!filename) {
+    return null;
+  }
+
+  return `/assets/images/consumables/${filename}`;
+}
 
 const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
   wish: { buy: 8, sell: 4 },
@@ -44,6 +78,26 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
   const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
   const sellValue = CONSUMABLE_PRICES[category]?.sell || 2;
   const backgroundColor = getConsumableColor(consumable.id, WHIMS, WISHES);
+  const imagePath = getConsumableImagePath(consumable.id);
+  
+  // Wishes are rarer than whims - use rarity colors
+  const rarity = isWish ? 'rare' : 'common';
+  const borderColor = getRarityColor(rarity);
+  
+  // Get glow effect based on rarity (wishes get glow)
+  const getGlowStyle = () => {
+    if (isWish) {
+      return {
+        boxShadow: '0 0 10px 4px rgba(155, 89, 182, 0.4), 0 0 20px 6px rgba(155, 89, 182, 0.2)',
+        animation: 'rareGlow 2.5s ease-in-out infinite alternate'
+      };
+    }
+    return {
+      boxShadow: 'none'
+    };
+  };
+  
+  const glowStyle = getGlowStyle();
   
   // Square aspect ratio (1:1) - same as charms
   const cardSize = 120; // Base size, can be adjusted
@@ -74,7 +128,7 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
           width: `${cardSize}px`,
           height: `${cardSize}px`,
           backgroundColor: backgroundColor,
-          border: '2px solid #333',
+          border: `3px solid ${borderColor}`,
           borderRadius: '8px',
           cursor: onClick || showBuyButton || showUseButton ? 'pointer' : 'default',
           opacity: canAfford ? 1 : 0.6,
@@ -83,9 +137,15 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
           display: 'flex',
           flexDirection: 'column',
           boxSizing: 'border-box',
-          transition: 'transform 0.2s ease',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
           transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-          boxShadow: isHovered ? '0 4px 8px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.2)'
+          ...(isHovered
+            ? {
+                boxShadow: glowStyle.boxShadow || '0 4px 8px rgba(0,0,0,0.3)',
+                ...(glowStyle.animation ? { animation: glowStyle.animation } : {})
+              }
+            : glowStyle
+          )
         }}
       >
         {/* Image will fill the whole card as background */}
@@ -96,87 +156,11 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
           right: 0,
           bottom: 0,
           backgroundColor: backgroundColor,
+          backgroundImage: imagePath ? `url(${imagePath})` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           zIndex: 0
         }} />
-        
-        {/* Bottom overlay with info */}
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          padding: '4px 6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '4px',
-          zIndex: 1
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            flex: 1,
-            minWidth: 0
-          }}>
-            {/* Price if shown */}
-            {showPrice && price !== undefined && (
-              <div style={{
-                fontSize: '9px',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px'
-              }}>
-                <span>${price}</span>
-                {discount > 0 && basePrice !== undefined && basePrice !== price && (
-                  <span style={{
-                    fontSize: '7px',
-                    color: '#999',
-                    textDecoration: 'line-through'
-                  }}>
-                    ${basePrice}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* Buttons */}
-          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-            {/* Buy button if shown */}
-            {showBuyButton && onBuy && (
-              <div onClick={(e) => e.stopPropagation()}>
-                <StandardButton
-                  onClick={onBuy}
-                  disabled={!canAfford}
-                  variant="success"
-                  size="small"
-                  style={{ padding: '2px 6px', fontSize: '8px' }}
-                >
-                  Buy
-                </StandardButton>
-              </div>
-            )}
-            
-            {/* Use button if shown */}
-            {showUseButton && onUse && (
-              <div onClick={(e) => e.stopPropagation()}>
-                <StandardButton
-                  onClick={onUse}
-                  variant="primary"
-                  size="small"
-                  style={{ padding: '2px 6px', fontSize: '8px' }}
-                >
-                  Use
-                </StandardButton>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
       
       {/* Tooltip on hover/click */}
@@ -211,6 +195,17 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
           </div>
         </div>
       )}
+      
+      <style>{`
+        @keyframes rareGlow {
+          0% {
+            box-shadow: 0 0 10px 4px rgba(155, 89, 182, 0.4), 0 0 20px 6px rgba(155, 89, 182, 0.2);
+          }
+          100% {
+            box-shadow: 0 0 14px 6px rgba(155, 89, 182, 0.6), 0 0 28px 10px rgba(155, 89, 182, 0.3);
+          }
+        }
+      `}</style>
     </div>
   );
 };
