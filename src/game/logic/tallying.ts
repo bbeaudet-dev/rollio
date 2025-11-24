@@ -3,7 +3,7 @@
  * Calculates money earned at the end of a level
  */
 
-import { GameState, LevelState, Blessing } from '../types';
+import { GameState, LevelState, Blessing, GamePhase } from '../types';
 import { getLevelConfig } from '../data/levels';
 import { debugLog } from '../utils/debug';
 import { isMinibossLevel, isMainBossLevel } from '../data/worlds';
@@ -105,16 +105,30 @@ export function tallyLevel(gameState: GameState, completedLevelNumber: number, c
   gameState: GameState;
   rewards: LevelRewards;
 } {
+  if (!gameState.currentWorld?.currentLevel) {
+    throw new Error('Cannot tally level: currentWorld.currentLevel is undefined');
+  }
+  
   const newGameState = { ...gameState };
+  const currentLevel = newGameState.currentWorld!.currentLevel;
   
   // Calculate rewards
-  const rewards = calculateLevelRewards(completedLevelNumber, newGameState.currentLevel, newGameState, charmManager);
+  const rewards = calculateLevelRewards(completedLevelNumber, currentLevel, newGameState, charmManager);
   
   // Apply rewards (add money)
   applyLevelRewards(newGameState, rewards);
   
   // Store rewards in current level state (will be moved to history when advancing)
-  newGameState.currentLevel.rewards = rewards;
+  newGameState.currentWorld = {
+    ...newGameState.currentWorld!,
+    currentLevel: {
+      ...currentLevel,
+      rewards
+    }
+  };
+  
+  // Set game phase to tallying (player will see tally modal)
+  newGameState.gamePhase = 'tallying';
   
   return {
     gameState: newGameState,

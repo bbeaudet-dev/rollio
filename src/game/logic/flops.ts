@@ -10,21 +10,20 @@ import { getDifficultyConfig } from './difficulty';
  * Increment consecutive flops counter
  */
 export function incrementConsecutiveFlops(gameState: GameState): GameState {
-  const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.consecutiveFlops = 
-    (gameState.currentLevel.consecutiveFlops || 0) + 1;
-  return newGameState;
+  return {
+    ...gameState,
+    consecutiveFlops: (gameState.consecutiveFlops || 0) + 1
+  };
 }
 
 /**
  * Reset consecutive flop counter to 0
  */
 export function resetConsecutiveFlops(gameState: GameState): GameState {
-  const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.consecutiveFlops = 0;
-  return newGameState;
+  return {
+    ...gameState,
+    consecutiveFlops: 0
+  };
 }
 
 /**
@@ -76,29 +75,32 @@ export function calculateFlopPenaltyPercentage(flopCount: number): number {
  * First flop: 0%, then progressively increases
  */
 export function applyFlopPenalty(gameState: GameState): GameState {
-  const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  
-  // Ensure flopsThisLevel exists
-  if (newGameState.currentLevel.flopsThisLevel === undefined) {
-    newGameState.currentLevel.flopsThisLevel = 0;
+  if (!gameState.currentWorld?.currentLevel) {
+    return gameState;
   }
   
-  // Increment flops this level
-  newGameState.currentLevel.flopsThisLevel += 1;
+  const currentLevel = gameState.currentWorld.currentLevel;
   
-  const levelThreshold = newGameState.currentLevel.levelThreshold;
-  const flopCount = newGameState.currentLevel.flopsThisLevel;
-  const penaltyPercentage = calculateFlopPenaltyPercentage(flopCount);
+  // Ensure flopsThisLevel exists
+  const flopsThisLevel = (currentLevel.flopsThisLevel || 0) + 1;
+  
+  const levelThreshold = currentLevel.levelThreshold;
+  const penaltyPercentage = calculateFlopPenaltyPercentage(flopsThisLevel);
   const penaltyAmount = levelThreshold * (penaltyPercentage / 100);
-  const currentBanked = newGameState.currentLevel.pointsBanked;
+  const currentBanked = currentLevel.pointsBanked;
   const newBanked = currentBanked - penaltyAmount;
-  newGameState.currentLevel.pointsBanked = newBanked;
   
-  // Debug log to verify penalty is applied
-  console.log(`[FLOP PENALTY] Flop #${flopCount} this level: -${penaltyPercentage}% (${penaltyAmount.toFixed(1)} points) of threshold ${levelThreshold}. Banked points: ${currentBanked} → ${newBanked}`);
-  
-  return newGameState;
+  return {
+    ...gameState,
+    currentWorld: {
+      ...gameState.currentWorld,
+      currentLevel: {
+        ...currentLevel,
+        flopsThisLevel,
+        pointsBanked: newBanked
+      }
+    }
+  };
 }
 
 /**
@@ -113,14 +115,15 @@ export function checkMaxFlopsPerLevel(gameState: GameState): GameState {
     return gameState;
   }
   
-  const flopsThisLevel = gameState.currentLevel.flopsThisLevel || 0;
+  const flopsThisLevel = gameState.currentWorld?.currentLevel.flopsThisLevel || 0;
   
   // Check if limit exceeded
   if (flopsThisLevel > difficultyConfig.maxFlopsPerLevel) {
-    const newGameState = { ...gameState };
-    newGameState.isActive = false;
-    newGameState.endReason = 'lost';
-    return newGameState;
+    return {
+      ...gameState,
+      isActive: false,
+      won: false
+    };
   }
   
   return gameState;

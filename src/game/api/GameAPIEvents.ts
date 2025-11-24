@@ -18,6 +18,7 @@ export type GameAPIEvent =
   | 'flopOccurred'
   | 'levelCompleted'
   | 'levelTallied'
+  | 'worldSelected'
   | 'gameEnded'
   | 'error';
 
@@ -35,7 +36,7 @@ export interface GameAPIEventData {
   };
   roundEnded: {
     roundNumber: number;
-    reason: 'banked' | 'flopped';
+    reason: 'bank' | 'flop';
     gameState: GameState;
   };
   diceRolled: {
@@ -64,6 +65,10 @@ export interface GameAPIEventData {
   levelTallied: {
     levelNumber: number;
     rewards: any;
+    gameState: GameState;
+  };
+  worldSelected: {
+    worldId: string;
     gameState: GameState;
   };
   gameEnded: {

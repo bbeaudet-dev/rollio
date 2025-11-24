@@ -575,8 +575,9 @@ export class SureShotCharm extends BaseCharm {
   onFlop(context: CharmFlopContext): boolean | { prevented: boolean, log?: string } | void {
     // +1 reroll and +100 points when rolling no scoring combinations
     // This triggers on flop, so we grant reroll and points
-    if (context.gameState && context.gameState.currentLevel) {
-      context.gameState.currentLevel.rerollsRemaining = (context.gameState.currentLevel.rerollsRemaining || 0) + 1;
+    if (context.gameState?.currentWorld?.currentLevel) {
+      context.gameState.currentWorld.currentLevel.rerollsRemaining = 
+        (context.gameState.currentWorld.currentLevel.rerollsRemaining || 0) + 1;
     }
     // Track bonus for scoring
     if (!context.gameState.sureShotBonus) {
@@ -614,7 +615,7 @@ export class FlopStrategistCharm extends BaseCharm {
 
   onFlop(context: CharmFlopContext): boolean | { prevented: boolean, log?: string } | void {
     // +100 points for flopping with remaining reroll(s)
-    const hasRerolls = (context.gameState.currentLevel?.rerollsRemaining || 0) > 0;
+    const hasRerolls = (context.gameState.currentWorld?.currentLevel?.rerollsRemaining || 0) > 0;
     if (hasRerolls) {
       // Track bonus for scoring
       if (!context.gameState.flopStrategistBonus) {

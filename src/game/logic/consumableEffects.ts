@@ -432,7 +432,15 @@ export function applyConsumableEffect(
         newRoundState.roundPoints *= 2;
       } else if (chosenEffect === 'extraReroll') {
         // Add extra reroll to level state (not round state)
-        newGameState.currentLevel.rerollsRemaining = (newGameState.currentLevel.rerollsRemaining || 0) + 1;
+        if (newGameState.currentWorld?.currentLevel) {
+          newGameState.currentWorld = {
+            ...newGameState.currentWorld,
+            currentLevel: {
+              ...newGameState.currentWorld.currentLevel,
+              rerollsRemaining: (newGameState.currentWorld.currentLevel.rerollsRemaining || 0) + 1
+            }
+          };
+        }
       } else if (chosenEffect === 'instantBank') {
         // Store instant bank flag in round state
         (newRoundState as any).instantBank = true;

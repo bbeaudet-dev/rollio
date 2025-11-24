@@ -5,18 +5,19 @@
  * It only generates algorithm-based combination types (no specific types).
  */
 
-import { Die, ScoringCombination } from '../types';
+import { Die, ScoringCombination, EffectContext } from '../types';
 import { calculateCombinationPoints } from '../data/combinations';
-import { debugLog, getDebugMode } from '../utils/debug';
 import { shouldAllowSingleThrees } from './charms/charmUtils';
 import { expandDiceValuesForCombinations } from './pipEffectSystem';
 import { DifficultyLevel, isCombinationAvailable } from './difficulty';
+import { markDebuffedCombinations } from './debuffs';
 
 export interface ScoringContext {
   charms?: any[];
   materials?: any[];
   charmManager?: any;
   difficulty?: DifficultyLevel;
+  effectContext?: EffectContext; // World and level effect context for filtering
 }
 
 /**
@@ -398,30 +399,159 @@ export function findAllPossibleCombinations(
     }
   }
   
-  if (getDebugMode()) {
-    debugLog(`Combination deduplication: ${beforeCombinationCount} → ${uniqueCombinations.length} unique combinations`);
-  }
+  // Filter by difficulty only (restrictions will be handled in scoring as debuffs)
+  const effectContext = context?.effectContext;
+  const filteredCombinations: ScoringCombination[] = [];
   
-  // Filter by difficulty if provided
-  if (difficulty) {
-    const filteredCombinations: ScoringCombination[] = [];
-    for (const combo of uniqueCombinations) {
-      // Extract parameters for difficulty checking
-      const params = getSpecificCombinationParams(combo, diceHand);
-      
-      if (isCombinationAvailable(combo.type as any, difficulty, params)) {
-        filteredCombinations.push(combo);
-      }
+  for (const combo of uniqueCombinations) {
+    // Extract parameters for difficulty checking
+    const params = getSpecificCombinationParams(combo, diceHand);
+    
+    // Check difficulty availability (still filter these out - they're not available at this difficulty)
+    if (difficulty && !isCombinationAvailable(combo.type as any, difficulty, params)) {
+      continue;
     }
     
-    if (getDebugMode()) {
-      debugLog(`Difficulty filtering (${difficulty}): ${uniqueCombinations.length} → ${filteredCombinations.length} combinations`);
-    }
-    
-    return filteredCombinations;
+    filteredCombinations.push(combo);
   }
   
-  return uniqueCombinations;
+  // Mark combinations as debuffed if they're restricted 
+  if (effectContext) {
+    markDebuffedCombinations(filteredCombinations, diceHand, effectContext);
+  }
+  
+  return filteredCombinations;
+}
+
+// Debuff checking functions have been moved to debuffs.ts
+// Keeping these for backwards compatibility but they should be removed
+/**
+ * @deprecated Use debuffs.ts instead
+ */
+function isCombinationAllowed(combinationType: string, effectContext: EffectContext): boolean {
+  const { world, level } = effectContext;
+  
+  // Check world restrictions
+  if (combinationType === 'straightOfN' && (world.noStraights || level.noStraights)) return false;
+  if (combinationType === 'nPairs' && (world.noPairs || level.noPairs)) return false;
+  if (combinationType === 'singleN' && (world.noSingles || level.noSingles)) return false;
+  if (combinationType === 'nOfAKind' && (world.noNOfAKind || level.noNOfAKind)) return false;
+  if (combinationType === 'pyramidOfN' && (world.noPyramids || level.noPyramids)) return false;
+  
+  return true;
+}
+
+/**
+ * Get reason for debuff (for display in scoring breakdown)
+ */
+function getDebuffReason(
+  combinationType: string,
+  diceIndices: number[],
+  diceHand: Die[],
+  effectContext: EffectContext
+): string {
+  const { world, level } = effectContext;
+  const reasons: string[] = [];
+  
+  // Check combination type restrictions
+  if (combinationType === 'straightOfN' && (world.noStraights || level.noStraights)) {
+    reasons.push('Straights are debuffed');
+  }
+  if (combinationType === 'nPairs' && (world.noPairs || level.noPairs)) {
+    reasons.push('Pairs are debuffed');
+  }
+  if (combinationType === 'singleN' && (world.noSingles || level.noSingles)) {
+    reasons.push('Singles are debuffed');
+  }
+  if (combinationType === 'nOfAKind' && (world.noNOfAKind || level.noNOfAKind)) {
+    reasons.push('N-of-a-kind is debuffed');
+  }
+  if (combinationType === 'pyramidOfN' && (world.noPyramids || level.noPyramids)) {
+    reasons.push('Pyramids are debuffed');
+  }
+  
+  // Check dice value restrictions
+  for (const idx of diceIndices) {
+    const die = diceHand[idx];
+    if (!die || die.rolledValue === undefined) continue;
+    
+    const value = die.rolledValue;
+    
+    if ((world.noOnes || level.noOnes) && value === 1) {
+      reasons.push('Ones are debuffed');
+      break;
+    }
+    if ((world.noTwos || level.noTwos) && value === 2) {
+      reasons.push('Twos are debuffed');
+      break;
+    }
+    if ((world.noThrees || level.noThrees) && value === 3) {
+      reasons.push('Threes are debuffed');
+      break;
+    }
+    if ((world.noFours || level.noFours) && value === 4) {
+      reasons.push('Fours are debuffed');
+      break;
+    }
+    if ((world.noFives || level.noFives) && value === 5) {
+      reasons.push('Fives are debuffed');
+      break;
+    }
+    if ((world.noSixes || level.noSixes) && value === 6) {
+      reasons.push('Sixes are debuffed');
+      break;
+    }
+    if ((world.noOddValues || level.noOddValues) && value % 2 === 1) {
+      reasons.push('Odd values are debuffed');
+      break;
+    }
+    if ((world.noEvenValues || level.noEvenValues) && value % 2 === 0) {
+      reasons.push('Even values are debuffed');
+      break;
+    }
+  }
+  
+  return reasons.join(', ') || 'Debuffed';
+}
+
+/**
+ * Check if dice values are allowed based on effect context
+ */
+function areDiceValuesAllowed(
+  diceIndices: number[],
+  diceHand: Die[],
+  effectContext: EffectContext
+): boolean {
+  const { world, level } = effectContext;
+  
+  for (const idx of diceIndices) {
+    const die = diceHand[idx];
+    if (!die || die.rolledValue === undefined) continue;
+    
+    const value = die.rolledValue;
+    
+    // Check world restrictions
+    if (world.noOnes && value === 1) return false;
+    if (world.noTwos && value === 2) return false;
+    if (world.noThrees && value === 3) return false;
+    if (world.noFours && value === 4) return false;
+    if (world.noFives && value === 5) return false;
+    if (world.noSixes && value === 6) return false;
+    if (world.noOddValues && value % 2 === 1) return false;
+    if (world.noEvenValues && value % 2 === 0) return false;
+    
+    // Check level restrictions
+    if (level.noOnes && value === 1) return false;
+    if (level.noTwos && value === 2) return false;
+    if (level.noThrees && value === 3) return false;
+    if (level.noFours && value === 4) return false;
+    if (level.noFives && value === 5) return false;
+    if (level.noSixes && value === 6) return false;
+    if (level.noOddValues && value % 2 === 1) return false;
+    if (level.noEvenValues && value % 2 === 0) return false;
+  }
+  
+  return true;
 }
 
 /**
