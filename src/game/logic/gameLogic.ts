@@ -43,9 +43,8 @@ export function isFlop(diceHand: Die[], gameState: GameState): boolean {
  * Requires that we're in an active round with roll history (we've rolled before)
  */
 export function isHotDice(gameState: GameState, charmManager?: any): boolean {
-  const roundState = gameState.currentLevel.currentRound;
-  if (!roundState) return false;
-  if (!roundState.isActive || !roundState.rollHistory || roundState.rollHistory.length === 0) {
+  const roundState = gameState.currentWorld!.currentLevel.currentRound;
+  if (!roundState || !roundState.isActive || !roundState.rollHistory || roundState.rollHistory.length === 0) {
     return false;
   }
   
@@ -57,7 +56,8 @@ export function isHotDice(gameState: GameState, charmManager?: any): boolean {
  * Checks if the current level is completed (pointsBanked >= levelThreshold)
  */
 export function isLevelCompleted(gameState: GameState): boolean {
-  return gameState.currentLevel.pointsBanked >= gameState.currentLevel.levelThreshold;
+  const currentLevel = gameState.currentWorld!.currentLevel;
+  return currentLevel.pointsBanked >= currentLevel.levelThreshold;
 }
 
 /**
@@ -65,11 +65,13 @@ export function isLevelCompleted(gameState: GameState): boolean {
  * Requires: round is active, has round points (has rolled and scored), and has banks remaining
  */
 export function canBankPoints(gameState: GameState): boolean {
-  const roundState = gameState.currentLevel.currentRound;
+  if (!gameState.currentWorld) return false;
+  const currentLevel = gameState.currentWorld.currentLevel;
+  const roundState = currentLevel.currentRound;
   if (!roundState) return false;
   return roundState.isActive 
     && roundState.roundPoints > 0 
-    && (gameState.currentLevel.banksRemaining || 0) > 0;
+    && (currentLevel.banksRemaining || 0) > 0;
 }
 
 /**
@@ -80,12 +82,42 @@ export function isGameOver(gameState: GameState): boolean {
   // Game is over if not active
   if (!gameState.isActive) return true;
   
+  const currentLevel = gameState.currentWorld!.currentLevel;
+  
   // Game is over if no banks remaining (and not in a completed level)
   // Note: If level is completed, player goes to shop, not game over
-  if ((gameState.currentLevel.banksRemaining || 0) <= 0) {
+  if ((currentLevel.banksRemaining || 0) <= 0) {
     // Only game over if level not completed
     return !isLevelCompleted(gameState);
   }
   
   return false;
-} 
+}
+
+// Checks if the player can roll dice
+export function canRoll(gameState: GameState): boolean {
+  if (!gameState.isActive) return false;
+  if (!gameState.currentWorld) return false;
+  if ((gameState.currentWorld.currentLevel.banksRemaining || 0) <= 0) return false;
+  
+  const roundState = gameState.currentWorld.currentLevel.currentRound;
+  if (!roundState) return true; // Can start new round
+  if (!roundState.isActive) return true; // Can start new round
+  
+  const hasRolled = roundState.rollHistory.length > 0;
+  const hasRoundPoints = roundState.roundPoints > 0;
+  return !hasRolled || hasRoundPoints;
+}
+
+/**
+ * Checks if the player can select dice to score
+ * Can select if: round is active, has rolled dice, has dice in hand
+ */
+export function canSelectDice(gameState: GameState): boolean {
+  if (!gameState.isActive) return false;
+  if (!gameState.currentWorld) return false;
+  const roundState = gameState.currentWorld.currentLevel.currentRound;
+  if (!roundState || !roundState.isActive) return false;
+  // Must have rolled dice and have dice in hand to select
+  return roundState.rollHistory.length > 0 && roundState.diceHand.length > 0;
+}

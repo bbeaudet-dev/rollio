@@ -103,17 +103,17 @@ export class ReactGameInterface implements GameInterface {
   }
 
   async displayBetweenRounds(gameState: GameState): Promise<void> {
-    const roundNumber = gameState.currentLevel.currentRound?.roundNumber || 0;
-    const roundState = gameState.currentLevel.currentRound;
-    const isFlop = roundState?.flopped || false;
+    const roundNumber = gameState.currentWorld?.currentLevel.currentRound?.roundNumber || 0;
+    const roundState = gameState.currentWorld?.currentLevel.currentRound;
+    const isFlop = roundState?.endReason === 'flop';
     const roundPoints = roundState?.roundPoints || 0;
     
     this.messages.push(`=== Round ${roundNumber} Complete ===`);
     const pointsLabel = isFlop ? 'Points Forfeited: -' : 'Points Scored: +';
     this.messages.push(`${pointsLabel}${roundPoints}`);
-    this.messages.push(`Points: ${gameState.currentLevel.pointsBanked} / ${gameState.currentLevel.levelThreshold}`);
-    this.messages.push(`Flops: ${gameState.currentLevel.consecutiveFlops}`);
-    this.messages.push(`Lives: ${gameState.currentLevel.banksRemaining}`);
+    this.messages.push(`Points: ${gameState.currentWorld?.currentLevel.pointsBanked || 0} / ${gameState.currentWorld?.currentLevel.levelThreshold || 0}`);
+    this.messages.push(`Flops: ${gameState.consecutiveFlops || 0}`);
+    this.messages.push(`Lives: ${gameState.currentWorld?.currentLevel.banksRemaining || 0}`);
   }
 
   async displayWinCondition(): Promise<void> {

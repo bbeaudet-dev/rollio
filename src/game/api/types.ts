@@ -1,4 +1,5 @@
-import { GameState, ScoringBreakdown } from '../types';
+import { GameState } from '../types';
+import type { ScoringBreakdown } from '../logic/scoringBreakdown';
 
 /**
  * GameAPI-specific types

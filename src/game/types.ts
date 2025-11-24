@@ -1,8 +1,113 @@
+// GAME STATE
+export interface GameState {
+  // Game-wide state (flattened - no meta/core split)
+  isActive: boolean;
+  config: GameConfig;
+  settings: GameSettings;
+  history: GameHistory;
+  won?: boolean; // true if player won (completed 25 levels), undefined if game still active or lost
+
+  baseLevelRerolls: number;  // Base rerolls per level (persists across levels)
+  baseLevelBanks: number;    // Base banks per level (persists across levels)
+  charmSlots: number;
+  consumableSlots: number;
+
+  gamePhase: GamePhase; // Current phase of the game
+  gameMap?: GameMap; // Map generated at game start
+  shop?: ShopState;
+  currentWorld?: WorldState; // Current world state (includes currentLevel)
+  
+  money: number;
+  diceSet: Die[];
+  charms: Charm[];
+  consumables: Consumable[];
+  blessings: Blessing[];
+
+  lastConsumableUsed?: string;  // For consumable tracking charms - tracks last consumable used
+  consecutiveBanks: number;  // Tracks consecutive rounds completed by banking (not flopping)
+  consecutiveFlops: number;  // Tracks consecutive flops across the entire game
+}
+
+
+// WORLD STATE
+export interface WorldState {
+  worldId: string;
+  worldNumber: number;
+  levelConfigs: import('./data/levels').LevelConfig[]; // Pre-generated level configs for this world 
+  worldEffects: import('./data/worlds').WorldEffect[]; // Active world effects
+  currentLevel: LevelState; // Current level state (moved from GameState)
+}
+
+
+// LEVEL STATE 
+export interface LevelState {
+  levelNumber: number;
+  levelThreshold: number;
+  isMiniboss?: boolean;
+  isMainBoss?: boolean;
+  levelEffects?: LevelEffect[]; // Active boss/miniboss effects
+  effectContext?: EffectContext; // Combined context for filtering
+  currentRound?: RoundState;
+  pointsBanked: number; 
+  rerollsRemaining?: number;
+  banksRemaining?: number;
+  flopsThisLevel: number; // Track total flops in this level (for progressive penalty)
+  banksThisLevel?: number;  // For OneSongGlory charm - tracks banks used in this level
+  rewards?: {
+    baseReward: number;
+    banksBonus: number;
+    charmBonuses: number;
+    blessingBonuses: number;
+    total: number;
+  };
+}
+
+
+// ROUND STATE 
+export interface RoundState {
+  isActive: boolean;
+  rollHistory: RollState[];  // All roll attempts including rerolls
+  endReason?: 'flop' | 'bank'; 
+  roundNumber: number;  // Round number within level (1, 2, 3...)
+  roundPoints: number; 
+  diceHand: Die[];  // Current dice available to roll (changes as you score)
+  hotDiceCounter: number; 
+  forfeitedPoints: number;
+  flowerCounter?: number;  // tracks flower dice scored
+}
+
+
+// ROLL STATE
+export interface RollState {
+  rollNumber: number;  // Within round (1, 2, 3... - stays same for rerolls in same sequence)
+  isReroll: boolean;  // false for initial roll, true for rerolls
+  diceHand: Die[];  // Snapshot of dice rolled at this moment
+  selectedDice: Die[];
+  scoringSelection?: number[];
+  rollPoints?: number;
+  maxRollPoints?: number;
+  combinations?: ScoringCombination[];
+  isHotDice?: boolean;
+  isFlop?: boolean;
+  scoringBreakdown?: import('./logic/scoringBreakdown').ScoringBreakdown; // Detailed breakdown of scoring calculation
+}
+
+
+
+
+
+
+
 // DICE SET TYPES
 export type DieValue = 1 | 2 | 3 | 4 | 5 | 6;
 
 // Import PipEffectType for use in Die interface
 import { PipEffectType } from './data/pipEffects';
+// Import effect context types (forward declarations - actual imports at usage)
+import type { WorldEffectContext } from './logic/worldEffects';
+import type { LevelEffect } from './data/levels';
+import type { WorldEffect } from './data/worlds';
+import type { GameMap } from './logic/mapGeneration';
 
 export interface DiceMaterial {
   id: string;
@@ -39,15 +144,14 @@ export interface DiceSetConfig {
   startingBlessings?: string[];
 }
 
-// SCORING TYPES
-import { ScoringCombinationType } from './data/combinations';
-import type { ScoringBreakdown } from './logic/scoringBreakdown';
-// Combination counters use composite keys (e.g., "nPairs:2", "nOfAKind:4")
-export type CombinationCounters = Record<string, number>;
 
-// Re-export scoring value types
-export type { ScoringElements } from './logic/scoringElements';
-export type { ScoringBreakdown, ScoringBreakdownStep } from './logic/scoringBreakdown';
+
+
+
+
+
+
+
 
 export interface ScoringCombination {
   type: string;
@@ -60,6 +164,11 @@ export interface ScoringResult {
   totalPoints: number;
   selectedDice: number[];
 }
+
+
+
+
+
 
 // UPGRADE TYPES
 export interface Charm {
@@ -110,43 +219,14 @@ export type BlessingEffect =
   | { type: "moneyOnLevelEnd"; amount: number }
   | { type: "moneyOnRerollUsed"; amount: number };
 
-// GAME ENGINE TYPES
 
-export interface RollState {
-  rollNumber: number;  // Within round (1, 2, 3... - stays same for rerolls in same sequence)
-  isReroll: boolean;  // false for initial roll, true for rerolls
-  diceHand: Die[];  // Snapshot of dice rolled at this moment
-  selectedDice: Die[];
-  rollPoints?: number;
-  maxRollPoints?: number;
-  scoringSelection?: number[];
-  combinations?: ScoringCombination[];
-  isHotDice?: boolean;
-  isFlop?: boolean;
-  scoringBreakdown?: ScoringBreakdown; // Detailed breakdown of scoring calculation
-}
+export type CombinationCounters = Record<string, number>;
+export type ConsumableCounters = Record<string, number>; // consumableId -> usage count
+export type CharmCounters = Record<string, number>; // charmId -> purchase count
+export type BlessingCounters = Record<string, number>; // blessingId -> purchase count (calculate category/tier on-demand)
 
-// Flattened RoundState (no meta/core/history split)
-export interface RoundState {
-  roundNumber: number;  // Round number within level (1, 2, 3...)
-  roundPoints: number;
-  diceHand: Die[];  // Current dice available to roll (changes as you score)
-  hotDiceCounter: number; 
-  forfeitedPoints: number;
-  crystalsScoredThisRound: number; 
-  isActive: boolean;
-  endReason?: RoundEndReason;
 
-  // Roll history for this round
-  rollHistory: RollState[];  // All roll attempts including rerolls
 
-  // Completed round only (in history)
-  banked?: boolean;
-  flopped?: boolean;
-  
-  // Charm tracking fields
-  flowerCounter?: number;  // For Bloom charm - tracks flower dice scored
-}
 
 // Game settings that can change during gameplay
 export interface GameSettings {
@@ -166,95 +246,58 @@ export interface GameConfig {
 
 // Shop state and data
 export interface ShopState {
-  isOpen: boolean;
   availableCharms: (Charm | null)[];
   availableConsumables: (Consumable | null)[];
   availableBlessings: (Blessing | null)[];
 }
 
-// LEVEL STATE (nested for hierarchy)
-export interface LevelState {
-  levelNumber: number;
-  levelThreshold: number;
-  worldId?: string;
-  worldNumber?: number;
-  isMiniboss?: boolean;
-  isMainBoss?: boolean;
-
-  // Current level only
-  rerollsRemaining?: number;
-  banksRemaining?: number;
-  consecutiveFlops: number;
-  flopsThisLevel: number; // Track total flops in this level (for progressive penalty)
-  pointsBanked: number; 
-  shop?: ShopState;
-  currentRound?: RoundState;
-  
-  // Charm tracking fields
-  banksUsed?: number;  // For OneSongGlory charm - tracks banks used in this level
-
-  // Completed level only (in history)
-  completed?: boolean;
-  roundHistory?: RoundState[];
-  rewards?: {
-    baseReward: number;
-    banksBonus: number;
-    charmBonuses: number;
-    blessingBonuses: number;
-    total: number;
+// Combined effect context for filtering and scoring
+export interface EffectContext {
+  world: WorldEffectContext;
+  level: {
+    // Combination multipliers
+    straightsMultiplier: number;
+    pairsMultiplier: number;
+    singlesMultiplier: number;
+    nOfAKindMultiplier: number;
+    pyramidsMultiplier: number;
+    // Combination restrictions
+    noStraights: boolean;
+    noPairs: boolean;
+    noSingles: boolean;
+    noNOfAKind: boolean;
+    noPyramids: boolean;
+    // Dice value restrictions
+    noOnes: boolean;
+    noTwos: boolean;
+    noThrees: boolean;
+    noFours: boolean;
+    noFives: boolean;
+    noSixes: boolean;
+    noOddValues: boolean;
+    noEvenValues: boolean;
   };
 }
 
+
 // Game history and tracking data (consolidated here)
 export interface GameHistory {
-  // Combination usage tracking
+  // Usage/purchase tracking
   combinationCounters: CombinationCounters;
-
-  // Historical records (nested structure)
-  levelHistory: LevelState[];  // Completed levels (excluding current)
-  
-  // Game-wide high scores (for statistics tracking)
+  consumableCounters: ConsumableCounters; // Track consumable USAGE
+  charmCounters: CharmCounters; // Track charm PURCHASES
+  blessingCounters: BlessingCounters; // Track blessing PURCHASES
   highScoreSingleRoll: number;  // Highest single roll score in this game
   highScoreBank: number;  // Highest bank score in this game
-    
-  // TODO: Future game-wide statistics tracking
-  // We want to track cumulative stats across the entire game/run:
-  // - Total rolls across all rounds
-  // - Total forfeited points across all rounds
-  // - Total hot dice occurrences
-  // - Other cumulative metrics
-  // For now, we only track per-round stats (roundState.hotDiceCounter, roundState.forfeitedPoints)
 }
 
-// Main game state - flattened structure (no meta/core split)
-export interface GameState {
-  // Game-wide state (flattened - no meta/core split)
-  isActive: boolean;
-  endReason?: GameEndReason;
-  money: number;
-  diceSet: Die[];
-  charms: Charm[];
-  consumables: Consumable[];
-  blessings: Blessing[];
-  baseLevelRerolls: number;  // Base rerolls per level (persists across levels)
-  baseLevelBanks: number;    // Base banks per level (persists across levels)
-  charmSlots: number;
-  consumableSlots: number;
-  settings: GameSettings;
-  config: GameConfig;
-  
-  // Charm tracking fields
-  lastConsumableUsed?: string;  // For consumable tracking charms - tracks last consumable used
-  consecutiveBanks?: number;  // Tracks consecutive rounds completed by banking (not flopping)
 
-  // Current level state (nested for hierarchy)
-  currentLevel: LevelState;
 
-  // History (consolidated here - all history in one place)
-  history: GameHistory;
-}
-
-// ENDGAME TYPES
-export type GameEndReason = 'win' | 'quit' | 'lost';
-export type RoundEndReason = 'flopped' | 'banked';
-export type RollEndReason = 'flopped' | 'scored';
+// GAME PHASE TYPES
+export type GamePhase = 
+  | 'worldSelection'  // Player needs to select a world
+  | 'playing'         // Active gameplay (rolling, scoring)
+  | 'tallying'        // Level completed, showing rewards
+  | 'shop'            // In shop between levels
+  | 'gameWin'         // Won the game (25 levels)
+  | 'gameLoss';       // Lost the game (no banks, etc.)

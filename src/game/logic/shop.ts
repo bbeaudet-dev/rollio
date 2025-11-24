@@ -2,10 +2,11 @@
  * Shop logic and inventory generation
  */
 
-import { GameState, Charm, Consumable, Blessing, ShopState } from '../types';
+import { GameState, Charm, Consumable, Blessing, ShopState, GamePhase } from '../types';
 import { CHARMS } from '../data/charms';
 import { CONSUMABLES, WHIMS, WISHES } from '../data/consumables';
 import { selectRandomBlessing, getBlessingName, getBlessingDescription, enrichBlessingForDisplay } from '../data/blessings';
+
 import { CHARM_PRICES } from '../data/charms';
 import { getDifficultyConfig, getDifficulty, DifficultyLevel } from '../logic/difficulty';
 
@@ -154,7 +155,6 @@ export function generateShopInventory(gameState: GameState): ShopState {
   const availableBlessings: Blessing[] = randomBlessing ? [enrichBlessingForDisplay(randomBlessing)] : [];
   
   return {
-    isOpen: true,
     availableCharms: selectedCharms,
     availableConsumables: selectedConsumables,
     availableBlessings
@@ -208,6 +208,11 @@ export function purchaseCharm(
     money: gameState.money - finalPrice,
     charms: [...gameState.charms, { ...charm, active: true }]
   };
+  
+  // Track charm purchase
+  newGameState.history = { ...newGameState.history };
+  newGameState.history.charmCounters = { ...newGameState.history.charmCounters };
+  newGameState.history.charmCounters[charm.id] = (newGameState.history.charmCounters[charm.id] || 0) + 1;
   
   return { 
     success: true, 
@@ -267,6 +272,70 @@ export function purchaseConsumable(
 }
 
 /**
+ * Sell a charm - pure function
+ * Returns new game state instead of mutating
+ */
+export function sellCharm(
+  gameState: GameState,
+  charmIndex: number
+): { success: boolean; message: string; gameState?: GameState } {
+  if (charmIndex < 0 || charmIndex >= gameState.charms.length) {
+    return { success: false, message: 'Invalid charm selection' };
+  }
+  
+  const charm = gameState.charms[charmIndex];
+  const rarity = charm.rarity || 'common';
+  const sellValue = CHARM_PRICES[rarity]?.sell || 2;
+  
+  // Remove charm and add money
+  const newCharms = gameState.charms.filter((_, idx) => idx !== charmIndex);
+  const newGameState: GameState = {
+    ...gameState,
+    money: gameState.money + sellValue,
+    charms: newCharms
+  };
+  
+  return { 
+    success: true, 
+    message: `Sold ${charm.name} for $${sellValue}`,
+    gameState: newGameState
+  };
+}
+
+/**
+ * Sell a consumable - pure function
+ * Returns new game state instead of mutating
+ */
+export function sellConsumable(
+  gameState: GameState,
+  consumableIndex: number
+): { success: boolean; message: string; gameState?: GameState } {
+  if (consumableIndex < 0 || consumableIndex >= gameState.consumables.length) {
+    return { success: false, message: 'Invalid consumable selection' };
+  }
+  
+  const consumable = gameState.consumables[consumableIndex];
+  const isWish = WISHES.some(w => w.id === consumable.id);
+  const isWhim = WHIMS.some(w => w.id === consumable.id);
+  const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+  const sellValue = CONSUMABLE_PRICES[category]?.sell || 2;
+  
+  // Remove consumable and add money
+  const newConsumables = gameState.consumables.filter((_, idx) => idx !== consumableIndex);
+  const newGameState: GameState = {
+    ...gameState,
+    money: gameState.money + sellValue,
+    consumables: newConsumables
+  };
+  
+  return { 
+    success: true, 
+    message: `Sold ${consumable.name} for $${sellValue}`,
+    gameState: newGameState
+  };
+}
+
+/**
  * Purchase a blessing - pure function
  * Returns new game state instead of mutating
  */
@@ -311,6 +380,11 @@ export function purchaseBlessing(
     money: gameState.money - finalPrice,
     blessings: [...gameState.blessings, blessingToStore]
   };
+  
+  // Track blessing purchase
+  newGameState.history = { ...newGameState.history };
+  newGameState.history.blessingCounters = { ...newGameState.history.blessingCounters };
+  newGameState.history.blessingCounters[blessing.id] = (newGameState.history.blessingCounters[blessing.id] || 0) + 1;
   
   // Apply blessing effect (this may modify the new state)
   newGameState = applyBlessingEffect(newGameState, blessingToStore);

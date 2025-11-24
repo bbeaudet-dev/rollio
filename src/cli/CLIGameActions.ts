@@ -88,7 +88,7 @@ export function updateGameStateAfterRound(
   
   if (roundActionResult.banked) {
     gameState.currentLevel.pointsBanked += roundActionResult.pointsScored;
-    gameState.history.totalScore += roundActionResult.pointsScored;
+      gameState.history.highScoreBank += roundActionResult.pointsScored;
     
     // Mark round as banked for displayBetweenRounds
     roundState.banked = true;
@@ -105,7 +105,10 @@ export function updateGameStateAfterRound(
       if (completedLevelNumber >= MAX_LEVEL) {
         Object.assign(gameState, endGame(gameState, 'win'));
       } else {
-        Object.assign(gameState, advanceToNextLevel(gameState, charmManager));
+        const newGameState = advanceToNextLevel(gameState, charmManager);
+        Object.assign(gameState, newGameState);
+        // Note: CLI doesn't handle world selection UI, so if gamePhase is 'worldSelection',
+        // the game state will need to be handled differently (this shouldn't happen in CLI flow)
         levelAdvanced = true;
       }
     }
