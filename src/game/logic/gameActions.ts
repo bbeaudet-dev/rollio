@@ -1,11 +1,14 @@
-import { GameState, RoundState, DieValue, LevelState, RollState, Die } from '../types';
+import { GameState, RoundState, DieValue, LevelState, RollState, Die, GamePhase, WorldState } from '../types';
 import { isFlop, canBankPoints, isLevelCompleted } from './gameLogic';
 import { getHighestPointsPartitioning, getAllPartitionings } from './scoring';
 import { getDiceIndicesToRemove, handleMirrorDiceRolling, shouldTriggerHotDice } from './materialSystem';
 import { createInitialRoundState, createInitialLevelState } from '../utils/factories';
 import { validateDiceSelection } from '../utils/effectUtils';
-import { getLevelConfig } from '../data/levels';
+import { getLevelConfig, generateWorldLevelConfigs } from '../data/levels';
 import { createCombinationKey } from '../utils/combinationTracking';
+import { selectWorld as selectWorldMap, getAvailableWorldChoices } from './mapGeneration';
+import { getDifficulty } from './difficulty';
+import { WORLD_POOL } from '../data/worlds';
 
 interface ScoringContext {
   charms: any[];
@@ -23,16 +26,21 @@ interface ScoringContext {
  * Note: Uses material system to check for special removal rules (e.g., lead dice stay in hand)
  */
 export function removeDiceFromHand(gameState: GameState, indices: number[]): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   
   // Get actual indices to remove (accounting for lead dice, etc.)
   const indicesToRemove = getDiceIndicesToRemove(roundState.diceHand, indices);
   
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.currentRound = { 
-    ...roundState,
-    diceHand: roundState.diceHand.filter((_, i) => !indicesToRemove.includes(i))
+  newGameState.currentWorld = { 
+    ...gameState.currentWorld!,
+    currentLevel: {
+      ...gameState.currentWorld!.currentLevel,
+      currentRound: { 
+        ...roundState,
+        diceHand: roundState.diceHand.filter((_, i) => !indicesToRemove.includes(i))
+      }
+    }
   };
   return newGameState;
 }
@@ -42,9 +50,8 @@ export function removeDiceFromHand(gameState: GameState, indices: number[]): Gam
  * Handles mirror dice: they copy a non-mirror die's value, or random if all are mirror
  */
 export function randomizeSelectedDice(gameState: GameState, indices: number[]): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
   
   const diceHand = roundState.diceHand.map(d => ({ ...d }));
   
@@ -58,9 +65,15 @@ export function randomizeSelectedDice(gameState: GameState, indices: number[]): 
   // Then, handle mirror dice (they copy non-mirror dice or all get same value if all are mirror)
   handleMirrorDiceRolling(diceHand);
   
-  newGameState.currentLevel.currentRound = { 
-    ...roundState,
-    diceHand
+  newGameState.currentWorld = {
+    ...gameState.currentWorld!,
+    currentLevel: {
+      ...gameState.currentWorld!.currentLevel,
+      currentRound: { 
+        ...roundState,
+        diceHand
+      }
+    }
   };
   return newGameState;
 }
@@ -69,16 +82,21 @@ export function randomizeSelectedDice(gameState: GameState, indices: number[]): 
  * Reset dice hand to full set (for hot dice)
  */
 export function resetDiceHandToFullSet(gameState: GameState): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.currentRound = { 
-    ...roundState,
-    diceHand: gameState.diceSet.map((die: any) => ({ 
-      ...die, 
-      scored: false,
-      rolledValue: undefined
-    }))
+  newGameState.currentWorld = {
+    ...gameState.currentWorld!,
+    currentLevel: {
+      ...gameState.currentWorld!.currentLevel,
+      currentRound: { 
+        ...roundState,
+        diceHand: gameState.diceSet.map((die: any) => ({ 
+          ...die, 
+          scored: false,
+          rolledValue: undefined
+        }))
+      }
+    }
   };
   return newGameState;
 }
@@ -87,12 +105,17 @@ export function resetDiceHandToFullSet(gameState: GameState): GameState {
  * Increment hot dice counter
  */
 export function incrementHotDiceCounter(gameState: GameState): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.currentRound = { 
-    ...roundState,
-    hotDiceCounter: (roundState.hotDiceCounter || 0) + 1
+  newGameState.currentWorld = {
+    ...gameState.currentWorld!,
+    currentLevel: {
+      ...gameState.currentWorld!.currentLevel,
+      currentRound: { 
+        ...roundState,
+        hotDiceCounter: (roundState.hotDiceCounter || 0) + 1
+      }
+    }
   };
   return newGameState;
 }
@@ -107,12 +130,17 @@ export function incrementHotDiceCounter(gameState: GameState): GameState {
  * Add points to current round
  */
 export function addPointsToRound(gameState: GameState, points: number): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.currentRound = { 
-    ...roundState,
-    roundPoints: roundState.roundPoints + points
+  newGameState.currentWorld = {
+    ...gameState.currentWorld!,
+    currentLevel: {
+      ...gameState.currentWorld!.currentLevel,
+      currentRound: { 
+        ...roundState,
+        roundPoints: roundState.roundPoints + points
+      }
+    }
   };
   return newGameState;
 }
@@ -122,21 +150,12 @@ export function addPointsToRound(gameState: GameState, points: number): GameStat
  */
 export function addPointsToLevel(gameState: GameState, points: number): GameState {
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.pointsBanked += points;
-  return newGameState;
-}
-
-/**
- * Increment crystals scored counter
- */
-export function incrementCrystalsScored(gameState: GameState, count: number): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
-  const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.currentRound = { 
-    ...roundState,
-    crystalsScoredThisRound: roundState.crystalsScoredThisRound + count
+  newGameState.currentWorld = {
+    ...gameState.currentWorld!,
+    currentLevel: {
+      ...gameState.currentWorld!.currentLevel,
+      pointsBanked: gameState.currentWorld!.currentLevel.pointsBanked + points
+    }
   };
   return newGameState;
 }
@@ -145,12 +164,17 @@ export function incrementCrystalsScored(gameState: GameState, count: number): Ga
  * Add entry to roll history
  */
 export function updateRollHistory(gameState: GameState, entry: RollState): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.currentRound = { 
-    ...roundState,
-    rollHistory: [...roundState.rollHistory, entry]
+  newGameState.currentWorld = {
+    ...gameState.currentWorld!,
+    currentLevel: {
+      ...gameState.currentWorld!.currentLevel,
+      currentRound: { 
+        ...roundState,
+        rollHistory: [...roundState.rollHistory, entry]
+      }
+    }
   };
   return newGameState;
 }
@@ -165,7 +189,7 @@ export function addRollToHistory(
   isFlop: boolean,
   isReroll: boolean = false
 ): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   const currentRollNumber = (roundState.rollHistory?.length || 0) + 1;
   
   const rollEntry: RollState = {
@@ -175,7 +199,6 @@ export function addRollToHistory(
     selectedDice: [],
     rollPoints: 0,
     maxRollPoints: 0,
-    scoringSelection: [],
     combinations: [],
     isHotDice: false,
     isFlop,
@@ -193,15 +216,19 @@ export function addRollToHistory(
 /**
  * End round (set isActive to false, set endReason)
  */
-export function endRound(gameState: GameState, reason: 'banked' | 'flopped'): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
+export function endRound(gameState: GameState, reason: 'bank' | 'flop'): GameState {
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.currentRound = { 
-    ...roundState,
-    isActive: false,
-    endReason: reason,
-    ...(reason === 'banked' ? { banked: true } : { flopped: true })
+  newGameState.currentWorld = {
+    ...gameState.currentWorld!,
+    currentLevel: {
+      ...gameState.currentWorld!.currentLevel,
+      currentRound: { 
+        ...roundState,
+        isActive: false,
+        endReason: reason,
+      }
+    }
   };
   
   return newGameState;
@@ -212,10 +239,16 @@ export function endRound(gameState: GameState, reason: 'banked' | 'flopped'): Ga
  */
 export function decrementRerolls(gameState: GameState): GameState {
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  if (newGameState.currentLevel.rerollsRemaining !== undefined) {
-    newGameState.currentLevel.rerollsRemaining--;
-  }
+  const currentWorld = gameState.currentWorld!;
+  newGameState.currentWorld = {
+    ...currentWorld,
+    currentLevel: {
+      ...currentWorld.currentLevel,
+      rerollsRemaining: currentWorld.currentLevel.rerollsRemaining !== undefined 
+        ? currentWorld.currentLevel.rerollsRemaining - 1
+        : undefined
+    }
+  };
   return newGameState;
 }
 
@@ -224,9 +257,14 @@ export function decrementRerolls(gameState: GameState): GameState {
  */
 export function decrementBanks(gameState: GameState): GameState {
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.banksRemaining = 
-    (gameState.currentLevel.banksRemaining || 0) - 1;
+  const currentWorld = gameState.currentWorld!;
+  newGameState.currentWorld = {
+    ...currentWorld,
+    currentLevel: {
+      ...currentWorld.currentLevel,
+      banksRemaining: (currentWorld.currentLevel.banksRemaining || 0) - 1
+    }
+  };
   return newGameState;
 }
 
@@ -236,7 +274,7 @@ export function decrementBanks(gameState: GameState): GameState {
  */
 export function incrementConsecutiveBanks(gameState: GameState): GameState {
   const newGameState = { ...gameState };
-  newGameState.consecutiveBanks = (newGameState.consecutiveBanks || 0) + 1;
+  newGameState.consecutiveBanks = newGameState.consecutiveBanks + 1;
   return newGameState;
 }
 
@@ -253,12 +291,17 @@ export function resetConsecutiveBanks(gameState: GameState): GameState {
  * Set forfeited points on round
  */
 export function setForfeitedPoints(gameState: GameState, points: number): GameState {
-  const roundState = gameState.currentLevel.currentRound!;
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   const newGameState = { ...gameState };
-  newGameState.currentLevel = { ...gameState.currentLevel };
-  newGameState.currentLevel.currentRound = { 
-    ...roundState,
-    forfeitedPoints: points
+  newGameState.currentWorld = {
+    ...gameState.currentWorld!,
+    currentLevel: {
+      ...gameState.currentWorld!.currentLevel,
+      currentRound: { 
+        ...roundState,
+        forfeitedPoints: points
+      }
+    }
   };
   return newGameState;
 }
@@ -268,8 +311,8 @@ export function setForfeitedPoints(gameState: GameState, points: number): GameSt
  * Returns the roundPoints from the most recently banked round
  */
 export function getBankedRoundPoints(gameState: GameState): number {
-  const currentRound = gameState.currentLevel.currentRound;
-  if (currentRound && !currentRound.isActive && currentRound.banked) {
+  const currentRound = gameState.currentWorld?.currentLevel.currentRound;
+  if (currentRound && !currentRound.isActive && currentRound.endReason === 'bank') {
     return currentRound.roundPoints || 0;
   }
   return 0;
@@ -280,7 +323,7 @@ export function getBankedRoundPoints(gameState: GameState): number {
  * Calculates by subtracting the banked round points from current level points
  */
 export function getLevelPointsBeforeBanking(gameState: GameState): number {
-  const currentPointsBanked = gameState.currentLevel.pointsBanked || 0;
+  const currentPointsBanked = gameState.currentWorld?.currentLevel.pointsBanked || 0;
   const bankedRoundPoints = getBankedRoundPoints(gameState);
   return currentPointsBanked - bankedRoundPoints;
 }
@@ -288,10 +331,11 @@ export function getLevelPointsBeforeBanking(gameState: GameState): number {
 /**
  * End the game with a specific reason
  */
-export function endGame(gameState: GameState, reason: 'lost' | 'win'): GameState {
+export function endGame(gameState: GameState, won: boolean): GameState {
   const newGameState = { ...gameState };
   newGameState.isActive = false;
-  newGameState.endReason = reason;
+  newGameState.won = won;
+  newGameState.gamePhase = won ? 'gameWin' : 'gameLoss';
   return newGameState;
 }
 
@@ -307,11 +351,11 @@ export function advanceToNextWorld(
   const newGameState = { ...gameState };
   
   // Apply world completion bonuses from charms
-  if (charmManager) {
+  if (charmManager && gameState.currentWorld) {
     const activeCharms = charmManager.getActiveCharms?.() || [];
     for (const charm of activeCharms) {
       if (charm.calculateWorldCompletionBonus) {
-        const bonus = charm.calculateWorldCompletionBonus(completedLevelNumber, gameState.currentLevel, gameState);
+        const bonus = charm.calculateWorldCompletionBonus(completedLevelNumber, gameState.currentWorld.currentLevel, gameState);
         if (bonus > 0) {
           newGameState.money = (newGameState.money || 0) + bonus;
         }
@@ -328,37 +372,137 @@ export function advanceToNextWorld(
 }
 
 /**
+ * Select the next world and create initial level state and all level configs
+ */
+export function selectNextWorld(
+  gameState: GameState,
+  selectedWorldId: string,
+  charmManager?: any
+): GameState {
+  if (!gameState.gameMap) {
+    throw new Error('Game map not found - cannot select world');
+  }
+
+  // Get available node choices from current position
+  const availableNodeIds = getAvailableWorldChoices(gameState.gameMap);
+  
+  // Find the node that matches the worldId AND is available from current position
+  const selectedNode = gameState.gameMap.nodes.find(
+    node => node.worldId === selectedWorldId && availableNodeIds.includes(node.nodeId)
+  );
+  if (!selectedNode) {
+    throw new Error(`World ${selectedWorldId} is not available from current position`);
+  }
+
+  // Find world from pool to get world effects
+  const worldFromPool = WORLD_POOL.find(w => w.id === selectedWorldId);
+  if (!worldFromPool) {
+    throw new Error(`World ${selectedWorldId} not found in WORLD_POOL`);
+  }
+
+  // Update game map with selected world
+  const updatedMap = selectWorldMap(gameState.gameMap, selectedNode.nodeId);
+
+  // Calculate the world number and first level number
+  const worldNumber = selectedNode.worldNumber;
+  const nextLevelNumber = ((worldNumber - 1) * 5) + 1;
+
+  // Generate all level configs for this world upfront (Balatro-style)
+  const difficulty = getDifficulty(gameState);
+  const worldLevelConfigs = generateWorldLevelConfigs(worldNumber, selectedWorldId, difficulty);
+
+  // Create temporary world state so createInitialLevelState can access it
+  const tempWorldState: WorldState = {
+    worldId: selectedWorldId,
+    worldNumber,
+    levelConfigs: worldLevelConfigs,
+    worldEffects: worldFromPool.effects || [],
+    currentLevel: {
+      levelNumber: 0, // Temporary placeholder
+      levelThreshold: 0,
+      pointsBanked: 0,
+      flopsThisLevel: 0,
+    } as LevelState,
+  };
+  
+  const tempGameState = {
+    ...gameState,
+    currentWorld: tempWorldState,
+  };
+
+  // Create initial level state for the new world using pre-generated config
+  const initialLevelState = createInitialLevelState(
+    nextLevelNumber, 
+    tempGameState, 
+    charmManager,
+    worldLevelConfigs[0] // Use pre-generated config for level 1
+  );
+
+  // Create final world state with current level
+  const currentWorld: WorldState = {
+    worldId: selectedWorldId,
+    worldNumber,
+    levelConfigs: worldLevelConfigs,
+    worldEffects: worldFromPool.effects || [],
+    currentLevel: initialLevelState,
+  };
+
+  // Update game state with selected world, updated map, and world state
+  const newGameState = {
+    ...gameState,
+    gameMap: updatedMap,
+    currentWorld,
+    gamePhase: 'playing' as GamePhase, // Set phase to playing
+  };
+
+  return newGameState;
+}
+
+/**
  * Advance to the next level
  * Resets level-specific state, applies level effects, moves completed level to history
+ * Sets gamePhase appropriately (worldSelection if at boundary, playing otherwise)
  */
 export function advanceToNextLevel(gameState: GameState, charmManager?: any): GameState {
-  const oldLevelNumber = gameState.currentLevel.levelNumber;
+  const oldLevelNumber = gameState.currentWorld!.currentLevel.levelNumber;
   const newLevelNumber = oldLevelNumber + 1;
   
   const newGameState = { ...gameState };
-  newGameState.history = { ...newGameState.history };
-  newGameState.history.levelHistory = [...gameState.history.levelHistory];
-  
-  // Move completed level to history 
-  const completedLevel: LevelState = {
-    ...gameState.currentLevel,
-    completed: true,
-    roundHistory: gameState.currentLevel.currentRound 
-      ? [gameState.currentLevel.currentRound] 
-      : [],
-  };
-  newGameState.history.levelHistory.push(completedLevel);
   
   // Check if we completed a world (every 5 levels: 5, 10, 15, etc.)
-  if (oldLevelNumber % 5 === 0) {
+  const isWorldBoundary = oldLevelNumber % 5 === 0 && oldLevelNumber < 25;
+  if (isWorldBoundary) {
     const worldCompletedState = advanceToNextWorld(newGameState, oldLevelNumber, charmManager);
     // Merge world completion changes back into newGameState
     newGameState.money = worldCompletedState.money;
     // Add any other world completion state updates here as needed
+    
+    // At world boundary, we need world selection before creating the new level
+    // Clear currentWorld so the player must select a new world
+    newGameState.currentWorld = undefined;
+    newGameState.gamePhase = 'worldSelection'; // Set phase to require world selection
+    
+    // Don't create the new level state yet - wait for world selection
+    return newGameState;
   }
   
-  // Create new level state (includes first round)
-  newGameState.currentLevel = createInitialLevelState(newLevelNumber, newGameState, charmManager);
+  // Not at world boundary - create new level state immediately (includes first round)
+  // Use pre-generated config if available (for current world)
+  const currentWorld = newGameState.currentWorld!;
+  const worldLevelIndex = (newLevelNumber - 1) % 5; // 0-4 index within world
+  const preGeneratedConfig = currentWorld.levelConfigs[worldLevelIndex];
+  
+  // Update currentWorld with new level
+  newGameState.currentWorld = {
+    ...currentWorld,
+    currentLevel: createInitialLevelState(
+      newLevelNumber, 
+      newGameState, 
+      charmManager,
+      preGeneratedConfig
+    ),
+  };
+  newGameState.gamePhase = 'playing'; // Set phase to playing
   
   return newGameState;
 }
@@ -384,10 +528,6 @@ export function processHotDice(gameState: GameState): GameState {
  * Remove dice from hand and check for hot dice
  * This handles the complete flow of removing dice and determining if hot dice should trigger,
  * including special cases like SwordInTheStone charm.
- * 
- * @param gameState - Current game state
- * @param selectedIndices - Indices of dice to remove (score)
- * @param charmManager - Charm manager to check for special charms
  * @returns Object with updated gameState and whether hot dice occurred
  */
 export function removeDiceAndCheckHotDice(
@@ -395,7 +535,7 @@ export function removeDiceAndCheckHotDice(
   selectedIndices: number[],
   charmManager?: any
 ): { gameState: GameState; wasHotDice: boolean } {
-  const roundState = gameState.currentLevel.currentRound!;
+  const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   
   // Check if all dice were scored (before removal) - needed for SwordInTheStone charm
   const allDiceWereScored = selectedIndices.length === roundState.diceHand.length;
@@ -404,7 +544,7 @@ export function removeDiceAndCheckHotDice(
   let newGameState = removeDiceFromHand(gameState, selectedIndices);
   
   // Check for hot dice (includes SwordInTheStone special case)
-  const remainingDice = newGameState.currentLevel.currentRound!.diceHand;
+  const remainingDice = newGameState.currentWorld!.currentLevel.currentRound!.diceHand;
   const wasHotDice = shouldTriggerHotDice(remainingDice, charmManager, allDiceWereScored);
   
   return {
@@ -490,20 +630,26 @@ export function processBankPoints(
   newGameState = decrementBanks(newGameState);
   
   // Track banks used for OneSongGlory charm (increment before ending round)
-  newGameState.currentLevel = { ...newGameState.currentLevel };
-  newGameState.currentLevel.banksUsed = (newGameState.currentLevel.banksUsed || 0) + 1;
+  const currentWorld = newGameState.currentWorld!;
+  newGameState.currentWorld = {
+    ...currentWorld,
+    currentLevel: {
+      ...currentWorld.currentLevel,
+      banksThisLevel: (currentWorld.currentLevel.banksThisLevel || 0) + 1
+    }
+  };
   
   // Track consecutive banks
   newGameState = incrementConsecutiveBanks(newGameState);
   
-  newGameState = endRound(newGameState, 'banked');
+  newGameState = endRound(newGameState, 'bank');
   
   // Apply charm effects AFTER banking (as bonuses)
   let finalBankedPoints = baseBankedPoints;
-  if (charmManager) {
+  if (charmManager && newGameState.currentWorld) {
     finalBankedPoints = charmManager.applyBankEffects({
       gameState: newGameState,
-      roundState: newGameState.currentLevel.currentRound!,
+      roundState: newGameState.currentWorld.currentLevel.currentRound!,
       bankedPoints: baseBankedPoints
     });
     
@@ -520,7 +666,7 @@ export function processBankPoints(
   return {
     success: true,
     newGameState,
-    newRoundState: newGameState.currentLevel.currentRound!,
+    newRoundState: newGameState.currentWorld!.currentLevel.currentRound!,
     bankedPoints: finalBankedPoints,
     levelCompleted
   };
@@ -537,7 +683,10 @@ export function startNewRound(
   newGameState: GameState;
 } {
   // Check if player can start a new round (has banks remaining and game is active)
-  if ((gameState.currentLevel.banksRemaining || 0) <= 0) {
+  if (!gameState.currentWorld) {
+    throw new Error('Cannot start new round without currentWorld');
+  }
+  if ((gameState.currentWorld.currentLevel.banksRemaining || 0) <= 0) {
     throw new Error('No banks remaining - cannot start new round');
   }
   if (!gameState.isActive) {
@@ -545,9 +694,10 @@ export function startNewRound(
   }
   
   const newGameState = { ...gameState };
+  const currentWorld = gameState.currentWorld!;
   
   // Determine next round number
-  const existingRound = newGameState.currentLevel.currentRound;
+  const existingRound = currentWorld.currentLevel.currentRound;
   const nextRoundNumber = existingRound && existingRound.isActive === true
     ? existingRound.roundNumber
     : existingRound === undefined
@@ -561,7 +711,13 @@ export function startNewRound(
   charmManager.callAllOnRoundStart({ gameState: newGameState, roundState });
   
   // Update game state
-  newGameState.currentLevel.currentRound = roundState;
+  newGameState.currentWorld = {
+    ...currentWorld,
+    currentLevel: {
+      ...currentWorld.currentLevel,
+      currentRound: roundState
+    }
+  };
   
   return { newGameState };
 }

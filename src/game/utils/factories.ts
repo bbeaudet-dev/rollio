@@ -1,11 +1,13 @@
-import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState, Charm, Consumable, Blessing } from '../types';
+import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState, Charm, Consumable, Blessing, GamePhase, WorldState, ConsumableCounters, CharmCounters, BlessingCounters } from '../types';
 import { ALL_SCORING_TYPES } from '../data/combinations';
 import { getRandomInt } from './effectUtils';
 import { validateDiceSetConfig } from '../validation/diceSetValidation';
-import { getLevelConfig } from '../data/levels';
+import { getLevelConfig, generateWorldLevelConfigs, LevelConfig } from '../data/levels';
 import { calculateRerollsForLevel, calculateBanksForLevel } from '../logic/rerollLogic';
 import { applyLevelEffects } from '../logic/gameActions';
-import { getWorldForLevel, getWorldNumber, isMinibossLevel, isMainBossLevel } from '../data/worlds';
+import { isMinibossLevel, isMainBossLevel, setActiveWorlds, WORLD_POOL, World } from '../data/worlds';
+import { generateGameMap, getWorldIdForNode } from '../logic/mapGeneration';
+import { getLevelEffectContext } from '../logic/worldEffects';
 import { CHARMS } from '../data/charms';
 import { CONSUMABLES } from '../data/consumables';
 import { ALL_BLESSINGS } from '../data/blessings';
@@ -27,7 +29,6 @@ export const DEFAULT_GAME_SETTINGS = {
 
 // Default shop state
 export const DEFAULT_SHOP_STATE: ShopState = {
-  isOpen: false,
   availableCharms: [],
   availableConsumables: [],
   availableBlessings: [],
@@ -114,21 +115,51 @@ export function createStartingBlessings(diceSetConfig: DiceSetConfig): Blessing[
  * Creates an initial level state
  * Handles level configuration, rerolls/lives calculation, and level effects
  */
-export function createInitialLevelState(levelNumber: number, gameState: GameState, charmManager?: any): LevelState {
-  const levelConfig = getLevelConfig(levelNumber, getDifficulty(gameState));
+export function createInitialLevelState(
+  levelNumber: number, 
+  gameState: GameState, 
+  charmManager?: any,
+  preGeneratedConfig?: LevelConfig
+): LevelState {
+  if (!gameState.currentWorld) {
+    throw new Error('Cannot create level state without currentWorld');
+  }
   
-  // Get world information
-  const world = getWorldForLevel(levelNumber);
-  const worldNumber = getWorldNumber(levelNumber);
+  // Use pre-generated config if available, otherwise generate on the fly
+  const levelConfig = preGeneratedConfig || getLevelConfig(levelNumber, getDifficulty(gameState));
+  
   const isMiniboss = isMinibossLevel(levelNumber);
   const isMainBoss = isMainBossLevel(levelNumber);
+  
+  // Get world from pool by ID to get full world definition
+  const worldFromPool = WORLD_POOL.find(w => w.id === gameState.currentWorld!.worldId);
+  if (!worldFromPool) {
+    throw new Error(`World ${gameState.currentWorld.worldId} not found in WORLD_POOL`);
+  }
+  
+  const world: World = {
+    ...worldFromPool,
+    worldNumber: gameState.currentWorld.worldNumber,
+    startLevel: ((gameState.currentWorld.worldNumber - 1) * 5) + 1,
+    endLevel: gameState.currentWorld.worldNumber * 5,
+  };
   
   // Calculate base rerolls and banks (from game state + charms/blessings)
   const baseRerolls = calculateRerollsForLevel(gameState, charmManager);
   const baseBanks = calculateBanksForLevel(gameState, charmManager);
   
-  // Apply level effects (boss effects, modifiers)
+  // Collect all level effects (from level config and boss/miniboss)
+  const levelEffects = levelConfig.effects || [];
+  if (levelConfig.boss?.effects) {
+    levelEffects.push(...levelConfig.boss.effects);
+  }
+  
+  // Apply level effects (world effects + boss/miniboss effects, modifiers)
   const { rerolls, banks } = applyLevelEffects(baseRerolls, baseBanks, levelConfig);
+  
+  // Get effect context for filtering and scoring (world effects come from gameState.currentWorld)
+  const worldEffects = gameState.currentWorld.worldEffects;
+  const effectContext = getLevelEffectContext(world, levelEffects);
   
   // Create first round of the level (diceHand will be empty until first roll)
   const firstRound = createInitialRoundState(1);
@@ -136,18 +167,16 @@ export function createInitialLevelState(levelNumber: number, gameState: GameStat
   return {
     levelNumber,
     levelThreshold: levelConfig.pointThreshold,
-    worldId: world?.id,
-    worldNumber,
     isMiniboss,
     isMainBoss,
     rerollsRemaining: rerolls,
     banksRemaining: banks,
-    consecutiveFlops: 0,  // Reset at start of each level
     flopsThisLevel: 0,  // Reset at start of each level (for progressive penalty)
     pointsBanked: 0,  // Initialize to 0 at level start
-    shop: DEFAULT_SHOP_STATE,
     currentRound: firstRound,
-    banksUsed: 0,  // Initialize for OneSongGlory charm
+    banksThisLevel: 0,  // Initialize for OneSongGlory charm
+    levelEffects,
+    effectContext,
   };
 }
 
@@ -175,6 +204,29 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty:
     finalConsumableSlots = Math.max(1, finalConsumableSlots + config.consumableSlotsModifier);
   }
   
+  // Generate game map at start
+  const gameMap = generateGameMap();
+  
+  // Set active worlds based on map nodes
+  const activeWorlds = gameMap.nodes
+    .filter(node => node.worldNumber > 0)
+    .map(node => {
+      const worldTemplate = WORLD_POOL.find(w => w.id === node.worldId);
+      if (!worldTemplate) {
+        throw new Error(`World ${node.worldId} not found in WORLD_POOL`);
+      }
+      return {
+        ...worldTemplate,
+        worldNumber: node.worldNumber,
+        startLevel: ((node.worldNumber - 1) * 5) + 1,
+        endLevel: node.worldNumber * 5,
+      };
+    });
+  setActiveWorlds(activeWorlds);
+  
+  // Don't auto-select world 1 - player will select it from map at game start
+  // selectedWorldId will be set when player selects a world
+
   const initialGameState: GameState = {
     isActive: true,
     money: diceSetConfig.startingMoney,
@@ -193,17 +245,24 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty:
       penalties: DEFAULT_GAME_CONFIG.penalties,
     },
     
-    // Current level state (nested for hierarchy) - will be initialized by initializeLevel
-    currentLevel: {} as LevelState,
+    // Map and world selection (no initial selection - player chooses at start)
+    gameMap,
+    currentWorld: undefined, // Will be set when world is selected
+    
+    // Game phase - start in world selection
+    gamePhase: 'worldSelection' as GamePhase,
     
     // History (consolidated here - all history in one place)
     history: {
       combinationCounters: createInitialCombinationCounters(),
-      levelHistory: [],
+      consumableCounters: {},
+      charmCounters: {},
+      blessingCounters: {},
       highScoreSingleRoll: 0,  // Track highest single roll score
       highScoreBank: 0,  // Track highest bank score
     },
     consecutiveBanks: 0,  // Initialize consecutive banks counter
+    consecutiveFlops: 0,  // Initialize consecutive flops counter
   };
   
   return initialGameState;
@@ -218,11 +277,14 @@ export function initializeNewGame(
   difficulty: DifficultyLevel,
   charmManager: any
 ): GameState {
-  // Create initial game state
+  // Create initial game state (without level state - player selects world first)
   const gameState = createInitialGameState(diceSetConfig, difficulty);
   
   // Register starting charms with the charm manager
   registerStartingCharms(gameState, charmManager);
+  
+  // Don't create level state yet - player needs to select a world first
+  // Level state will be created when world is selected
   
   return gameState;
 }
@@ -238,7 +300,6 @@ export function createInitialRoundState(roundNumber: number = 1, diceSet?: any[]
     diceHand,
     hotDiceCounter: 0,
     forfeitedPoints: 0,
-    crystalsScoredThisRound: 0,
     isActive: true,
     rollHistory: [],
     flowerCounter: 0,  // Initialize flower counter for Bloom charm
