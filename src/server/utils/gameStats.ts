@@ -18,24 +18,23 @@ export async function saveGameCompletion(
   try {
     const diceSetName = gameState.config.diceSetConfig.name || 'Unknown';
     const difficulty = gameState.config.difficulty;
-    // Calculate final score from all banked points in completed levels
-    const finalScore = gameState.history.levelHistory.reduce((sum, level) => {
-      return sum + (level.pointsBanked || 0);
-    }, 0) + (gameState.currentLevel.pointsBanked || 0);
     
-    // Count levels completed (from levelHistory)
-    const levelsCompleted = gameState.history.levelHistory.length;
+    // Calculate final score from current level's banked points
+    // Note: Level history tracking was removed, so we only have current level data
+    const currentLevel = gameState.currentWorld?.currentLevel;
+    const finalScore = currentLevel?.pointsBanked || 0;
     
-    // Count total rounds (sum of rounds from all completed levels)
+    // Count levels completed - use current level number (levels are 1-indexed)
+    // If game ended, the current level number represents the last level reached
+    const levelsCompleted = currentLevel?.levelNumber ? currentLevel.levelNumber - 1 : 0;
+    
+    // Count total rounds - estimate based on current level
+    // Since we don't track round history, we'll use a simple estimate
+    // or count rounds from the current level's round number
     let totalRounds = 0;
-    gameState.history.levelHistory.forEach(level => {
-      if (level.roundHistory) {
-        totalRounds += level.roundHistory.length;
-      }
-    });
-    // Add current level rounds if game ended mid-level
-    if (gameState.currentLevel.currentRound) {
-      totalRounds += 1; // At least one round in current level
+    if (currentLevel?.currentRound) {
+      // Use the round number as an estimate (at least this many rounds were played)
+      totalRounds = currentLevel.currentRound.roundNumber || 1;
     }
     
     const highSingleRoll = gameState.history.highScoreSingleRoll || 0;

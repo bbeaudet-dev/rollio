@@ -119,8 +119,8 @@ router.get('/history', requireAuth, async (req: Request, res: Response) => {
             : JSON.stringify(row.game_state);
           const deserializedState = deserializeGameState(gameStateData, charmRegistry);
           diceSet = deserializedState.config.diceSetConfig.dice || [];
-          // Get the level they lost/won on from currentLevel
-          levelLostOn = deserializedState.currentLevel?.levelNumber || row.levels_completed + 1;
+          // Get the level they lost/won on from currentWorld.currentLevel
+          levelLostOn = deserializedState.currentWorld?.currentLevel?.levelNumber || row.levels_completed + 1;
         } catch (error) {
           console.error('Failed to extract data from game state:', error);
         }
