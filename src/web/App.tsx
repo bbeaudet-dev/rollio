@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SinglePlayerGame } from './ui/single-player';
-import { MainMenu, SettingsPage } from './ui/menu';
+import { MainMenu, SettingsPage, HowToPlayPage } from './ui/menu';
 import { CollectionPage } from './ui/collection';
 import { ProfilePage } from './ui/profile/ProfilePage';
 import { CalculatorPage } from './ui/calculator';
@@ -24,6 +24,9 @@ function App() {
         
         {/* Settings page */}
         <Route path="/settings" element={<SettingsPage />} />
+        
+        {/* How To Play page */}
+        <Route path="/how-to-play" element={<HowToPlayPage />} />
         
         {/* Profile page */}
         <Route path="/profile" element={<ProfilePage />} />

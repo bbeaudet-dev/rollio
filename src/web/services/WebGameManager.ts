@@ -1,7 +1,8 @@
 import { ReactGameInterface, PendingAction } from './ReactGameInterface';
 import { resetLevelColors } from '../utils/levelColors';
 import { GameAPI } from '../../game/api';
-import { GameState, RoundState, ShopState, ScoringBreakdown } from '../../game/types';
+import { GameState, RoundState, ShopState, GamePhase } from '../../game/types';
+import type { ScoringBreakdown } from '../../game/logic/scoringBreakdown';
 import { playDiceRollSound } from '../utils/sounds';
 
 export interface WebGameState {
@@ -43,6 +44,8 @@ export interface WebGameState {
   isInShop: boolean;
   shopState: ShopState | null;
   levelRewards: any | null;
+  // Map selection state
+  isInMapSelection: boolean;
   // Tally modal state
   showTallyModal: boolean;
   pendingRewards: any | null;
@@ -133,25 +136,35 @@ export class WebGameManager {
     
     messages.forEach(msg => this.messageCallback(msg));
     
+    // Use GameAPI methods only - no game logic here
+    const canBankFromAPI = this.gameAPI.canBankPoints(gameState);
+    const canBank = canBankFromAPI && pendingAction.type === 'bankOrRoll' && breakdownState !== 'animating';
+    
     const hasRolledDice = !!(roundState?.rollHistory && roundState.rollHistory.length > 0);
-    // Use pure function to check if can bank (includes all conditions: active, roundPoints > 0, banks > 0)
-    // Also need to check pendingAction for UI state (player has rolled and scored)
-    const canBank = this.gameAPI.canBankPoints(gameState) && pendingAction.type === 'bankOrRoll';
-    const hasBanksRemaining = (gameState.currentLevel.banksRemaining || 0) > 0;
-    // canRoll: Can roll when starting new round, or after scoring (bankOrRoll state), or after flop
-    const canRoll: boolean = (!roundState && !isProcessing && gameState.isActive && hasBanksRemaining) ||
-      !!(roundState?.isActive && !hasRolledDice && pendingAction.type === 'none' && hasBanksRemaining) ||
-      !!(roundState?.isActive && pendingAction.type === 'bankOrRoll' && hasBanksRemaining) ||
-      !!(justFlopped && hasBanksRemaining);
-    const hasHotDice = !!(roundState?.rollHistory && roundState.rollHistory.length > 0 && 
-      roundState.rollHistory[roundState.rollHistory.length - 1]?.isHotDice);
-    // canReroll: Allow reroll when in bankOrRoll state (after scoring, you can Bank or Roll)
-    const canReroll = !!(roundState?.isActive && pendingAction.type === 'bankOrRoll' && 
-      (roundState.diceHand.length > 0 || hasHotDice));
-    const canSelectDice = !!(gameState.isActive && roundState?.isActive && (pendingAction.type === 'diceSelection' || pendingAction.type === 'reroll') && !justBanked && !justFlopped && breakdownState !== 'animating');
-    // isWaitingForReroll: Show reroll button when waiting for reroll, but disable if we just clicked "Skip Reroll"
-    const isWaitingForReroll = !!(roundState?.isActive && pendingAction.type === 'reroll' && gameState.currentLevel.rerollsRemaining && gameState.currentLevel.rerollsRemaining > 0 && !justSkippedReroll);
-    const canRerollSelected = !!(isWaitingForReroll && gameState.currentLevel.rerollsRemaining && gameState.currentLevel.rerollsRemaining > 0);
+    let canRoll: boolean;
+    
+    // Check if this is a new round (active round with no roll history)
+    const isNewRound = roundState?.isActive && !hasRolledDice && roundState.rollHistory.length === 0;
+    
+    if (hasRolledDice && roundState?.isActive) {
+      canRoll = !isProcessing && pendingAction.type === 'bankOrRoll' && (gameState.currentWorld?.currentLevel.banksRemaining || 0) > 0;
+    } else if (pendingAction.type === 'reroll' || pendingAction.type === 'diceSelection' || pendingAction.type === 'flopShieldChoice') {
+      canRoll = false;
+    } else if (isNewRound) {
+      // New round - can roll if no pending actions and game allows it
+      canRoll = !isProcessing && pendingAction.type === 'none' && this.gameAPI.canRoll(gameState);
+    } else {
+      canRoll = !isProcessing && (this.gameAPI.canRoll(gameState) || justFlopped);
+    }
+    
+    const canSelectDice = this.gameAPI.canSelectDice(gameState) && breakdownState !== 'animating';
+    const canReroll = this.gameAPI.canReroll(gameState);
+    
+    const isWaitingForReroll = !!(roundState?.isActive && pendingAction.type === 'reroll' && 
+      canReroll && !justSkippedReroll && breakdownState !== 'animating');
+    const canRerollSelected = isWaitingForReroll;
+    
+    // canChooseFlopShield: Check pendingAction for flop shield (this is a special case that needs the action)
     const canChooseFlopShield: boolean = !!(roundState?.isActive && pendingAction.type === 'flopShieldChoice');
     
     // Calculate banking display info if just banked
@@ -179,6 +192,7 @@ export class WebGameManager {
       canRerollSelected,
       canChooseFlopShield: canChooseFlopShield || false,
       isInShop: false,
+      isInMapSelection: false,
       shopState: null,
       levelRewards: null,
       showTallyModal: false,
@@ -189,16 +203,33 @@ export class WebGameManager {
   async initializeGame(diceSetIndex: number, difficulty: string): Promise<WebGameState> {
     resetLevelColors();
     
-    // Pass selections to GameAPI - no logic here
+    // Pass selections to GameAPI 
     const result = await this.gameAPI.initializeGame(diceSetIndex, difficulty);
-    let gameState = result.gameState;
+    const gameState = result.gameState;
 
-    // Initialize level 1 (creates level state and first round)
-    const levelResult = await this.gameAPI.initializeLevel(gameState, 1);
-    gameState = levelResult.gameState;
+    // Check gamePhase to determine what to show
+    if (gameState.gamePhase === 'worldSelection') {
+      // Show map selection (game start or after world boundary)
+      return {
+        ...this.createWebGameState(gameState, null, [], null, false, false, false),
+        isInShop: false,
+        isInMapSelection: true,
+        shopState: null,
+        showTallyModal: false,
+        pendingRewards: null,
+      };
+    }
 
-    const roundState = gameState.currentLevel.currentRound;
-    return this.createWebGameState(gameState, roundState || null, [], null, false, false, false);
+    // World already selected - initialize level (creates level state and first round)
+    const levelResult = await this.gameAPI.initializeLevel(gameState, gameState.currentWorld!.currentLevel.levelNumber);
+    const updatedGameState = levelResult.gameState;
+
+    const roundState = updatedGameState.currentWorld?.currentLevel.currentRound;
+    
+    // Reset pending action to 'none' for new level
+    (this.gameInterface as any).pendingAction = { type: 'none' };
+    
+    return this.createWebGameState(updatedGameState, roundState || null, [], null, false, false, false);
   }
 
   /**
@@ -227,27 +258,29 @@ export class WebGameManager {
     registerStartingCharms(gameState, (this.gameAPI as any).charmManager);
 
     // The gameState should already have the current level and round state
-    const roundState = gameState.currentLevel?.currentRound || null;
+    const roundState = gameState.currentWorld?.currentLevel?.currentRound || null;
     
-    // Check if game is in shop state (shop is stored in currentLevel.shop)
-    const shop = gameState.currentLevel?.shop;
-    const isInShop = !!(shop && shop.isOpen);
+    // Check if game is in shop state (shop is stored in gameState.shop)
+    const shop = gameState.shop;
+    const isInShop = !!(shop && shop.availableCharms.length > 0);
     const shopState = isInShop ? shop : null;
+    const isInMapSelection = false; // This will be set by exitShop when at world boundary
     
     // Check if we need to show tally modal (level completed but not yet confirmed)
     // This would be if level has rewards but shop is not open yet
-    const showTallyModal = !!(gameState.currentLevel?.rewards && !isInShop && !roundState);
-    const pendingRewards = showTallyModal ? gameState.currentLevel.rewards : null;
+    const showTallyModal = !!(gameState.currentWorld?.currentLevel?.rewards && !isInShop && !roundState);
+    const pendingRewards = showTallyModal ? gameState.currentWorld?.currentLevel.rewards : null;
     
     const baseState = this.createWebGameState(gameState, roundState, [], null, false, false, false);
     
     return {
       ...baseState,
       isInShop,
+      isInMapSelection,
       shopState,
       showTallyModal,
       pendingRewards,
-      levelRewards: gameState.currentLevel?.rewards || null,
+      levelRewards: gameState.currentWorld?.currentLevel?.rewards || null,
     };
   }
 
@@ -283,7 +316,7 @@ export class WebGameManager {
       return state;
     }
 
-    const roundState = result.gameState.currentLevel.currentRound;
+    const roundState = result.gameState.currentWorld?.currentLevel.currentRound;
     
     // Store breakdown and show animation - don't proceed to bankOrRoll yet
     // Store selected indices and dice snapshot in breakdown for highlighting
@@ -331,7 +364,7 @@ export class WebGameManager {
     }
 
     // Use the actual round state from gameState (dice already removed from scoring)
-    const roundState = state.gameState.currentLevel.currentRound;
+    const roundState = state.gameState.currentWorld?.currentLevel.currentRound;
     if (!roundState) {
       return state;
     }
@@ -363,15 +396,15 @@ export class WebGameManager {
 
     // Game over is handled by GameAPI - just check if we need to show messages
     // Keep roundState so board still shows with Game Over overlay
-    if (!gameState.isActive && gameState.endReason === 'lost') {
+    if (!gameState.isActive && gameState.won === false) {
       // Keep the roundState so the board still displays with the Game Over overlay
       // Clear breakdown state when banking
-      const finalRoundState = gameState.currentLevel.currentRound || null;
+      const finalRoundState = gameState.currentWorld?.currentLevel.currentRound || null;
       return this.createWebGameState(gameState, finalRoundState, [], null, false, false, false, false, null, 'hidden');
     }
 
     if (result.levelCompleted) {
-      const completedLevelNumber = gameState.currentLevel.levelNumber;
+      const completedLevelNumber = gameState.currentWorld?.currentLevel.levelNumber || 0;
       // Calculate rewards (but don't apply yet - wait for tally modal confirmation)
       const rewards = this.gameAPI.calculateLevelRewards(completedLevelNumber, gameState);
       
@@ -387,7 +420,7 @@ export class WebGameManager {
     // Start a new round (creates new round with full dice hand, but doesn't roll yet)
     const roundResult = await this.gameAPI.startNewRound(gameState);
     const newGameState = roundResult.gameState;
-    const newRoundState = newGameState.currentLevel.currentRound;
+    const newRoundState = newGameState.currentWorld?.currentLevel.currentRound;
     
     if (!newRoundState) return state;
     
@@ -407,12 +440,12 @@ export class WebGameManager {
       gameState = roundResult.gameState;
     }
 
-    const currentRoundState = gameState.currentLevel.currentRound;
+    const currentRoundState = gameState.currentWorld?.currentLevel.currentRound;
     if (!currentRoundState) return state;
 
     const result = await this.gameAPI.rollDice(gameState);
     const finalGameState = result.gameState;
-    const newRoundState = finalGameState.currentLevel.currentRound;
+    const newRoundState = finalGameState.currentWorld?.currentLevel.currentRound;
 
     if (!newRoundState) return state;
 
@@ -420,15 +453,13 @@ export class WebGameManager {
     const numDice = newRoundState.diceHand.length;
     playDiceRollSound(numDice);
 
-    // Check if rerolls available
+    // Check if we can reroll (before scoring - after initial roll, before flop check)
     if (this.gameAPI.canReroll(finalGameState)) {
-      this.gameInterface.askForReroll(newRoundState.diceHand, finalGameState.currentLevel.rerollsRemaining || 0);
-      // Reset justSkippedReroll when we roll - button should be available again
-      // Clear breakdown state when starting a new roll
+      this.gameInterface.askForReroll(newRoundState.diceHand, finalGameState.currentWorld?.currentLevel.rerollsRemaining || 0);
       return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
     }
 
-    // Check for flop shield availability first (even if isFlop is false, shield might be available)
+    // Check for flop shield availability (even if isFlop is false, shield might be available)
     // isFlop() returns false when shield is available, so we need to check shield separately
     if (result.flopShieldAvailable) {
       // Check if there are actually no scoring combinations (would be a flop without shield)
@@ -447,22 +478,13 @@ export class WebGameManager {
         return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
       }
     }
-    
+
     // Check for flop
     if (result.isFlop) {
-      // Flop with no shield - check if we have rerolls
-      if (this.gameAPI.canReroll(finalGameState)) {
-        // Still have rerolls - ask for reroll
-        this.gameInterface.askForReroll(newRoundState.diceHand, finalGameState.currentLevel.rerollsRemaining || 0);
-        return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
-      }
-      
-      // No rerolls - handle flop
+      // Flop with no shield - handle flop
       return await this.handleFlop(finalGameState, newRoundState);
     } else {
       this.gameInterface.askForDiceSelection(newRoundState.diceHand, finalGameState.consumables);
-      // Reset justSkippedReroll when we roll - button should be available again
-      // Clear breakdown state when starting a new roll
       return this.createWebGameState(finalGameState, newRoundState, [], null, false, false, false, false, null, 'hidden');
     }
   }
@@ -481,7 +503,7 @@ export class WebGameManager {
     if (selectedIndices.length === 0) {
       const result = await this.gameAPI.rerollDice(state.gameState, []);
       const gameState = result.gameState;
-      const roundState = gameState.currentLevel.currentRound;
+      const roundState = gameState.currentWorld?.currentLevel.currentRound;
       if (!roundState) return state;
       
       // Check for flop shield availability first (even if isFlop is false, shield might be available)
@@ -507,7 +529,7 @@ export class WebGameManager {
         // Flop with no shield - check if we have rerolls
         if (this.gameAPI.canReroll(gameState)) {
           // Still have rerolls - ask for reroll
-          this.gameInterface.askForReroll(roundState.diceHand, gameState.currentLevel.rerollsRemaining || 0);
+          this.gameInterface.askForReroll(roundState.diceHand, gameState.currentWorld?.currentLevel.rerollsRemaining || 0);
           return this.createWebGameState(gameState, roundState, [], null, false, false, false, true);
         }
         
@@ -517,7 +539,7 @@ export class WebGameManager {
       
       // Check if more rerolls available
       if (this.gameAPI.canReroll(gameState)) {
-        this.gameInterface.askForReroll(roundState.diceHand, gameState.currentLevel.rerollsRemaining || 0);
+        this.gameInterface.askForReroll(roundState.diceHand, gameState.currentWorld?.currentLevel.rerollsRemaining || 0);
         // Set justSkippedReroll to true to prevent clicking "Skip Reroll" again
         return this.createWebGameState(gameState, roundState, [], null, false, false, false, true);
       }
@@ -531,7 +553,7 @@ export class WebGameManager {
     // Use GameAPI for reroll (this consumes a reroll and validates internally)
     const result = await this.gameAPI.rerollDice(state.gameState, selectedIndices);
     const gameState = result.gameState;
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld?.currentLevel.currentRound;
 
     if (!roundState) return state;
 
@@ -543,7 +565,7 @@ export class WebGameManager {
 
     // Check if more rerolls available
     if (this.gameAPI.canReroll(gameState)) {
-      this.gameInterface.askForReroll(roundState.diceHand, gameState.currentLevel.rerollsRemaining || 0);
+      this.gameInterface.askForReroll(roundState.diceHand, gameState.currentWorld?.currentLevel.rerollsRemaining || 0);
       // Reset justSkippedReroll when we actually reroll dice - button should be available again
       return this.createWebGameState(gameState, roundState, [], null, false, false, false, false);
     }
@@ -609,13 +631,13 @@ export class WebGameManager {
 
     // Game over check
     if (!newGameState.isActive) {
-      const finalRoundState = newGameState.currentLevel.currentRound || null;
+      const finalRoundState = newGameState.currentWorld?.currentLevel.currentRound || null;
       return this.createWebGameState(newGameState, finalRoundState, [], null, false, false, false);
     }
 
     // Don't start a new round yet - keep the ended round state visible so player can see the flop dice
     // The new round will be started when they click "Roll"
-    const endedRoundState = newGameState.currentLevel.currentRound || null;
+    const endedRoundState = newGameState.currentWorld?.currentLevel.currentRound || null;
     
     // Set justFlopped to true - the ended round state still has the dice
     (this.gameInterface as any).pendingAction = { type: 'none' };
@@ -744,17 +766,62 @@ export class WebGameManager {
     };
   }
 
+  /**
+   * Sell a charm from inventory
+   */
+  async sellCharm(state: WebGameState, charmIndex: number): Promise<WebGameState> {
+    if (!state.gameState) return state;
+    
+    const result = await this.gameAPI.sellCharm(state.gameState, charmIndex);
+    const gameState = result.gameState;
+    const roundState = gameState.currentWorld?.currentLevel?.currentRound || null;
+    
+    const webState = this.createWebGameState(gameState, roundState, [], null, false, false, false);
+    return {
+      ...webState,
+      isInShop: state.isInShop,
+      isInMapSelection: state.isInMapSelection,
+      shopState: state.shopState,
+      levelRewards: state.levelRewards,
+    };
+  }
+
+  /**
+   * Sell a consumable from inventory
+   */
+  async sellConsumable(state: WebGameState, consumableIndex: number): Promise<WebGameState> {
+    if (!state.gameState) return state;
+    
+    const result = await this.gameAPI.sellConsumable(state.gameState, consumableIndex);
+    const gameState = result.gameState;
+    const roundState = gameState.currentWorld?.currentLevel?.currentRound || null;
+    
+    const webState = this.createWebGameState(gameState, roundState, [], null, false, false, false);
+    return {
+      ...webState,
+      isInShop: state.isInShop,
+      isInMapSelection: state.isInMapSelection,
+      shopState: state.shopState,
+      levelRewards: state.levelRewards,
+    };
+  }
+
   async confirmTally(state: WebGameState): Promise<WebGameState> {
     if (!state.gameState || !state.pendingRewards) return state;
     
-    const completedLevelNumber = state.gameState.currentLevel.levelNumber;
+    const completedLevelNumber = state.gameState.currentWorld?.currentLevel.levelNumber || 0;
     
-    // Apply rewards and tally level
+    // Apply rewards and tally level (sets gamePhase = 'tallying')
     const tallyResult = await this.gameAPI.tallyLevel(state.gameState);
-    const talliedGameState = tallyResult.gameState;
+    let talliedGameState = tallyResult.gameState;
     
-    // Generate shop
+    // Generate shop and set gamePhase = 'shop'
     const shopState = this.gameAPI.generateShop(talliedGameState);
+    talliedGameState = {
+      ...talliedGameState,
+      gamePhase: 'shop' as GamePhase,
+      shop: shopState,
+    };
     
     const webState = this.createWebGameState(talliedGameState, null, [], null, false, false, false);
     return {
@@ -770,20 +837,93 @@ export class WebGameManager {
   async exitShop(state: WebGameState): Promise<WebGameState> {
     if (!state.gameState || !state.isInShop) return state;
     
-    // Advance to next level using GameAPI (moves completed level to history, creates new level state)
+    // Advance to next level using GameAPI (moves completed level to history, sets gamePhase appropriately)
     const advanceResult = await this.gameAPI.advanceToNextLevel(state.gameState);
+    const gameState = advanceResult.gameState;
     
-    // Initialize the new level (creates level state and first round, emits events)
-    const levelResult = await this.gameAPI.initializeLevel(advanceResult.gameState, advanceResult.gameState.currentLevel.levelNumber);
-    const gameState = levelResult.gameState;
-    const roundState = gameState.currentLevel.currentRound;
+    // Check gamePhase to determine what to show next
+    if (gameState.gamePhase === 'worldSelection') {
+      // At world boundary - show map selection
+      return {
+        ...state,
+        gameState,
+        isInShop: false,
+        isInMapSelection: true,
+        shopState: null,
+      };
+    }
+    
+    // Not at world boundary - advanceToNextLevel already created the level state
+    // But we need to call initializeLevel to trigger charm hooks and emit events
+    // However, if the level state already exists with a round, we should use it
+    let newGameState = gameState;
+    let roundState = gameState.currentWorld?.currentLevel.currentRound;
+    
+    // Only initialize if the level doesn't have a proper round state yet
+    if (!roundState || !roundState.isActive || roundState.rollHistory.length > 0) {
+      const levelResult = await this.gameAPI.initializeLevel(gameState, gameState.currentWorld!.currentLevel.levelNumber);
+      newGameState = levelResult.gameState;
+      roundState = newGameState.currentWorld?.currentLevel.currentRound;
+    } else {
+      // Level already initialized, but we still need to emit events and call charm hooks
+      // Call initializeLevel anyway to ensure events are emitted (it will reuse the existing state)
+      const levelResult = await this.gameAPI.initializeLevel(gameState, gameState.currentWorld!.currentLevel.levelNumber);
+      newGameState = levelResult.gameState;
+      roundState = newGameState.currentWorld?.currentLevel.currentRound;
+    }
     
     if (!roundState) return state;
     
+    // Reset pending action to 'none' for new level/round
+    (this.gameInterface as any).pendingAction = { type: 'none' };
+    
     // Auto-save after level completion (after advancing to next level)
+    await this.autoSaveGame(newGameState);
+    
+    const webState = this.createWebGameState(newGameState, roundState, [], null, false, false, false);
+    return {
+      ...webState,
+      isInShop: false,
+      isInMapSelection: false,
+      shopState: null,
+      levelRewards: state.levelRewards,
+    };
+  }
+
+  /**
+   * Select a world from the map
+   * This generates all level configs for the world and starts level 1
+   */
+  async selectWorld(state: WebGameState, worldId: string): Promise<WebGameState> {
+    if (!state.gameState || !state.isInMapSelection) return state;
+    
+    const newGameState = await this.gameAPI.selectWorld(state.gameState, worldId);
+    
+    // Initialize the new level (creates level state and first round, emits events)
+    const levelResult = await this.gameAPI.initializeLevel(newGameState.gameState, newGameState.gameState.currentWorld!.currentLevel.levelNumber);
+    const gameState = levelResult.gameState;
+    const roundState = gameState.currentWorld?.currentLevel.currentRound;
+    
+    if (!roundState) return state;
+    
+    // Reset pending action to 'none' for new level/round
+    (this.gameInterface as any).pendingAction = { type: 'none' };
+    
+    // For first world selection (level 1), go directly to the game board, not the shop
+    // Shop only appears after completing a level
+    const isFirstLevel = gameState.currentWorld?.currentLevel.levelNumber === 1;
+    
+    // Auto-save after world selection
     await this.autoSaveGame(gameState);
     
-    return this.createWebGameState(gameState, roundState, [], null, false, false, false);
+    const webState = this.createWebGameState(gameState, roundState, [], null, false, false, false);
+    return {
+      ...webState,
+      isInMapSelection: false,
+      isInShop: false, // Don't go to shop on first level
+      shopState: null,
+      levelRewards: null,
+    };
   }
 
   /**
@@ -830,7 +970,7 @@ export class WebGameManager {
 
     const result = await this.gameAPI.startNewRound(state.gameState);
     const gameState = result.gameState;
-    const roundState = gameState.currentLevel.currentRound;
+    const roundState = gameState.currentWorld?.currentLevel.currentRound;
     
     if (!roundState) return state;
     
