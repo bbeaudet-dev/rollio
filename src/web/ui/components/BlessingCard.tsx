@@ -76,6 +76,7 @@ interface BlessingCardProps {
   canAfford?: boolean;
   showBuyButton?: boolean;
   onBuy?: () => void;
+  highlighted?: boolean;
 }
 
 export const BlessingCard: React.FC<BlessingCardProps> = ({
@@ -87,7 +88,8 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
   discount = 0,
   canAfford = true,
   showBuyButton = false,
-  onBuy
+  onBuy,
+  highlighted = false
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -151,7 +153,9 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
           width: `${cardSize}px`,
           height: `${cardSize}px`,
           backgroundColor: backgroundColor,
-          border: `3px solid ${borderColor}`,
+          border: highlighted 
+            ? `3px solid #ffc107` 
+            : `3px solid ${borderColor}`,
           borderRadius: '8px',
           cursor: onClick || showBuyButton ? 'pointer' : 'default',
           opacity: canAfford ? 1 : 0.6,
@@ -162,12 +166,17 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
           boxSizing: 'border-box',
           transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
           transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-          ...(isHovered
+          ...(highlighted 
             ? {
-                boxShadow: glowStyle.boxShadow || '0 4px 8px rgba(0,0,0,0.3)',
-                ...(glowStyle.animation ? { animation: glowStyle.animation } : {})
+                boxShadow: '0 0 15px 5px rgba(255, 193, 7, 0.6), 0 4px 8px rgba(0,0,0,0.3)',
+                animation: 'charmHighlight 0.6s ease-out'
               }
-            : glowStyle
+            : isHovered
+              ? {
+                  boxShadow: glowStyle.boxShadow || '0 4px 8px rgba(0,0,0,0.3)',
+                  ...(glowStyle.animation ? { animation: glowStyle.animation } : {})
+                }
+              : glowStyle
           )
         }}
       >

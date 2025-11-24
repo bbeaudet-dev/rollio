@@ -9,8 +9,6 @@ export const RerollIndicator: React.FC<RerollIndicatorProps> = ({
   count, 
   maxVisible = 5 
 }) => {
-  if (count === 0) return null;
-  
   const indicators = [];
   for (let i = 0; i < count && i < maxVisible; i++) {
     indicators.push(

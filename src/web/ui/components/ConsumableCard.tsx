@@ -55,6 +55,7 @@ interface ConsumableCardProps {
   onBuy?: () => void;
   showUseButton?: boolean;
   onUse?: () => void;
+  highlighted?: boolean;
 }
 
 export const ConsumableCard: React.FC<ConsumableCardProps> = ({
@@ -68,7 +69,8 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
   showBuyButton = false,
   onBuy,
   showUseButton = false,
-  onUse
+  onUse,
+  highlighted = false
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -128,7 +130,9 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
           width: `${cardSize}px`,
           height: `${cardSize}px`,
           backgroundColor: backgroundColor,
-          border: `3px solid ${borderColor}`,
+          border: highlighted 
+            ? `3px solid #ffc107` 
+            : `3px solid ${borderColor}`,
           borderRadius: '8px',
           cursor: onClick || showBuyButton || showUseButton ? 'pointer' : 'default',
           opacity: canAfford ? 1 : 0.6,
@@ -139,12 +143,17 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
           boxSizing: 'border-box',
           transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
           transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-          ...(isHovered
+          ...(highlighted 
             ? {
-                boxShadow: glowStyle.boxShadow || '0 4px 8px rgba(0,0,0,0.3)',
-                ...(glowStyle.animation ? { animation: glowStyle.animation } : {})
+                boxShadow: '0 0 15px 5px rgba(255, 193, 7, 0.6), 0 4px 8px rgba(0,0,0,0.3)',
+                animation: 'charmHighlight 0.6s ease-out'
               }
-            : glowStyle
+            : isHovered
+              ? {
+                  boxShadow: glowStyle.boxShadow || '0 4px 8px rgba(0,0,0,0.3)',
+                  ...(glowStyle.animation ? { animation: glowStyle.animation } : {})
+                }
+              : glowStyle
           )
         }}
       >

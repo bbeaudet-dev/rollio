@@ -110,6 +110,13 @@ export const MainMenu: React.FC = () => {
           Calculator
         </MainMenuButton>
         
+        <MainMenuButton
+          variant="secondary"
+          onClick={() => navigate('/how-to-play')}
+        >
+          How To Play
+        </MainMenuButton>
+        
         <button 
           onClick={() => setIsSettingsOpen(true)}
           style={{
@@ -144,6 +151,11 @@ export const MainMenu: React.FC = () => {
       {/* Auth Section - Below buttons */}
       <div style={{ marginTop: '30px' }}>
         <AuthSection />
+      </div>
+      
+      {/* Self-plug */}
+      <div style={{ marginTop: '20px', fontSize: '12px', color: '#6c757d' }}>
+        a game by <a href="https://benbeaudet.com" target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'none' }}>ben</a>
       </div>
       
     </div>

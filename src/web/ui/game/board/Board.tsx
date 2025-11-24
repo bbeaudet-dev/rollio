@@ -20,6 +20,9 @@ interface BoardProps {
   rollNumber?: number;
   consecutiveFlops?: number;
   levelNumber?: number;
+  worldNumber?: number;
+  worldEffects?: any[];
+  levelEffects?: any[];
   previewScoring?: {
     isValid: boolean;
     points: number;
@@ -46,6 +49,9 @@ export const Board: React.FC<BoardProps> = ({
   rollNumber = 0,
   consecutiveFlops = 0,
   levelNumber = 1,
+  worldNumber,
+  worldEffects = [],
+  levelEffects = [],
   previewScoring = null,
   canChooseFlopShield = false,
   onFlopShieldChoice = () => {},
@@ -146,6 +152,9 @@ export const Board: React.FC<BoardProps> = ({
         levelNumber={levelNumber || 1}
         roundNumber={roundNumber}
         rollNumber={rollNumber}
+        worldNumber={worldNumber}
+        worldEffects={worldEffects}
+        levelEffects={levelEffects}
         consecutiveFlops={consecutiveFlops}
       />
 

@@ -25,8 +25,8 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  if (!gameState?.currentLevel) {
-    console.error('GameShopView: gameState.currentLevel is required');
+  if (!gameState?.currentWorld?.currentLevel) {
+    console.error('GameShopView: gameState.currentWorld.currentLevel is required');
     return null;
   }
 
@@ -58,6 +58,9 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
             shopState={shopState}
             playerMoney={gameState.money || 0}
             blessings={gameState.blessings || []}
+            currentLevelNumber={gameState.currentWorld?.currentLevel.levelNumber}
+            difficulty={gameState.config?.difficulty}
+            gameState={gameState}
           />
           
           <div style={{ position: 'relative', zIndex: 2, backgroundColor: '#f8f9fa' }}>
@@ -67,6 +70,8 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
               blessings={gameState.blessings || []}
               money={gameState.money}
               onConsumableUse={inventoryActions.handleConsumableUse}
+              onSellCharm={inventoryActions.handleSellCharm}
+              onSellConsumable={inventoryActions.handleSellConsumable}
             />
           </div>
           

@@ -51,8 +51,9 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
         <div style={{ 
           display: 'flex',
           flexWrap: 'wrap',
-          gap: '8px',
-          justifyContent: 'center'
+          gap: '12px',
+          justifyContent: 'center',
+          padding: '8px'
         }}>
           {items.map((item, index) => {
             // Show blank spot if item was purchased (null)
