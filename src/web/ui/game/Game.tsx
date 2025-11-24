@@ -3,6 +3,7 @@ import { Board } from './board/Board';
 import { GameControls } from './GameControls';
 import { Inventory } from './Inventory';
 import { GameShopView } from './GameShopView';
+import { WorldMap } from './WorldMap';
 import { SettingsButton, MainMenuReturnButton } from '../components';
 import { SettingsModal } from '../menu';
 import { TallyModal } from './TallyModal';
@@ -29,6 +30,8 @@ interface GameActions {
 
 interface InventoryActions {
   handleConsumableUse: (index: number) => void;
+  handleSellCharm?: (index: number) => void;
+  handleSellConsumable?: (index: number) => void;
 }
 
 interface GameBoardData {
@@ -37,7 +40,7 @@ interface GameBoardData {
   previewScoring: any;
   canRoll: boolean;
   canBank: boolean;
-  canReroll: boolean; // After scoring - can roll remaining dice
+  canRollAgain: boolean; // After scoring - can roll remaining dice
   canSelectDice: boolean;
   isWaitingForReroll: boolean; // Before scoring - can reroll any dice
   canRerollSelected: boolean; // Before scoring - can reroll selected dice
@@ -70,6 +73,7 @@ interface GameProps {
   roundState: any;
   inventory: any;
   isInShop?: boolean;
+  isInMapSelection?: boolean;
   shopState?: any;
   levelRewards?: any;
   canPlay?: boolean;
@@ -77,6 +81,7 @@ interface GameProps {
   pendingRewards?: any;
   onReturnToMenu?: () => void;
   onNewGame?: () => void;
+  onSelectWorld?: (worldId: string) => void;
 }
 
 export const Game: React.FC<GameProps> = ({ 
@@ -89,13 +94,15 @@ export const Game: React.FC<GameProps> = ({
   roundState, 
   inventory,
   isInShop = false,
+  isInMapSelection = false,
   shopState = null,
   levelRewards = null,
   canPlay = true,
   showTallyModal = false,
   pendingRewards = null,
   onReturnToMenu,
-  onNewGame
+  onNewGame,
+  onSelectWorld
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
@@ -104,6 +111,16 @@ export const Game: React.FC<GameProps> = ({
   
   // Check if modals should disable interactions
   const modalOpen = isGameOver || (showTallyModal && pendingRewards);
+  
+  // Handle map selection phase
+  if (isInMapSelection && gameState && onSelectWorld) {
+    return (
+      <WorldMap
+        gameState={gameState}
+        onSelectWorld={onSelectWorld}
+      />
+    );
+  }
   
   // Handle shop phase - this is a completely different view, so early return makes sense
   if (isInShop && shopState && gameState && shopActions) {
@@ -183,7 +200,7 @@ export const Game: React.FC<GameProps> = ({
   const lastRollPoints = roundState && roundState.rollHistory && roundState.rollHistory.length > 0 ? 
     roundState.rollHistory[roundState.rollHistory.length - 1]?.rollPoints || 0 : 0;
   const rollNumber = roundState?.rollHistory?.length || 0;
-  const roundNumber = gameState.currentLevel.currentRound?.roundNumber || 1;
+  const roundNumber = gameState.currentWorld?.currentLevel.currentRound?.roundNumber || 1;
   const difficulty = gameState.config.difficulty as any; // Convert to string type for context
 
   return (
@@ -209,8 +226,11 @@ export const Game: React.FC<GameProps> = ({
           canSelect={board.canSelectDice && canPlay && !modalOpen}
           roundNumber={roundNumber}
           rollNumber={rollNumber}
-          consecutiveFlops={gameState.currentLevel.consecutiveFlops}
-          levelNumber={gameState.currentLevel?.levelNumber || 1}
+          consecutiveFlops={gameState.consecutiveFlops}
+          levelNumber={gameState.currentWorld?.currentLevel.levelNumber || 1}
+          worldNumber={gameState.currentWorld?.worldNumber}
+          worldEffects={gameState.currentWorld?.worldEffects}
+          levelEffects={gameState.currentWorld?.currentLevel.levelEffects}
           previewScoring={board.previewScoring}
           canChooseFlopShield={board.canChooseFlopShield && canPlay && !modalOpen}
           onFlopShieldChoice={gameActions.handleFlopShieldChoice}
@@ -254,15 +274,15 @@ export const Game: React.FC<GameProps> = ({
             }}
             onBank={gameActions.handleBank}
             canReroll={board.isWaitingForReroll && canPlay && !modalOpen}
-            canRoll={(board.canRoll || board.canReroll) && canPlay && !modalOpen}
+            canRoll={(board.canRoll || board.canRollAgain) && canPlay && !modalOpen}
             canScore={board.canSelectDice && canPlay && !modalOpen}
             canBank={board.canBank && canPlay && !modalOpen}
             diceToRoll={gameActions.getDiceToRollCount(gameState)}
             selectedDiceCount={board.selectedDice.length}
-            rerollsRemaining={gameState.currentLevel?.rerollsRemaining || 0}
-            banksRemaining={gameState.currentLevel?.banksRemaining || 0}
-            levelPoints={gameState.currentLevel?.pointsBanked || 0}
-            levelThreshold={gameState.currentLevel?.levelThreshold || 0}
+            rerollsRemaining={gameState.currentWorld?.currentLevel.rerollsRemaining || 0}
+            banksRemaining={gameState.currentWorld?.currentLevel.banksRemaining || 0}
+            levelPoints={gameState.currentWorld?.currentLevel.pointsBanked || 0}
+            levelThreshold={gameState.currentWorld?.currentLevel.levelThreshold || 0}
             roundPoints={roundState?.roundPoints || 0}
             hotDiceCounter={roundState?.isActive && roundState.hotDiceCounter > 0 ? roundState.hotDiceCounter : 0}
             previewScoring={board.previewScoring}
@@ -277,6 +297,8 @@ export const Game: React.FC<GameProps> = ({
         blessings={gameState.blessings || []}
         money={gameState.money}
         onConsumableUse={inventoryActions.handleConsumableUse}
+        onSellCharm={inventoryActions.handleSellCharm}
+        onSellConsumable={inventoryActions.handleSellConsumable}
       />
       
       {/* Menu and Settings buttons below inventory */}
@@ -297,12 +319,12 @@ export const Game: React.FC<GameProps> = ({
       
       {/* Modals overlay on top - conditionally rendered */}
       
-      {showTallyModal && pendingRewards && gameState?.currentLevel && (
+      {showTallyModal && pendingRewards && gameState?.currentWorld?.currentLevel && (
         <TallyModal
           isOpen={true}
-          levelNumber={gameState.currentLevel.levelNumber}
+          levelNumber={gameState.currentWorld.currentLevel.levelNumber}
           rewards={pendingRewards}
-          banksRemaining={gameState.currentLevel.banksRemaining || 0}
+          banksRemaining={gameState.currentWorld.currentLevel.banksRemaining || 0}
           onContinue={gameActions.handleConfirmTally}
         />
       )}
@@ -310,7 +332,7 @@ export const Game: React.FC<GameProps> = ({
       {isGameOver && onReturnToMenu && onNewGame && (
         <GameOverModal
           isOpen={true}
-          endReason={gameState.endReason || 'lost'}
+          endReason={gameState.won === false ? 'lost' : gameState.won === true ? 'win' : 'lost'}
           onReturnToMenu={onReturnToMenu}
           onNewGame={onNewGame}
         />

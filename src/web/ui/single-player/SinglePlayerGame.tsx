@@ -72,12 +72,14 @@ export const SinglePlayerGame: React.FC = () => {
         roundState={game.roundState}
         inventory={game.inventory}
         isInShop={game.isInShop}
+        isInMapSelection={game.isInMapSelection}
         shopState={game.shopState}
         levelRewards={game.levelRewards}
         showTallyModal={game.showTallyModal}
         pendingRewards={game.pendingRewards}
         onReturnToMenu={handleReturnToMenu}
         onNewGame={handleNewGame}
+        onSelectWorld={game.selectWorld}
       />
     </div>
   );

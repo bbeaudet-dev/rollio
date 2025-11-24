@@ -210,7 +210,17 @@ export function useGameState() {
     },
     
     inventoryActions: {
-    handleConsumableUse,
+      handleConsumableUse,
+      handleSellCharm: useCallback(async (index: number) => {
+        if (!webState || !gameManagerRef.current) return;
+        const newState = await gameManagerRef.current.sellCharm(webState, index);
+        setWebState(newState);
+      }, [webState]),
+      handleSellConsumable: useCallback(async (index: number) => {
+        if (!webState || !gameManagerRef.current) return;
+        const newState = await gameManagerRef.current.sellConsumable(webState, index);
+        setWebState(newState);
+      }, [webState]),
     },
     
     // Shop actions
@@ -278,11 +288,19 @@ export function useGameState() {
     
     // Shop state
     isInShop: webState?.isInShop || false,
+    isInMapSelection: webState?.isInMapSelection || false,
     shopState: webState?.shopState || null,
     levelRewards: webState?.levelRewards || null,
     
     // Tally modal state
     showTallyModal: webState?.showTallyModal || false,
     pendingRewards: webState?.pendingRewards || null,
+    
+    // World selection
+    selectWorld: useCallback(async (worldId: string) => {
+      if (!webState || !gameManagerRef.current) return;
+      const newState = await gameManagerRef.current.selectWorld(webState, worldId);
+      setWebState(newState);
+    }, [webState]),
   };
 } 
