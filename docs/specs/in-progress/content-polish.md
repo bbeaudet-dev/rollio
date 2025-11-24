@@ -804,7 +804,7 @@ new charm/consumable: turns your negative points positive
     
 new charm - save 50% of points lost when flopping
 new charm - gain some other bonus that scales with flop penalty
-
+Rework sandbagger
 
 Rework difficulties?
 We have a d6 now?
@@ -814,3 +814,6 @@ Wasnt there a consumable to change the material of a selected die? Not implement
 
 Some kind of assassin charm based on reroll ranger 2 picture
 Charm: against the grain: provides bonus when playing straights, pyramids, n=3 pairs? with a mirror die
+
+CAstle Crashers inspiration
+On level up, add points to differnet combinations!!!
