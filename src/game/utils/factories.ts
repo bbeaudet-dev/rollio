@@ -157,6 +157,15 @@ export function createInitialLevelState(
   // Apply level effects (world effects + boss/miniboss effects, modifiers)
   const { rerolls, banks } = applyLevelEffects(baseRerolls, baseBanks, levelConfig);
   
+  // CRITICAL: Ensure banksRemaining is at least 1 - player must be able to play
+  // If level effects reduce banks to 0, this would prevent rolling
+  const finalBanks = Math.max(1, banks);
+  const finalRerolls = Math.max(0, rerolls);
+  
+  if (banks <= 0) {
+    console.warn(`[createInitialLevelState] Warning: Level ${levelNumber} would have ${banks} banks. Setting to minimum of 1.`);
+  }
+  
   // Get effect context for filtering and scoring (world effects come from gameState.currentWorld)
   const worldEffects = gameState.currentWorld.worldEffects;
   const effectContext = getLevelEffectContext(world, levelEffects);
@@ -169,8 +178,8 @@ export function createInitialLevelState(
     levelThreshold: levelConfig.pointThreshold,
     isMiniboss,
     isMainBoss,
-    rerollsRemaining: rerolls,
-    banksRemaining: banks,
+    rerollsRemaining: finalRerolls,
+    banksRemaining: finalBanks,
     flopsThisLevel: 0,  // Reset at start of each level (for progressive penalty)
     pointsBanked: 0,  // Initialize to 0 at level start
     currentRound: firstRound,

@@ -132,7 +132,7 @@ export class WebGameManager {
     breakdownState: 'hidden' | 'animating' | 'complete' = 'hidden',
   ): WebGameState {
     const messages = this.gameInterface.getMessages();
-    const pendingAction = this.gameInterface.getPendingAction();
+    let pendingAction = this.gameInterface.getPendingAction();
     
     messages.forEach(msg => this.messageCallback(msg));
     
@@ -144,16 +144,29 @@ export class WebGameManager {
     let canRoll: boolean;
     
     // Check if this is a new round (active round with no roll history)
-    const isNewRound = roundState?.isActive && !hasRolledDice && roundState.rollHistory.length === 0;
+    // Also handle case where roundState is null (should be able to start new round)
+    const isNewRound = (!roundState || (roundState.isActive && !hasRolledDice && roundState.rollHistory.length === 0));
     
-    if (hasRolledDice && roundState?.isActive) {
-      canRoll = !isProcessing && pendingAction.type === 'bankOrRoll' && (gameState.currentWorld?.currentLevel.banksRemaining || 0) > 0;
-    } else if (pendingAction.type === 'reroll' || pendingAction.type === 'diceSelection' || pendingAction.type === 'flopShieldChoice') {
+    // DEFENSIVE: If this is a new round, force pendingAction to 'none' to ensure player can roll
+    if (isNewRound && pendingAction.type !== 'none') {
+      console.warn(`Warning: New round detected but pendingAction is '${pendingAction.type}'. Forcing to 'none'.`);
+      pendingAction = { type: 'none' };
+      (this.gameInterface as any).pendingAction = { type: 'none' };
+    }
+    
+    // Block rolling if there are blocking pending actions
+    if (pendingAction.type === 'reroll' || pendingAction.type === 'diceSelection' || pendingAction.type === 'flopShieldChoice') {
       canRoll = false;
+    } else if (hasRolledDice && roundState?.isActive) {
+      // Mid-round: can roll if bankOrRoll action is pending and has banks
+      canRoll = !isProcessing && pendingAction.type === 'bankOrRoll' && (gameState.currentWorld?.currentLevel.banksRemaining || 0) > 0;
     } else if (isNewRound) {
       // New round - can roll if no pending actions and game allows it
-      canRoll = !isProcessing && pendingAction.type === 'none' && this.gameAPI.canRoll(gameState);
+      // Force pendingAction to 'none' for new rounds to ensure we can roll
+      const effectivePendingAction = pendingAction.type === 'none' ? pendingAction : { type: 'none' as const };
+      canRoll = !isProcessing && effectivePendingAction.type === 'none' && this.gameAPI.canRoll(gameState);
     } else {
+      // Fallback: check game logic
       canRoll = !isProcessing && (this.gameAPI.canRoll(gameState) || justFlopped);
     }
     
@@ -226,10 +239,29 @@ export class WebGameManager {
 
     const roundState = updatedGameState.currentWorld?.currentLevel.currentRound;
     
-    // Reset pending action to 'none' for new level
+    if (!roundState) {
+      console.error('Failed to create round state after initializeGame');
+      // Return world selection state if round creation failed
+      return {
+        ...this.createWebGameState(updatedGameState, null, [], null, false, false, false),
+        isInShop: false,
+        isInMapSelection: true,
+        shopState: null,
+        showTallyModal: false,
+        pendingRewards: null,
+      };
+    }
+    
+    // CRITICAL: Reset pending action to 'none' IMMEDIATELY after level initialization
     (this.gameInterface as any).pendingAction = { type: 'none' };
     
-    return this.createWebGameState(updatedGameState, roundState || null, [], null, false, false, false);
+    // Validate banksRemaining
+    const banksRemaining = updatedGameState.currentWorld?.currentLevel.banksRemaining || 0;
+    if (banksRemaining <= 0) {
+      console.warn(`Warning: banksRemaining is ${banksRemaining} at level start. This should not happen.`);
+    }
+    
+    return this.createWebGameState(updatedGameState, roundState, [], null, false, false, false);
   }
 
   /**
@@ -649,6 +681,11 @@ export class WebGameManager {
       return state;
     }
     
+    if (index < 0 || index >= (state.gameState.consumables?.length || 0)) {
+      console.error('[useConsumable] Invalid index:', index);
+      return state;
+    }
+    
     // Use GameAPI for consumable effects
     const result = await this.gameAPI.useConsumable(state.gameState, index);
     
@@ -661,7 +698,13 @@ export class WebGameManager {
     const roundState = result.roundState !== undefined ? result.roundState : state.roundState;
     
     if (result.requiresInput && result.requiresInput.type === 'dieSelection') {
-      // Requires die selection input - handled by GameAPI
+      // Set pending action for die selection
+      (this.gameInterface as any).pendingAction = {
+        type: 'consumableDieSelection',
+        consumableId: result.requiresInput.consumableId,
+        diceSet: result.requiresInput.diceSet,
+        consumableIndex: index
+      };
     }
     
     const newState = this.createWebGameState(gameState, roundState, state.selectedDice, state.previewScoring, state.justBanked, state.justFlopped, state.isProcessing);
@@ -679,6 +722,13 @@ export class WebGameManager {
 
   async purchaseCharm(state: WebGameState, charmIndex: number): Promise<WebGameState> {
     if (!state.gameState || !state.shopState || !state.isInShop) return state;
+    
+    if (charmIndex < 0 || charmIndex >= (state.shopState.availableCharms?.length || 0)) {
+      return state;
+    }
+    
+    const charm = state.shopState.availableCharms[charmIndex];
+    if (!charm) return state;
     
     const result = await this.gameAPI.purchaseCharm(state.gameState, state.shopState, charmIndex);
     
@@ -705,6 +755,13 @@ export class WebGameManager {
   async purchaseConsumable(state: WebGameState, consumableIndex: number): Promise<WebGameState> {
     if (!state.gameState || !state.shopState || !state.isInShop) return state;
     
+    if (consumableIndex < 0 || consumableIndex >= (state.shopState.availableConsumables?.length || 0)) {
+      return state;
+    }
+    
+    const consumable = state.shopState.availableConsumables[consumableIndex];
+    if (!consumable) return state;
+    
     const result = await this.gameAPI.purchaseConsumable(state.gameState, state.shopState, consumableIndex);
     
     if (result.success) {
@@ -729,6 +786,13 @@ export class WebGameManager {
 
   async purchaseBlessing(state: WebGameState, blessingIndex: number): Promise<WebGameState> {
     if (!state.gameState || !state.shopState || !state.isInShop) return state;
+    
+    if (blessingIndex < 0 || blessingIndex >= (state.shopState.availableBlessings?.length || 0)) {
+      return state;
+    }
+    
+    const blessing = state.shopState.availableBlessings[blessingIndex];
+    if (!blessing) return state;
     
     const result = await this.gameAPI.purchaseBlessing(state.gameState, state.shopState, blessingIndex);
     
@@ -772,6 +836,10 @@ export class WebGameManager {
   async sellCharm(state: WebGameState, charmIndex: number): Promise<WebGameState> {
     if (!state.gameState) return state;
     
+    if (charmIndex < 0 || charmIndex >= (state.gameState.charms?.length || 0)) {
+      return state;
+    }
+    
     const result = await this.gameAPI.sellCharm(state.gameState, charmIndex);
     const gameState = result.gameState;
     const roundState = gameState.currentWorld?.currentLevel?.currentRound || null;
@@ -791,6 +859,10 @@ export class WebGameManager {
    */
   async sellConsumable(state: WebGameState, consumableIndex: number): Promise<WebGameState> {
     if (!state.gameState) return state;
+    
+    if (consumableIndex < 0 || consumableIndex >= (state.gameState.consumables?.length || 0)) {
+      return state;
+    }
     
     const result = await this.gameAPI.sellConsumable(state.gameState, consumableIndex);
     const gameState = result.gameState;
@@ -854,28 +926,26 @@ export class WebGameManager {
     }
     
     // Not at world boundary - advanceToNextLevel already created the level state
-    // But we need to call initializeLevel to trigger charm hooks and emit events
-    // However, if the level state already exists with a round, we should use it
-    let newGameState = gameState;
-    let roundState = gameState.currentWorld?.currentLevel.currentRound;
+    // Always call initializeLevel to ensure charm hooks are called and events are emitted
+    // This is safe even if level already exists - it will properly initialize the round
+    const levelResult = await this.gameAPI.initializeLevel(gameState, gameState.currentWorld!.currentLevel.levelNumber);
+    const newGameState = levelResult.gameState;
+    const roundState = newGameState.currentWorld?.currentLevel.currentRound;
     
-    // Only initialize if the level doesn't have a proper round state yet
-    if (!roundState || !roundState.isActive || roundState.rollHistory.length > 0) {
-      const levelResult = await this.gameAPI.initializeLevel(gameState, gameState.currentWorld!.currentLevel.levelNumber);
-      newGameState = levelResult.gameState;
-      roundState = newGameState.currentWorld?.currentLevel.currentRound;
-    } else {
-      // Level already initialized, but we still need to emit events and call charm hooks
-      // Call initializeLevel anyway to ensure events are emitted (it will reuse the existing state)
-      const levelResult = await this.gameAPI.initializeLevel(gameState, gameState.currentWorld!.currentLevel.levelNumber);
-      newGameState = levelResult.gameState;
-      roundState = newGameState.currentWorld?.currentLevel.currentRound;
+    if (!roundState) {
+      console.error('Failed to create round state after exitShop');
+      return state;
     }
     
-    if (!roundState) return state;
-    
-    // Reset pending action to 'none' for new level/round
+    // CRITICAL: Reset pending action to 'none' IMMEDIATELY after level initialization
+    // This must happen before createWebGameState is called
     (this.gameInterface as any).pendingAction = { type: 'none' };
+    
+    // Validate banksRemaining - should never be 0 at level start
+    const banksRemaining = newGameState.currentWorld?.currentLevel.banksRemaining || 0;
+    if (banksRemaining <= 0) {
+      console.warn(`Warning: banksRemaining is ${banksRemaining} at level start. This should not happen.`);
+    }
     
     // Auto-save after level completion (after advancing to next level)
     await this.autoSaveGame(newGameState);
@@ -904,10 +974,20 @@ export class WebGameManager {
     const gameState = levelResult.gameState;
     const roundState = gameState.currentWorld?.currentLevel.currentRound;
     
-    if (!roundState) return state;
+    if (!roundState) {
+      console.error('Failed to create round state after selectWorld');
+      return state;
+    }
     
-    // Reset pending action to 'none' for new level/round
+    // CRITICAL: Reset pending action to 'none' IMMEDIATELY after level initialization
+    // This must happen before createWebGameState is called
     (this.gameInterface as any).pendingAction = { type: 'none' };
+    
+    // Validate banksRemaining - should never be 0 at level start
+    const banksRemaining = gameState.currentWorld?.currentLevel.banksRemaining || 0;
+    if (banksRemaining <= 0) {
+      console.warn(`Warning: banksRemaining is ${banksRemaining} at level start. This should not happen.`);
+    }
     
     // For first world selection (level 1), go directly to the game board, not the shop
     // Shop only appears after completing a level

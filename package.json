@@ -8,7 +8,6 @@
     "web": "ts-node src/app/web.ts",
     "server": "ts-node src/server/server.ts",
     "start": "ts-node src/server/server.ts",
-    "app": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "dev": "nodemon --exec ts-node src/cli/cli.ts",

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { CharmInventoryProps } from '../../../types/inventory';
 import { CharmCard } from '../../components/CharmCard';
 import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
@@ -7,9 +7,26 @@ import { CHARM_PRICES } from '../../../../game/data/charms';
 export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm }) => {
   const { highlightedCharmIds } = useScoringHighlights();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Deselect when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setSelectedIndex(null);
+      }
+    };
+
+    if (selectedIndex !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [selectedIndex]);
 
   return (
-    <div>
+    <div ref={containerRef}>
       {charms.length === 0 ? (
         <p style={{ 
           fontSize: '10px', 
@@ -24,7 +41,9 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
             const isSelected = selectedIndex === index;
             
             return (
-              <div key={charm.id} onClick={() => setSelectedIndex(isSelected ? null : index)} style={{ position: 'relative' }}>
+              <div key={charm.id} onClick={() => {
+                setSelectedIndex(isSelected ? null : index);
+              }} style={{ position: 'relative' }}>
                 <CharmCard
                   charm={charm}
                   highlighted={highlightedCharmIds.includes(charm.id) || isSelected}
@@ -54,7 +73,9 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSellCharm(index);
+                        if (onSellCharm) {
+                          onSellCharm(index);
+                        }
                         setSelectedIndex(null);
                       }}
                       style={{

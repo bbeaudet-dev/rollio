@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ShopItem } from './ShopItem';
 import { Charm, Consumable, Blessing } from '../../../../game/types';
 import { useDifficulty } from '../../../contexts/DifficultyContext';
@@ -20,6 +20,24 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
   onPurchase
 }) => {
   const difficulty = useDifficulty();
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Deselect when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setSelectedIndex(null);
+      }
+    };
+
+    if (selectedIndex !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [selectedIndex]);
   
   const getPrice = (item: Charm | Consumable | Blessing | null) => {
     if (!item) return 0;
@@ -35,7 +53,7 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
   };
 
   return (
-    <div style={{ flex: 1, minWidth: 0 }}>
+    <div ref={containerRef} style={{ flex: 1, minWidth: 0 }}>
       {items.length === 0 ? (
         <div style={{ 
           padding: '8px', 
@@ -93,7 +111,14 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
                 finalPrice={finalPrice}
                 discount={discount}
                 canAfford={canAfford}
-                onPurchase={() => onPurchase(index)}
+                onPurchase={() => {
+                  onPurchase(index);
+                  setSelectedIndex(null);
+                }}
+                isSelected={selectedIndex === index}
+                onSelect={() => {
+                  setSelectedIndex(selectedIndex === index ? null : index);
+                }}
               />
             );
           })}

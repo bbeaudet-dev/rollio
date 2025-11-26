@@ -16,18 +16,18 @@ graph TB
         D[ReactGameInterface]
     end
 
-    subgraph "Game Engine Layer"
-        E[GameEngine]
-        F[RoundManager]
-        G[RollManager]
-        H[SetupManager]
+    subgraph "API Layer"
+        E[GameAPI]
     end
 
     subgraph "Game Logic Layer"
-        I[Scoring Engine]
-        J[Charm System]
-        K[Shop System]
-        L[Game Actions]
+        F[Scoring Engine]
+        G[Charm System]
+        H[Shop System]
+        I[Game Actions]
+        J[Map Generation]
+        K[World Effects]
+        L[Level Management]
     end
 
     subgraph "Data Layer"
@@ -42,17 +42,20 @@ graph TB
     E --> F
     E --> G
     E --> H
-    F --> I
-    F --> J
-    F --> K
-    G --> I
-    I --> L
-    J --> L
-    K --> L
-    L --> M
+    E --> I
+    E --> J
+    E --> K
+    E --> L
+    F --> M
+    G --> M
+    H --> M
     I --> M
+    J --> M
+    K --> M
+    L --> M
+    I --> N
     H --> N
-    K --> N
+    J --> N
 ```
 
 ## Architecture Principles
@@ -109,7 +112,7 @@ User Action → Component → Hook → Service → Game Engine → State Update 
 
 ### Application Layer
 
-**Purpose**: Bridge between UI and game engine
+**Purpose**: Bridge between UI and game API
 
 **Components**:
 
@@ -122,25 +125,23 @@ User Action → Component → Hook → Service → Game Engine → State Update 
 - Handle user actions
 - Coordinate game flow
 - Manage UI-specific state
+- Calculate derived UI flags (canRoll, canBank, etc.)
 
-### Game Engine Layer
+### API Layer
 
-**Purpose**: Game orchestration and flow
+**Purpose**: Event-driven API for game operations
 
 **Components**:
 
-- `GameEngine` - Main game loop
-- `RoundManager` - Round flow
-- `RollManager` - Dice rolling
-- `SetupManager` - Game initialization
-- `LevelManager` - Level progression
+- `GameAPI` - Main API class
 
 **Responsibilities**:
 
-- Orchestrate game flow
-- Manage game state transitions
-- Coordinate managers
-- Handle game events
+- Provide clean interface for game operations
+- Emit events for state changes
+- Coordinate game logic modules
+- Handle game state updates
+- Manage charm system integration
 
 ### Game Logic Layer
 
@@ -148,11 +149,21 @@ User Action → Component → Hook → Service → Game Engine → State Update 
 
 **Components**:
 
-- Scoring engine
-- Charm system
-- Shop system
-- Game actions
-- Consumable effects
+- `scoring.ts` - Scoring combinations and calculations
+- `charmSystem.ts` - Charm management and effects
+- `shop.ts` - Shop generation and purchases
+- `gameActions.ts` - Core game action processing
+- `gameLogic.ts` - Game flow logic (level completion, etc.)
+- `consumableEffects.ts` - Consumable effect processing
+- `mapGeneration.ts` - World map generation and navigation
+- `worldEffects.ts` - World-specific effects
+- `tallying.ts` - Level rewards and calculations
+- `flops.ts` - Flop detection and penalties
+- `rerollLogic.ts` - Reroll calculations
+- `materialSystem.ts` - Dice material effects
+- `pipEffectSystem.ts` - Pip effect processing
+- `difficulty.ts` - Difficulty scaling
+- `debuffs.ts` - Debuff system
 
 **Responsibilities**:
 
@@ -160,6 +171,8 @@ User Action → Component → Hook → Service → Game Engine → State Update 
 - Calculate scoring
 - Process game actions
 - Apply item effects
+- Generate world maps
+- Handle world/level progression
 
 ### Data Layer
 
@@ -291,39 +304,43 @@ Component Re-render
 
 ```
 src/
-├── app/                    # React application
-│   ├── components/         # UI components
+├── web/                    # React web application
+│   ├── ui/                 # UI components
+│   │   ├── game/          # Game UI components
+│   │   ├── menu/          # Menu components
+│   │   ├── setup/         # Setup components
+│   │   └── components/    # Reusable components
 │   ├── hooks/              # React hooks
 │   ├── services/          # Application services
 │   ├── types/              # UI-specific types
 │   └── utils/              # UI utilities
-├── game/                   # Game engine
-│   ├── engine/             # Game orchestration
-│   ├── logic/               # Game rules
-│   ├── data/                # Static data
-│   ├── types.ts             # Core types
-│   └── utils/               # Game utilities
+├── game/                   # Game engine (no React dependencies)
+│   ├── api/                # GameAPI layer
+│   ├── logic/              # Game rules and mechanics
+│   ├── data/               # Static game data
+│   ├── types.ts            # Core types
+│   └── utils/              # Game utilities
 ├── cli/                     # CLI interface
 └── server/                  # Server interface
 ```
 
 ### Module Boundaries
 
-- **app/** - React-specific code
-- **game/** - Game engine (no React)
-- **cli/** - Command-line interface
-- **server/** - Server interface
+- **web/** - React-specific code (presentation layer)
+- **game/** - Game engine (no React dependencies, pure game logic)
+- **cli/** - Command-line interface (uses game/ layer)
+- **server/** - Server interface (uses game/ layer)
 
 ## Interface Architecture
 
 ### GameInterface
 
-**Purpose**: Abstract game interface
+**Purpose**: Abstract game interface for logging and display
 
 **Implementations**:
 
 - `ReactGameInterface` - React/web implementation
-- `CLIInterface` - Command-line implementation
+- `CLIGameInterface` - Command-line implementation
 
 **Methods**:
 
@@ -338,18 +355,14 @@ src/
 - Manages charm effects
 - Applies charm filters
 - Tracks charm state
+- Handles charm registration
 
-**RollManager**:
+**GameAPI**:
 
-- Handles dice rolling
-- Manages roll state
-- Provides roll utilities
-
-**RoundManager**:
-
-- Orchestrates rounds
-- Manages round flow
-- Handles round transitions
+- Event-driven API for game operations
+- Coordinates all game logic modules
+- Emits events for state changes
+- Provides clean interface for UI layer
 
 ## Error Handling Architecture
 

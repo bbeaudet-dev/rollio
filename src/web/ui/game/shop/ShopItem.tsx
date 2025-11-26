@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
 import { Charm, Consumable, Blessing } from '../../../../game/types';
 import { CharmCard } from '../../components/CharmCard';
 import { ConsumableCard } from '../../components/ConsumableCard';
@@ -12,6 +12,8 @@ interface ShopItemProps {
   discount: number;
   canAfford: boolean;
   onPurchase: () => void;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }
 
 export const ShopItem: React.FC<ShopItemProps> = ({
@@ -21,17 +23,29 @@ export const ShopItem: React.FC<ShopItemProps> = ({
   finalPrice,
   discount,
   canAfford,
-  onPurchase
+  onPurchase,
+  isSelected = false,
+  onSelect
 }) => {
-  const [isSelected, setIsSelected] = useState(false);
+  const itemRef = useRef<HTMLDivElement>(null);
 
-  const handleClick = () => {
-    setIsSelected(!isSelected);
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSelect) {
+      onSelect();
+    }
+  };
+
+  const handlePurchase = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onPurchase) {
+      onPurchase();
+    }
   };
 
   if (itemType === 'charm') {
     return (
-      <div onClick={handleClick} style={{ position: 'relative' }}>
+      <div ref={itemRef} onClick={handleClick} style={{ position: 'relative' }}>
       <CharmCard
         charm={item as Charm}
         showPrice={true}
@@ -40,7 +54,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
         discount={discount}
         canAfford={canAfford}
         showBuyButton={isSelected}
-        onBuy={onPurchase}
+        onBuy={() => handlePurchase({} as React.MouseEvent)}
         highlighted={isSelected}
         isInShop={true}
       />
@@ -59,10 +73,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
             alignItems: 'center'
           }}>
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onPurchase();
-              }}
+              onClick={handlePurchase}
               style={{
                 backgroundColor: canAfford ? '#4CAF50' : '#999',
                 color: 'white',
@@ -84,7 +95,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
   
   if (itemType === 'consumable') {
     return (
-      <div onClick={handleClick} style={{ position: 'relative' }}>
+      <div ref={itemRef} onClick={handleClick} style={{ position: 'relative' }}>
         <ConsumableCard
           consumable={item as Consumable}
           showPrice={true}
@@ -93,7 +104,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
           discount={discount}
           canAfford={canAfford}
           showBuyButton={isSelected}
-          onBuy={onPurchase}
+          onBuy={() => handlePurchase({} as React.MouseEvent)}
           highlighted={isSelected}
         />
         {isSelected && (
@@ -111,10 +122,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
             alignItems: 'center'
           }}>
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onPurchase();
-              }}
+              onClick={handlePurchase}
               style={{
                 backgroundColor: canAfford ? '#4CAF50' : '#999',
                 color: 'white',
@@ -136,7 +144,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
   
   // blessing
   return (
-    <div onClick={handleClick} style={{ position: 'relative' }}>
+    <div ref={itemRef} onClick={handleClick} style={{ position: 'relative' }}>
       <BlessingCard
         blessing={item as Blessing}
         showPrice={true}
@@ -145,7 +153,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
         discount={discount}
         canAfford={canAfford}
         showBuyButton={isSelected}
-        onBuy={onPurchase}
+        onBuy={() => handlePurchase({} as React.MouseEvent)}
         highlighted={isSelected}
       />
       {isSelected && (

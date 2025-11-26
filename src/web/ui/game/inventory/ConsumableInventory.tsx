@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ConsumableInventoryProps } from '../../../types/inventory';
 import { ConsumableCard } from '../../components/ConsumableCard';
 import { WHIMS, WISHES } from '../../../../game/data/consumables';
@@ -14,9 +14,26 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
   onSellConsumable
 }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Deselect when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setSelectedIndex(null);
+      }
+    };
+
+    if (selectedIndex !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [selectedIndex]);
 
   return (
-    <div>
+    <div ref={containerRef}>
       {consumables.length === 0 ? (
         <p style={{ 
           fontSize: '10px', 
@@ -33,7 +50,9 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
             const isSelected = selectedIndex === index;
             
             return (
-              <div key={index} onClick={() => setSelectedIndex(isSelected ? null : index)} style={{ position: 'relative' }}>
+              <div key={index} onClick={() => {
+                setSelectedIndex(isSelected ? null : index);
+              }} style={{ position: 'relative' }}>
                 <ConsumableCard
                   consumable={consumable}
                   showUseButton={isSelected}
@@ -81,7 +100,9 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onSellConsumable(index);
+                          if (onSellConsumable) {
+                            onSellConsumable(index);
+                          }
                           setSelectedIndex(null);
                         }}
                         style={{

@@ -78,6 +78,20 @@ async function initializeDatabase() {
   }
 }
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Rollio Backend API',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      game: '/api/game',
+      stats: '/api/stats'
+    }
+  });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
@@ -317,14 +331,22 @@ io.on('connection', (socket) => {
 
 // Start server
 async function startServer() {
-  await initializeDatabase();
-  
-  server.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  });
+  try {
+    await initializeDatabase();
+    
+    server.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  console.error('Fatal error starting server:', error);
+  process.exit(1);
+});
 
 export default app; 

@@ -6,16 +6,18 @@ This document describes the type system and type relationships in Rollio.
 
 ```mermaid
 graph TD
-    A[GameState] --> B[LevelState]
+    A[GameState] --> B[WorldState]
     A --> C[GameHistory]
     A --> D[GameConfig]
-    B --> E[RoundState]
-    E --> F[RollState]
-    A --> G[Charm]
-    A --> H[Consumable]
-    A --> I[Blessing]
-    A --> J[Die]
-    J --> K[DiceMaterial]
+    A --> E[GameMap]
+    B --> F[LevelState]
+    F --> G[RoundState]
+    G --> H[RollState]
+    A --> I[Charm]
+    A --> J[Consumable]
+    A --> K[Blessing]
+    A --> L[Die]
+    L --> M[DiceMaterial]
 ```
 
 ## Core Types
@@ -30,31 +32,39 @@ graph TD
 interface GameState {
   // Game-wide state
   isActive: boolean;
-  endReason?: GameEndReason;
+  config: GameConfig;
+  settings: GameSettings;
+  history: GameHistory;
+  won?: boolean;
+
+  baseLevelRerolls: number;
+  baseLevelBanks: number;
+  charmSlots: number;
+  consumableSlots: number;
+
+  gamePhase: GamePhase;
+  gameMap?: GameMap;
+  shop?: ShopState;
+  currentWorld?: WorldState; // Current world state (includes currentLevel)
+
   money: number;
   diceSet: Die[];
   charms: Charm[];
   consumables: Consumable[];
   blessings: Blessing[];
-  rerollValue: number;
-  livesValue: number;
-  charmSlots: number;
-  consumableSlots: number;
-  settings: GameSettings;
-  config: GameConfig;
 
-  // Current level state
-  currentLevel: LevelState;
-
-  // History
-  history: GameHistory;
+  lastConsumableUsed?: string;
+  consecutiveBanks: number;
+  consecutiveFlops: number;
 }
 ```
 
 **Key Properties**:
 
 - `isActive` - Whether game is currently active
-- `currentLevel` - Nested level state
+- `gamePhase` - Current game phase (worldSelection, playing, shop, etc.)
+- `gameMap` - World map structure
+- `currentWorld` - Current world state (includes currentLevel)
 - `history` - Cumulative game statistics
 
 ### LevelState
@@ -64,14 +74,34 @@ interface GameState {
 **Purpose**: Current level state
 
 ```typescript
+interface WorldState {
+  worldId: string;
+  worldNumber: number;
+  levelConfigs: LevelConfig[];
+  worldEffects: WorldEffect[];
+  currentLevel: LevelState;
+}
+
 interface LevelState {
   levelNumber: number;
-  pointsBanked: number;
   levelThreshold: number;
-  rerollsRemaining: number;
-  livesRemaining: number;
-  consecutiveFlops: number;
-  currentRound: RoundState | undefined;
+  isMiniboss?: boolean;
+  isMainBoss?: boolean;
+  levelEffects?: LevelEffect[];
+  effectContext?: EffectContext;
+  currentRound?: RoundState;
+  pointsBanked: number;
+  rerollsRemaining?: number;
+  banksRemaining?: number;
+  flopsThisLevel: number;
+  banksThisLevel?: number;
+  rewards?: {
+    baseReward: number;
+    banksBonus: number;
+    charmBonuses: number;
+    blessingBonuses: number;
+    total: number;
+  };
 }
 ```
 
@@ -87,17 +117,27 @@ interface LevelState {
 
 **Purpose**: Current round state
 
-```typescript
-interface RoundState {
-  roundNumber: number;
-  isActive: boolean;
-  flopped: boolean;
-  roundPoints: number;
-  diceHand: Die[];
-  hotDiceCounter: number;
-  forfeitedPoints: number;
-  rollHistory: RollState[];
-}
+```mermaid
+graph TD
+    A[RoundState] --> B[Round Info]
+    A --> C[Status]
+    A --> D[Dice & Points]
+    A --> E[Tracking]
+    A --> F[History]
+
+    B --> B1[roundNumber: Round within level]
+
+    C --> C1[isActive: Round in progress]
+    C --> C2["endReason?: 'flop' | 'bank'"]
+
+    D --> D1["diceHand: Die[]"]
+    D --> D2[roundPoints: number]
+    D --> D3[forfeitedPoints: number]
+
+    E --> E1[hotDiceCounter: number]
+    E --> E2[flowerCounter?: number]
+
+    F --> F1["rollHistory: RollState[]"]
 ```
 
 **Key Properties**:
@@ -112,14 +152,35 @@ interface RoundState {
 
 **Purpose**: Individual roll state
 
-```typescript
-interface RollState {
-  rollNumber: number;
-  diceHand: Die[];
-  rollPoints: number;
-  combinations: ScoringCombination[];
-}
+```mermaid
+graph TD
+    A[RollState] --> B[Roll Info]
+    A --> C[Dice State]
+    A --> D[Scoring]
+    A --> E[Status Flags]
+
+    B --> B1[rollNumber: Sequence number]
+    B --> B2[isReroll: boolean]
+
+    C --> C1["diceHand: Die[] snapshot"]
+    C --> C2["selectedDice: Die[]"]
+    C --> C3["scoringSelection: number[]"]
+
+    D --> D1[rollPoints: number]
+    D --> D2[maxRollPoints?: number]
+    D --> D3["combinations: ScoringCombination[]"]
+    D --> D4[scoringBreakdown?: Breakdown]
+
+    E --> E1[isHotDice?: boolean]
+    E --> E2[isFlop?: boolean]
 ```
+
+**Key Properties**:
+
+- `rollNumber` - Sequential roll number within round
+- `diceHand` - Snapshot of dice values rolled
+- `rollPoints` - Points scored from this roll
+- `combinations` - Array of scoring combinations found
 
 ## Item Types
 
@@ -129,26 +190,29 @@ interface RollState {
 
 **Purpose**: Passive item that provides ongoing effects
 
-```typescript
-interface Charm {
-  id: string;
-  name: string;
-  description: string;
-  active: boolean;
-  rarity?: CharmRarity;
-  uses?: number;
-  buyValue?: number;
-  sellValue?: number;
+```mermaid
+graph TD
+    A[Charm] --> B[Basic Info]
+    A --> C[Properties]
+    A --> D[Effects]
+    A --> E[Runtime Functions]
 
-  // Effect properties
-  flopPreventing?: boolean;
-  combinationFiltering?: boolean;
-  scoreMultiplier?: number;
-  ruleChange?: string;
+    B --> B1[id: string]
+    B --> B2[name: string]
+    B --> B3[description: string]
+    B --> B4[active: boolean]
+    B --> B5[rarity: CharmRarity]
 
-  // Runtime effects
-  filterScoringCombinations?: (combinations: any[], context: any) => any[];
-}
+    C --> C1[uses?: number]
+    C --> C2[buyValue?: number]
+    C --> C3[sellValue?: number]
+
+    D --> D1[flopPreventing?: boolean]
+    D --> D2[combinationFiltering?: boolean]
+    D --> D3[scoreMultiplier?: number]
+    D --> D4[ruleChange?: string]
+
+    E --> E1[filterScoringCombinations?: function]
 ```
 
 **Rarity Types**:
@@ -165,14 +229,17 @@ interface Charm {
 
 **Purpose**: One-time use item
 
-```typescript
-interface Consumable {
-  id: string;
-  name: string;
-  description: string;
-  uses: number;
-  rarity?: string;
-}
+```mermaid
+graph TD
+    A[Consumable] --> B[Basic Info]
+    A --> C[Usage]
+
+    B --> B1[id: string]
+    B --> B2[name: string]
+    B --> B3[description: string]
+    B --> B4[rarity?: string]
+
+    C --> C1[uses: number]
 ```
 
 **Examples**:
@@ -188,31 +255,33 @@ interface Consumable {
 
 **Purpose**: Permanent upgrade with tiers
 
-```typescript
-interface Blessing {
-  id: string;
-  tier: 1 | 2 | 3;
-  effect: BlessingEffect;
-}
+```mermaid
+graph TD
+    A[Blessing] --> B[Basic Info]
+    A --> C[Effect]
+
+    B --> B1[id: string]
+    B --> B2["tier: 1 | 2 | 3"]
+
+    C --> C1[effect: BlessingEffect]
+    C1 --> C2[type: string]
+    C1 --> C3[amount/percentage: number]
 ```
 
 **Blessing Effect Types**:
 
-```typescript
-type BlessingEffect =
-  | { type: "rerollValue"; amount: number }
-  | { type: "livesValue"; amount: number }
-  | { type: "rerollOnBank"; amount: number }
-  | { type: "rerollOnFlop"; amount: number }
-  | { type: "rerollOnCombination"; combination: string; amount: number }
-  | { type: "charmSlots"; amount: number }
-  | { type: "consumableSlots"; amount: number }
-  | { type: "shopDiscount"; percentage: number }
-  | { type: "flopSubversion"; percentage: number }
-  | { type: "moneyPerLife"; amount: number }
-  | { type: "moneyOnLevelEnd"; amount: number }
-  | { type: "moneyOnRerollUsed"; amount: number };
-```
+- `rerollValue` - Increase base rerolls
+- `livesValue` - Increase base lives
+- `rerollOnBank` - Gain rerolls when banking
+- `rerollOnFlop` - Gain rerolls when flopping
+- `rerollOnCombination` - Gain rerolls on specific combination
+- `charmSlots` - Increase charm slots
+- `consumableSlots` - Increase consumable slots
+- `shopDiscount` - Reduce shop prices
+- `flopSubversion` - Chance to prevent flops
+- `moneyPerLife` - Gain money per life
+- `moneyOnLevelEnd` - Gain money when level completes
+- `moneyOnRerollUsed` - Gain money when reroll used
 
 ## Dice Types
 
@@ -222,16 +291,25 @@ type BlessingEffect =
 
 **Purpose**: Individual die configuration and state
 
-```typescript
-interface Die {
-  id: string;
-  sides: number;
-  allowedValues: number[];
-  material: DiceMaterialType;
-  scored?: boolean; // Runtime: whether die was scored
-  rolledValue?: number; // Runtime: current roll value
-}
+```mermaid
+graph TD
+    A[Die] --> B[Configuration]
+    A --> C[Runtime State]
+
+    B --> B1[id: string]
+    B --> B2[sides: number]
+    B --> B3["allowedValues: number[]"]
+    B --> B4[material: DiceMaterialType]
+    B --> B5[pipEffects?: Record]
+
+    C --> C1[scored?: boolean]
+    C --> C2[rolledValue?: number]
 ```
+
+**Properties:**
+
+- **Configuration**: id, sides, allowedValues, material, pipEffects
+- **Runtime State**: scored (whether die was scored), rolledValue (current roll)
 
 ### DiceMaterial
 
@@ -286,25 +364,28 @@ interface DiceSetConfig {
 
 **Purpose**: Scoring combination result
 
-```typescript
-interface ScoringCombination {
-  type: string;
-  dice: number[];
-  points: number;
-}
+```mermaid
+graph TD
+    A[ScoringCombination] --> B[Type]
+    A --> C[Dice]
+    A --> D[Points]
+
+    B --> B1[type: string]
+    C --> C1["dice: number[]"]
+    D --> D1[points: number]
 ```
 
 **Combination Types**:
 
-- `'single_one'` - Single 1
-- `'single_five'` - Single 5
-- `'three_of_a_kind'` - Three of a kind
-- `'four_of_a_kind'` - Four of a kind
-- `'five_of_a_kind'` - Five of a kind
-- `'six_of_a_kind'` - Six of a kind
-- `'straight'` - 1-2-3-4-5-6
-- `'three_pairs'` - Three pairs
-- `'two_triplets'` - Two triplets
+- `'single_one'` - Single 1 (100 points)
+- `'single_five'` - Single 5 (50 points)
+- `'three_of_a_kind'` - Three of a kind (varies by value)
+- `'four_of_a_kind'` - Four of a kind (varies by value)
+- `'five_of_a_kind'` - Five of a kind (varies by value)
+- `'six_of_a_kind'` - Six of a kind (varies by value)
+- `'straight'` - 1-2-3-4-5-6 (1500 points)
+- `'three_pairs'` - Three pairs (1500 points)
+- `'two_triplets'` - Two triplets (2500 points)
 
 ### ScoringResult
 
@@ -324,75 +405,94 @@ interface ScoringResult {
 
 ### WebGameState
 
-**Location**: `src/app/services/WebGameManager.ts`
+**Location**: `src/web/services/WebGameManager.ts`
 
 **Purpose**: UI-specific game state
 
-```typescript
-interface WebGameState {
-  gameState: GameState | null;
-  roundState: RoundState | null;
-  selectedDice: number[];
-  messages: string[];
-  pendingAction: PendingAction;
-  previewScoring: {
-    isValid: boolean;
-    points: number;
-    combinations: string[];
-  } | null;
-  materialLogs: string[];
-  charmLogs: string[];
-  justBanked: boolean;
-  justFlopped: boolean;
-  isProcessing: boolean;
+```mermaid
+graph TD
+    A[WebGameState] --> B[Core State]
+    A --> C[UI State]
+    A --> D[Derived Flags]
+    A --> E[Shop State]
 
-  // Derived UI flags
-  canRoll: boolean;
-  canBank: boolean;
-  canReroll: boolean;
-  canSelectDice: boolean;
-  isWaitingForReroll: boolean;
-  canRerollSelected: boolean;
-  canContinueFlop: boolean;
-  canChooseFlopShield: boolean;
+    B --> B1["gameState: GameState | null"]
+    B --> B2["roundState: RoundState | null"]
+    B --> B3["selectedDice: number[]"]
+    B --> B4["messages: string[]"]
+    B --> B5[pendingAction: PendingAction]
 
-  // Shop state
-  isInShop: boolean;
-  shopState: ShopState | null;
-  levelRewards: LevelRewards | null;
-}
+    C --> C1["previewScoring: object | null"]
+    C --> C2["materialLogs: string[]"]
+    C --> C3["charmLogs: string[]"]
+    C --> C4[justBanked: boolean]
+    C --> C5[justFlopped: boolean]
+    C --> C6[isProcessing: boolean]
+
+    D --> D1[canRoll, canBank, canReroll]
+    D --> D2[canSelectDice, isWaitingForReroll]
+    D --> D3[canRerollSelected, canContinueFlop]
+    D --> D4[canChooseFlopShield]
+
+    E --> E1[isInShop: boolean]
+    E --> E2["shopState: ShopState | null"]
+    E --> E3["levelRewards: LevelRewards | null"]
 ```
+
+**Properties:**
+
+- **Core State**: GameState, RoundState, selectedDice, messages, pendingAction
+- **UI State**: Preview scoring, logs, flags for animations
+- **Derived Flags**: Calculated from game state (canRoll, canBank, etc.)
+- **Shop State**: Shop phase flags and state
 
 ### PendingAction
 
-**Location**: `src/app/services/ReactGameInterface.ts`
+**Location**: `src/web/services/ReactGameInterface.ts`
 
 **Purpose**: Tracks pending user actions
 
-```typescript
-type PendingAction =
-  | { type: "none" }
-  | { type: "flopContinue" }
-  | { type: "flopShieldChoice" };
+```mermaid
+graph TD
+    A[PendingAction] --> B[none]
+    A --> C[flopContinue]
+    A --> D[flopShieldChoice]
+
+    B --> B1[No pending action]
+    C --> C1[Waiting for flop continue]
+    D --> D1[Waiting for flop shield choice]
 ```
+
+**Types:**
+
+- `none` - No pending action
+- `flopContinue` - Waiting for user to continue after flop
+- `flopShieldChoice` - Waiting for user to choose whether to use flop shield
 
 ## Type Relationships
 
 ### Composition
 
-```typescript
-GameState {
-  currentLevel: LevelState {
-    currentRound: RoundState {
-      diceHand: Die[],
-      rollHistory: RollState[]
-    }
-  },
-  charms: Charm[],
-  consumables: Consumable[],
-  blessings: Blessing[]
-}
+```mermaid
+graph TD
+    A[GameState] --> B[currentWorld: WorldState]
+    A --> C["charms: Charm[]"]
+    A --> D["consumables: Consumable[]"]
+    A --> E["blessings: Blessing[]"]
+
+    B --> F[currentLevel: LevelState]
+    F --> G[currentRound?: RoundState]
+    G --> H["diceHand: Die[]"]
+    G --> I["rollHistory: RollState[]"]
 ```
+
+**Nested Structure:**
+
+- GameState contains arrays of items (charms, consumables, blessings)
+- GameState contains WorldState
+- WorldState contains LevelState
+- LevelState contains optional RoundState
+- RoundState contains Die[] and RollState[]
 
 ### Inheritance
 
@@ -485,24 +585,27 @@ export type { ShopState };
 
 ### Discriminated Unions
 
-```typescript
-// Blessing effects use discriminated unions
-type BlessingEffect =
-  | { type: "rerollValue"; amount: number }
-  | { type: "livesValue"; amount: number }
-  | { type: "shopDiscount"; percentage: number };
+```mermaid
+graph TD
+    A[BlessingEffect] --> B[rerollValue]
+    A --> C[livesValue]
+    A --> D[shopDiscount]
 
-// TypeScript can narrow based on type
-function getEffectValue(effect: BlessingEffect): number {
-  switch (effect.type) {
-    case "rerollValue":
-    case "livesValue":
-      return effect.amount; // TypeScript knows amount exists
-    case "shopDiscount":
-      return effect.percentage; // TypeScript knows percentage exists
-  }
-}
+    B --> B1[type: 'rerollValue']
+    B --> B2[amount: number]
+
+    C --> C1[type: 'livesValue']
+    C --> C2[amount: number]
+
+    D --> D1[type: 'shopDiscount']
+    D --> D2[percentage: number]
 ```
+
+**Type Narrowing:**
+
+- TypeScript can narrow the type based on the `type` field
+- Each variant has different properties (amount vs percentage)
+- Switch statements can safely access variant-specific properties
 
 ### Branded Types
 
@@ -524,12 +627,16 @@ function getCharm(id: CharmID): Charm { ... }
  * Represents the complete game state.
  *
  * @property isActive - Whether the game is currently active
- * @property currentLevel - Current level state (nested)
+ * @property gamePhase - Current game phase (worldSelection, playing, shop, etc.)
+ * @property gameMap - World map structure
+ * @property currentWorld - Current world state (includes currentLevel)
  * @property history - Cumulative game statistics
  */
 interface GameState {
   isActive: boolean;
-  currentLevel: LevelState;
+  gamePhase: GamePhase;
+  gameMap?: GameMap;
+  currentWorld?: WorldState;
   history: GameHistory;
 }
 ```
