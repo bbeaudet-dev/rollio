@@ -161,54 +161,65 @@ flowchart TD
 
 ### Game State → UI State
 
-```typescript
-// 1. Game Logic State
-GameState {
-  currentWorld: {
-    currentLevel: {
-      currentRound: RoundState {
-        diceHand: Die[],
-        roundPoints: number
-      }
-    }
-  }
-}
-
-// 2. GameAPI processes actions and returns updated state
-GameAPI.rollDice(gameState) → {
-  gameState: GameState,  // Updated state
-  roundState: RoundState,
-  // ... other result data
-}
-
-// 3. WebGameManager transforms to WebGameState
-WebGameState {
-  gameState: GameState,
-  roundState: RoundState,
-  selectedDice: number[],
-  previewScoring: {...},
-  canRoll: boolean,  // Derived from state
-  canBank: boolean   // Derived from state
-}
-
-// 4. useGameState organizes into logical groups
-{
-  board: {
-    dice: Die[],
-    selectedDice: number[],
-    canRoll: boolean
-  },
-  rollActions: {
-    handleRollDice: () => void
-  }
-}
-
-// 5. Components receive organized props
-<GameBoard
-  board={board}
-  rollActions={rollActions}
-/>
+```mermaid
+flowchart TD
+    A[GameState] --> B[GameAPI]
+    B --> C[WebGameState]
+    C --> D[useGameState Hook]
+    D --> E[Organized Groups]
+    E --> F[React Components]
+    
+    A --> A1[Game Logic State]
+    A1 --> A2[currentWorld.currentLevel.currentRound]
+    A2 --> A3[diceHand, roundPoints]
+    
+    B --> B1[Process Actions]
+    B1 --> B2[Return Updated State]
+    B2 --> B3[Emit Events]
+    
+    C --> C1[gameState: GameState]
+    C --> C2[roundState: RoundState]
+    C --> C3[selectedDice: number[]]
+    C --> C4[previewScoring: object]
+    C --> C5[canRoll, canBank: boolean]
+    
+    D --> D1[Organize Data]
+    D1 --> D2[Create Action Handlers]
+    
+    E --> E1[board: dice, selection, flags]
+    E --> E2[rollActions: handlers]
+    E --> E3[gameActions: handlers]
+    E --> E4[inventory: items]
+    
+    F --> F1[GameBoard Component]
+    F1 --> F2[Receives organized props]
 ```
+
+**Transformation Steps:**
+
+1. **Game Logic State** - Pure game state from logic layer
+   - Contains nested structure: `currentWorld.currentLevel.currentRound`
+   - Includes dice, points, and all game data
+
+2. **GameAPI Processing** - Processes actions and returns results
+   - Takes GameState, processes action
+   - Returns updated GameState with result data
+   - Emits events for state changes
+
+3. **WebGameState** - UI-friendly state with derived flags
+   - Includes original GameState
+   - Adds UI-specific data (selectedDice, previewScoring)
+   - Calculates derived flags (canRoll, canBank, etc.)
+
+4. **useGameState Organization** - Organizes into logical groups
+   - Groups related data together
+   - Creates action handlers
+   - Provides clean interface for components
+
+5. **Component Props** - Components receive organized data
+   - Components get only what they need
+   - Clean, typed interfaces
+   - Easy to use and understand
 
 ## User Action Flow
 
@@ -275,38 +286,69 @@ sequenceDiagram
 
 All state updates create new objects:
 
-```typescript
-// ❌ Bad: Mutating state
-gameState.currentLevel.pointsBanked += 100;
-
-// ✅ Good: Creating new state
-const newGameState = {
-  ...gameState,
-  currentLevel: {
-    ...gameState.currentLevel,
-    pointsBanked: gameState.currentLevel.pointsBanked + 100,
-  },
-};
+```mermaid
+flowchart LR
+    A[Original State] --> B[Create New Object]
+    B --> C[Copy Properties]
+    C --> D[Update Changed Properties]
+    D --> E[New State Object]
+    
+    F[❌ Mutation] --> F1[Modify existing object]
+    F1 --> F2[Breaks React rendering]
+    
+    E --> G[✅ Immutable Update]
+    G --> G1[New object created]
+    G1 --> G2[React detects change]
+    G2 --> G3[Component re-renders]
 ```
+
+**Pattern:**
+- **Never mutate** existing state objects
+- **Always create** new objects with updated values
+- Use spread operator (`...`) to copy properties
+- Update only the changed nested properties
+- React can detect changes and re-render efficiently
 
 ### Derived State
 
 UI flags are calculated from game state:
 
-```typescript
-// Derived flags in WebGameManager
-const canRoll =
-  !isProcessing &&
-  roundState !== null &&
-  roundState.diceHand.length > 0 &&
-  !hasPendingAction;
-
-const canBank =
-  !isProcessing &&
-  roundState !== null &&
-  roundState.roundPoints > 0 &&
-  !hasPendingAction;
+```mermaid
+flowchart TD
+    A[GameState] --> B[WebGameManager]
+    B --> C[Calculate Derived Flags]
+    
+    C --> D[canRoll]
+    C --> E[canBank]
+    C --> F[canSelectDice]
+    C --> G[isInShop]
+    
+    D --> D1[!isProcessing]
+    D --> D2[roundState exists]
+    D --> D3[diceHand.length > 0]
+    D --> D4[!hasPendingAction]
+    
+    E --> E1[!isProcessing]
+    E --> E2[roundState exists]
+    E --> E3[roundPoints > 0]
+    E --> E4[!hasPendingAction]
+    
+    F --> F1[roundState exists]
+    F --> F2[has valid combinations]
+    F --> F3[!isProcessing]
+    
+    G --> G1[gamePhase === 'shop']
 ```
+
+**Derived Flags:**
+- **canRoll**: Can player roll dice?
+  - Not processing, round exists, has dice, no pending action
+- **canBank**: Can player bank points?
+  - Not processing, round exists, has points, no pending action
+- **canSelectDice**: Can player select dice?
+  - Round exists, valid combinations available, not processing
+- **isInShop**: Is player in shop?
+  - Game phase is 'shop'
 
 ## Data Dependencies
 
@@ -328,21 +370,34 @@ src/game/
 
 ### Import Patterns
 
-```typescript
-// Components import from hooks and types
-import { useGameState } from "../../hooks/useGameState";
-import { GameBoardProps } from "../../types/game";
-
-// Hooks import from services
-import { WebGameManager } from "../services/WebGameManager";
-
-// Services import from GameAPI
-import { GameAPI } from "../../game/api";
-import { GameState, RoundState } from "../../game/types";
-
-// Game logic imports only types
-import { Die, ScoringCombination } from "../types";
+```mermaid
+graph TD
+    A[Components] --> B[Hooks & Types]
+    B --> C[useGameState]
+    B --> D[Component Types]
+    
+    E[Hooks] --> F[Services]
+    F --> G[WebGameManager]
+    
+    H[Services] --> I[GameAPI]
+    H --> J[Game Types]
+    I --> K[GameAPI Class]
+    J --> L[GameState, RoundState]
+    
+    M[Game Logic] --> N[Types Only]
+    N --> O[Die, ScoringCombination]
+    
+    style A fill:#e1f5ff
+    style E fill:#fff4e1
+    style H fill:#ffe1f5
+    style M fill:#e1ffe1
 ```
+
+**Import Rules:**
+- **Components** → Hooks and UI types only
+- **Hooks** → Services (WebGameManager)
+- **Services** → GameAPI and game types
+- **Game Logic** → Types only (no React, no services)
 
 ## State Synchronization
 
@@ -381,25 +436,32 @@ import { Die, ScoringCombination } from "../types";
 
 ### State Validation
 
-```typescript
-// Example: Validating dice selection
-function validateDiceSelection(
-  dice: Die[],
-  selectedIndices: number[]
-): boolean {
-  // Check indices are valid
-  if (selectedIndices.some((i) => i < 0 || i >= dice.length)) {
-    return false;
-  }
-
-  // Check for duplicates
-  if (new Set(selectedIndices).size !== selectedIndices.length) {
-    return false;
-  }
-
-  return true;
-}
+```mermaid
+flowchart TD
+    A[Dice Selection] --> B[Validate Indices]
+    B --> C{Valid Range?}
+    C -->|No| D[❌ Invalid]
+    C -->|Yes| E[Check Duplicates]
+    E --> F{No Duplicates?}
+    F -->|No| D
+    F -->|Yes| G[Check Combinations]
+    G --> H{Valid Scoring?}
+    H -->|No| D
+    H -->|Yes| I[✅ Valid Selection]
+    
+    B --> B1[All indices >= 0]
+    B --> B2[All indices < dice.length]
+    
+    E --> E1[Set size === array length]
+    
+    G --> G1[Has valid combinations]
+    G --> G2[Can score selected dice]
 ```
+
+**Validation Steps:**
+1. **Index Range** - All indices must be valid (0 to dice.length-1)
+2. **No Duplicates** - Each die can only be selected once
+3. **Valid Scoring** - Selected dice must form valid scoring combinations
 
 ## Performance Considerations
 
@@ -419,14 +481,30 @@ function validateDiceSelection(
 
 ### State Error Recovery
 
-```typescript
-// Example: Error handling in state updates
-try {
-  const newState = gameManager.rollDice(currentState);
-  setWebState(newState);
-} catch (error) {
-  console.error("Roll failed:", error);
-  addMessage("Failed to roll dice. Please try again.");
-  // State remains unchanged
-}
+```mermaid
+flowchart TD
+    A[Action Attempt] --> B[Try Execute]
+    B --> C{Success?}
+    C -->|Yes| D[Update State]
+    C -->|No| E[Catch Error]
+    
+    E --> F[Log Error]
+    F --> G[Show User Message]
+    G --> H[State Unchanged]
+    H --> I[User Can Retry]
+    
+    D --> J[New State Applied]
+    J --> K[UI Updates]
+    
+    style E fill:#ffe1e1
+    style H fill:#fff4e1
+    style D fill:#e1ffe1
 ```
+
+**Error Handling Pattern:**
+1. **Try** to execute action
+2. **Catch** any errors
+3. **Log** error for debugging
+4. **Notify** user with friendly message
+5. **Preserve** existing state (don't corrupt game)
+6. **Allow** user to retry or continue

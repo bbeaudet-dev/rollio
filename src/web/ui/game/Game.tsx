@@ -14,6 +14,8 @@ import { ScoringHighlightProvider } from '../../contexts/ScoringHighlightContext
 // Intermediary interfaces for logical groups
 interface RollActions {
   handleDiceSelect: (index: number) => void;
+  handleSelectAllDice: () => void;
+  handleDeselectAllDice: () => void;
   handleRollDice: () => void;
   scoreSelectedDice: () => void;
   handleRerollSelection: (selectedIndices: number[]) => void;
@@ -261,9 +263,19 @@ export const Game: React.FC<GameProps> = ({
         }}>
           <GameControls 
             onReroll={() => {
-              // Reroll Button (left)
+              // Reroll Selected/Skip Button (left half)
               rollActions.handleRerollSelection(board.selectedDice);
             }}
+            onRerollAll={() => {
+              // Reroll All Button (right half)
+              // Select all dice indices for reroll
+              const allDiceIndices = board.dice
+                .map((_, index) => index)
+                .filter(index => board.dice[index].rolledValue !== undefined);
+              rollActions.handleRerollSelection(allDiceIndices);
+            }}
+            onSelectAll={rollActions.handleSelectAllDice}
+            onDeselect={rollActions.handleDeselectAllDice}
             onRollOrScore={() => {
               // Rolling & Scoring Button (middle)
               if (board.selectedDice.length > 0 && board.previewScoring?.isValid) {
@@ -277,8 +289,10 @@ export const Game: React.FC<GameProps> = ({
             canRoll={(board.canRoll || board.canRollAgain) && canPlay && !modalOpen}
             canScore={board.canSelectDice && canPlay && !modalOpen}
             canBank={board.canBank && canPlay && !modalOpen}
+            canSelectDice={board.canSelectDice && canPlay && !modalOpen}
             diceToRoll={gameActions.getDiceToRollCount(gameState)}
             selectedDiceCount={board.selectedDice.length}
+            totalDiceCount={board.dice.filter(d => d.rolledValue !== undefined).length}
             rerollsRemaining={gameState.currentWorld?.currentLevel.rerollsRemaining || 0}
             banksRemaining={gameState.currentWorld?.currentLevel.banksRemaining || 0}
             levelPoints={gameState.currentWorld?.currentLevel.pointsBanked || 0}

@@ -61,6 +61,31 @@ export function useGameState() {
     setWebState(newState);
   }, [webState]);
 
+  // Handle select all dice
+  const handleSelectAllDice = useCallback(() => {
+    if (!webState || !gameManagerRef.current || !webState.roundState) return;
+    
+    // Get all dice that are currently in the dice hand (rolled dice)
+    const diceHand = webState.roundState.diceHand || [];
+    const diceSet = webState.gameState?.diceSet || [];
+    
+    // Find indices in diceSet for all dice in diceHand
+    const allDiceIndices = diceHand
+      .map(die => diceSet.findIndex(d => d.id === die.id))
+      .filter(index => index !== -1);
+    
+    const newState = gameManagerRef.current.updateDiceSelection(webState, allDiceIndices);
+    setWebState(newState);
+  }, [webState]);
+
+  // Handle deselect all dice
+  const handleDeselectAllDice = useCallback(() => {
+    if (!webState || !gameManagerRef.current) return;
+    
+    const newState = gameManagerRef.current.updateDiceSelection(webState, []);
+    setWebState(newState);
+  }, [webState]);
+
   // Unified roll/reroll action
   const handleRollDice = useCallback(async () => {
     if (!webState || !gameManagerRef.current) return;
@@ -162,7 +187,6 @@ export function useGameState() {
 
   const handleConsumableUse = useCallback(async (index: number) => {
     if (!webState || !gameManagerRef.current || !webState.gameState) return;
-    
     const newState = await gameManagerRef.current.useConsumable(webState, index);
     setWebState(newState);
   }, [webState]);
@@ -187,6 +211,8 @@ export function useGameState() {
     // Actions (logical groups)
     rollActions: {
       handleDiceSelect,
+      handleSelectAllDice,
+      handleDeselectAllDice,
       handleRollDice,
       scoreSelectedDice,
       handleRerollSelection,

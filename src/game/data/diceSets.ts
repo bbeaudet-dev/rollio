@@ -197,7 +197,7 @@ export const GOLDEN_SET: DiceSetConfig = {
     baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['goldenTouch', 'moneyMagnet', 'hedgeFund'],
-    startingConsumables: ['moneyDoubler'],
+    startingConsumables: ['liquidation'],
     startingBlessings: ['discountTier1', 'discountTier2', 'discountTier3', 'moneyTier1', 'moneyTier2', 'moneyTier3'],
 };
 
@@ -281,7 +281,7 @@ export const GHOST_SET: DiceSetConfig = {
     baseLevelBanks: 5,
     setType: 'cheat',
     startingCharms: ['ghostWhisperer', 'bodyDouble'],
-    startingConsumables: ['createLastConsumable', 'createTwoConsumables'],
+    startingConsumables: ['echo', 'groceryList'],
     startingBlessings: ['rerollTier1', 'rerollTier2', 'rerollTier3', 'rerollAbilityTier1', 'rerollAbilityTier2', 'rerollAbilityTier3'],
 };
 

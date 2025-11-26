@@ -41,15 +41,26 @@ flowchart TD
 
 **Entry Point**: `SinglePlayerGame` component → `useGameState` hook → `WebGameManager.initializeGame()`
 
-```typescript
-// Flow:
-1. User clicks "Start Adventure" in GameConfigSelector
-2. handleConfigComplete() called with dice set, charms, consumables
-3. game.gameActions.startNewGame() called
-4. WebGameManager.initializeGame() calls GameAPI.initializeGame()
-5. GameAPI creates initial game state with gameMap
-6. GamePhase set to 'worldSelection'
-7. World map displayed for player to select starting world
+```mermaid
+sequenceDiagram
+    participant User
+    participant GameConfigSelector
+    participant useGameState
+    participant WebGameManager
+    participant GameAPI
+    participant GameLogic
+
+    User->>GameConfigSelector: Click "Start Adventure"
+    GameConfigSelector->>useGameState: handleConfigComplete()
+    useGameState->>WebGameManager: initializeGame()
+    WebGameManager->>GameAPI: initializeGame()
+    GameAPI->>GameLogic: createInitialGameState()
+    GameAPI->>GameLogic: generateGameMap()
+    GameLogic-->>GameAPI: GameState with gameMap
+    GameAPI->>GameAPI: Set gamePhase = 'worldSelection'
+    GameAPI-->>WebGameManager: Initial GameState
+    WebGameManager-->>useGameState: WebGameState
+    useGameState->>User: Display World Map
 ```
 
 **Key Functions**:
@@ -63,18 +74,33 @@ flowchart TD
 
 **Entry Point**: World map displayed → User clicks world → `handleWorldClick()` → `WebGameManager.selectWorld()`
 
-```typescript
-// Flow:
-1. World map displayed showing available worlds
-2. Player clicks on an available world node
-3. handleWorldClick() called with worldId
-4. WebGameManager.selectWorld() calls GameAPI.selectWorld()
-5. GameAPI validates world is available from current position
-6. GameAPI.selectNextWorld() updates game state
-7. GamePhase set to 'playing'
-8. Initial level state created for selected world
-9. First round initialized
-10. Game board displayed with "Roll" button ready
+```mermaid
+sequenceDiagram
+    participant User
+    participant WorldMap
+    participant useGameState
+    participant WebGameManager
+    participant GameAPI
+    participant MapLogic
+
+    User->>WorldMap: Click available world
+    WorldMap->>useGameState: handleWorldClick(worldId)
+    useGameState->>WebGameManager: selectWorld(worldId)
+    WebGameManager->>GameAPI: selectWorld(gameState, worldId)
+    GameAPI->>MapLogic: getAvailableWorldChoices()
+    MapLogic-->>GameAPI: Available node IDs
+    GameAPI->>GameAPI: Validate world is available
+    alt Valid Selection
+        GameAPI->>GameAPI: selectNextWorld()
+        GameAPI->>GameAPI: Set gamePhase = 'playing'
+        GameAPI->>GameAPI: initializeLevel()
+        GameAPI-->>WebGameManager: Updated GameState
+        WebGameManager-->>useGameState: WebGameState
+        useGameState->>User: Display Game Board
+    else Invalid Selection
+        GameAPI-->>WebGameManager: Error
+        WebGameManager-->>User: Show error message
+    end
 ```
 
 **Key Functions**:
@@ -89,29 +115,51 @@ flowchart TD
 
 **Entry Point**: User clicks "Roll" button → `handleRollDice()` → `WebGameManager.rollDice()`
 
-```typescript
-// Round Flow:
-1. Roll Dice
-   - RollManager.rollDice() generates random values
-   - Dice displayed in CasinoDiceArea
-   - Preview scoring calculated
+```mermaid
+stateDiagram-v2
+    [*] --> RollDice
+    RollDice --> CheckScoring: Dice rolled
+    CheckScoring --> Flop: No valid combinations
+    CheckScoring --> SelectDice: Valid combinations
+    SelectDice --> ScoreDice: User selects dice
+    ScoreDice --> CheckHotDice: Points added
+    CheckHotDice --> HotDice: All dice scored
+    CheckHotDice --> ActionChoice: Some dice remain
+    HotDice --> ActionChoice: Reset to full dice
+    ActionChoice --> Bank: User chooses bank
+    ActionChoice --> Reroll: User chooses reroll
+    Reroll --> RollDice
+    Bank --> RoundEnd: Points banked
+    Flop --> RoundEnd: Round lost
+    RoundEnd --> [*]
+```
 
-2. Select Dice (if valid scoring available)
+**Round Flow Steps:**
+
+1. **Roll Dice**
+
+   - Generate random values for all dice
+   - Display dice in UI
+   - Calculate available scoring combinations
+   - Show preview scoring
+
+2. **Select Dice** (if valid scoring available)
+
    - User clicks dice to select
    - Preview scoring updates in real-time
-   - "Score Selected Dice" button appears
+   - "Score Selected Dice" button enabled
 
-3. Score Dice
-   - processCompleteScoring() calculates points
-   - Selected dice removed from hand
-   - Round points updated
-   - Hot dice check (if all dice scored)
+3. **Score Dice**
 
-4. Action Choice
-   - Bank: End round, add points to level
-   - Reroll: Continue with remaining dice
-   - Hot Dice: Reset to full dice set, continue round
-```
+   - Calculate points from selected combinations
+   - Remove scored dice from hand
+   - Update round points
+   - Check for hot dice (all dice scored)
+
+4. **Action Choice**
+   - **Bank**: End round, add points to level
+   - **Reroll**: Continue with remaining dice
+   - **Hot Dice**: Reset to full dice set, continue round
 
 **Key Functions**:
 
@@ -128,30 +176,38 @@ flowchart TD
 
 **Trigger**: No valid scoring combinations found
 
-```typescript
-// Flop Flow:
-1. Flop Detected
-   - isFlop() returns true
-   - Consecutive flop counter incremented
-   - Flop notification displayed
+```mermaid
+flowchart TD
+    A[Flop Detected] --> B[Increment Counter]
+    B --> C{Flop Shield Available?}
+    C -->|Yes| D[Prompt User]
+    C -->|No| E[Check Consecutive Flops]
+    D --> F{Use Shield?}
+    F -->|Yes| G[Prevent Flop]
+    F -->|No| E
+    E --> H{3+ Consecutive?}
+    H -->|Yes| I[Apply Penalty]
+    H -->|No| J[Lose Life]
+    I --> J
+    J --> K{Lives > 0?}
+    K -->|No| L[Game Over]
+    K -->|Yes| M[Create New Round]
+    M --> N[Ready for Next Roll]
+    G --> O[Continue Round]
 
-2. Flop Shield Check
-   - If player has Flop Shield consumable
-   - Prompt to use it
-   - If used, flop prevented
-
-3. Flop Penalty
-   - If 3+ consecutive flops, apply penalty
-   - Subtract points from banked points
-
-4. Life Loss
-   - Lose 1 life
-   - Check for game over (lives <= 0)
-
-5. Continue
-   - Create new round state
-   - Ready for next roll
+    style A fill:#ffe1e1
+    style L fill:#ffcccc
+    style G fill:#e1ffe1
 ```
+
+**Flop Flow Steps:**
+
+1. **Flop Detected** - No valid scoring combinations found
+2. **Flop Shield Check** - If available, prompt user to use
+3. **Flop Penalty** - If 3+ consecutive flops, apply point penalty
+4. **Life Loss** - Lose 1 life (if no shield used)
+5. **Game Over Check** - If lives <= 0, game ends
+6. **Continue** - Create new round state, ready for next roll
 
 **Key Functions**:
 
@@ -163,34 +219,50 @@ flowchart TD
 
 **Trigger**: Points banked >= level threshold
 
-```typescript
-// Level Completion Flow:
-1. Level Complete Detected
-   - isLevelCompleted() returns true
-   - Calculate level rewards
-   - Apply blessing bonuses
-   - Apply charm bonuses
-   - Tally level (tallyLevel function)
+```mermaid
+flowchart TD
+    A[Level Complete] --> B[Calculate Rewards]
+    B --> C[Apply Bonuses]
+    C --> D{Tally Level}
+    D --> E{World Boundary?}
+    E -->|Level 5/10/15/20| F[World Selection]
+    E -->|Other Level| G[Shop Phase]
 
-2. Check World Boundary
-   - If level is 5, 10, 15, or 20 (world boundary)
-   - GamePhase set to 'worldSelection'
-   - World map displayed
-   - Player must select next world
-   - After selection, new level created in selected world
+    F --> F1[Set gamePhase = 'worldSelection']
+    F1 --> F2[Display World Map]
+    F2 --> F3[Player Selects World]
+    F3 --> F4[Create Level in New World]
+    F4 --> H[Continue Game]
 
-3. Shop Phase (if not world boundary)
-   - Generate shop inventory
-   - Display shop UI
-   - Player can purchase items
-   - Shop discount calculated from blessings
+    G --> G1[Generate Shop Inventory]
+    G1 --> G2[Display Shop UI]
+    G2 --> G3[Player Purchases Items]
+    G3 --> G4[Exit Shop]
+    G4 --> G5[Advance to Next Level]
+    G5 --> H
 
-4. Exit Shop
-   - Advance to next level
-   - Create new level state in current world
-   - Reset round to 1
-   - Continue game
+    style A fill:#e1ffe1
+    style F fill:#fff4e1
+    style G fill:#e1f5ff
 ```
+
+**Level Completion Steps:**
+
+1. **Level Complete Detected** - Points banked >= threshold
+2. **Calculate Rewards** - Base reward + bonuses
+3. **Apply Bonuses** - Blessing and charm bonuses
+4. **Tally Level** - Process completion and rewards
+5. **Check World Boundary** - Is this level 5, 10, 15, or 20?
+   - **Yes**: Go to world selection
+   - **No**: Go to shop
+6. **World Selection** (if boundary)
+   - Display world map
+   - Player selects next world
+   - Create new level in selected world
+7. **Shop Phase** (if not boundary)
+   - Generate shop inventory
+   - Player purchases items
+   - Exit shop and advance level
 
 **Key Functions**:
 
@@ -205,25 +277,41 @@ flowchart TD
 
 **Triggers**: Lives <= 0, Player quits
 
-```typescript
-// Game Over Flow:
-1. Lose Condition
-   - Lives reach 0
-   - gameState.isActive = false
-   - gameState.endReason = 'lost'
-   - Game Over overlay displayed
+```mermaid
+flowchart TD
+    A[Game Over Trigger] --> B{Lives <= 0?}
+    B -->|Yes| C[Set isActive = false]
+    B -->|No| D{Player Quit?}
+    D -->|Yes| C
+    D -->|No| E[Continue Game]
 
-2. Game Over Display
-   - Styled overlay (like Flop message)
-   - "GAME OVER" message
-   - "You ran out of lives!" message
-   - Game state frozen
+    C --> F[Set endReason]
+    F --> G[Save Game Stats]
+    G --> H[Display Game Over UI]
+    H --> I[Show Final Stats]
+    I --> J[Game State Frozen]
+
+    F --> F1['lost' or 'quit']
+
+    style C fill:#ffe1e1
+    style H fill:#ffcccc
+    style J fill:#e0e0e0
 ```
+
+**Game Over Steps:**
+
+1. **Lose Condition** - Lives reach 0 or player quits
+2. **Update State** - Set `isActive = false`, set `endReason`
+3. **Save Stats** - Save game statistics to database
+4. **Display UI** - Show game over overlay with message
+5. **Show Stats** - Display final statistics
+6. **Freeze State** - Game state frozen, no further actions
 
 **Key Functions**:
 
 - `WebGameManager.handleFlopContinue()` - Checks lives after flop
 - `WebGameManager.useConsumable()` - Checks lives after consumable use
+- `isGameOver()` - Checks if game should end
 
 ## State Transitions
 
@@ -306,6 +394,7 @@ flowchart LR
    - UI updates to show selection and preview
 
 3. **User banks points**
+
    - `GameControls` → `handleBank()` → `WebGameManager.bankPoints()`
    - `WebGameManager` → `GameAPI.bankPoints()`
    - Points added to level
