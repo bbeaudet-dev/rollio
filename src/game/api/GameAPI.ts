@@ -126,8 +126,14 @@ export class GameAPI {
     const newGameState = { ...gameState };
     newGameState.currentWorld = { ...gameState.currentWorld };
     
+    // Use pre-generated config if available (for current world)
+    const currentWorld = newGameState.currentWorld;
+    const worldLevelIndex = (levelNumber - 1) % 5; // 0-4 index within world
+    const preGeneratedConfig = currentWorld.levelConfigs?.[worldLevelIndex];
+    
     // Use pure function to create level state (includes first round)
-    const levelState = createInitialLevelState(levelNumber, newGameState, this.charmManager);
+    // Pass pre-generated config to ensure level effects are applied correctly
+    const levelState = createInitialLevelState(levelNumber, newGameState, this.charmManager, preGeneratedConfig);
     newGameState.currentWorld.currentLevel = levelState;
     const roundState = levelState.currentRound;
     
@@ -740,6 +746,9 @@ export class GameAPI {
   async useConsumable(gameState: GameState, index: number): Promise<{ success: boolean; gameState: GameState; roundState?: RoundState; requiresInput?: any; shouldRemove: boolean }> {
     const roundState = gameState.currentWorld!.currentLevel.currentRound || null;
     
+    // Get the consumable being used (before we modify anything)
+    const consumableBeingUsed = gameState.consumables[index];
+    
     // Create a proper deep copy to avoid mutation issues
     const newGameState = {
       ...gameState,
@@ -756,10 +765,21 @@ export class GameAPI {
     }
     const newRoundState = roundState ? { ...roundState } : undefined;
     
+    // Track the last consumable used (for Echo consumable) - but only if it's not Echo itself
+    // Store it in the gameState before applying the effect
+    if (consumableBeingUsed && consumableBeingUsed.id !== 'echo') {
+      (newGameState as any).lastConsumableUsed = { ...consumableBeingUsed };
+    }
+    
     const result = applyConsumableEffect(index, newGameState, newRoundState || null, this.charmManager);
     
     // Use the gameState from result (it has all the updates)
     const finalGameState = result.gameState;
+    
+    // Preserve lastConsumableUsed in final state (it might have been cleared by the effect)
+    if ((newGameState as any).lastConsumableUsed) {
+      (finalGameState as any).lastConsumableUsed = (newGameState as any).lastConsumableUsed;
+    }
     
     // Remove consumable if needed
     if (result.shouldRemove) {
@@ -784,6 +804,77 @@ export class GameAPI {
       gameState: finalGameState,
       roundState: result.roundState || newRoundState,
       requiresInput: result.requiresInput,
+      shouldRemove: result.shouldRemove
+    };
+  }
+
+  /**
+   * Use consumable with die selection (for chisel/potteryWheel/midasTouch)
+   */
+  async useConsumableOnDiceSelection(
+    gameState: GameState,
+    consumableId: 'chisel' | 'potteryWheel' | 'midasTouch',
+    selectedDieIndex: number | [number, number],
+    consumableIndex: number
+  ): Promise<{ success: boolean; gameState: GameState; shouldRemove: boolean }> {
+    const roundState = gameState.currentWorld!.currentLevel.currentRound || null;
+    
+    // Get the consumable being used (before we modify anything)
+    const consumableBeingUsed = gameState.consumables[consumableIndex];
+    
+    // Create a proper deep copy
+    const newGameState = {
+      ...gameState,
+      consumables: [...gameState.consumables],
+    };
+    if (gameState.currentWorld) {
+      newGameState.currentWorld = {
+        ...gameState.currentWorld,
+        currentLevel: {
+          ...gameState.currentWorld.currentLevel,
+          currentRound: roundState ? { ...roundState } : undefined
+        }
+      };
+    }
+    const newRoundState = roundState ? { ...roundState } : undefined;
+    
+    // Track the last consumable used (for Echo consumable)
+    if (consumableBeingUsed && consumableBeingUsed.id !== 'echo') {
+      (newGameState as any).lastConsumableUsed = { ...consumableBeingUsed };
+    }
+    
+    // Apply the die selection using pure function from consumableEffects
+    const { applyDieSelectionConsumable } = await import('../logic/consumableEffects');
+    const result = applyDieSelectionConsumable(consumableId, selectedDieIndex, newGameState, newRoundState || null);
+    
+    const finalGameState = result.gameState;
+    
+    // Preserve lastConsumableUsed
+    if ((newGameState as any).lastConsumableUsed) {
+      (finalGameState as any).lastConsumableUsed = (newGameState as any).lastConsumableUsed;
+    }
+    
+    // Remove consumable if needed
+    if (result.shouldRemove) {
+      finalGameState.consumables.splice(consumableIndex, 1);
+    }
+    
+    // Update round state if it exists
+    if (newRoundState && result.roundState && finalGameState.currentWorld) {
+      finalGameState.currentWorld = {
+        ...finalGameState.currentWorld,
+        currentLevel: {
+          ...finalGameState.currentWorld.currentLevel,
+          currentRound: result.roundState
+        }
+      };
+    }
+    
+    this.emit('stateChanged', { gameState: finalGameState });
+    
+    return {
+      success: result.success,
+      gameState: finalGameState,
       shouldRemove: result.shouldRemove
     };
   }

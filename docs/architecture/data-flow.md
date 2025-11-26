@@ -6,43 +6,58 @@ This document describes how data flows through the Rollio application.
 
 Rollio uses a unidirectional data flow pattern:
 
-1. **Game Engine** maintains authoritative state
-2. **WebGameManager** bridges engine and UI
-3. **React Components** display state and handle user input
-4. **User Actions** flow back through managers to update state
+1. **Game Logic** maintains authoritative state (GameState)
+2. **GameAPI** provides event-driven interface to game logic
+3. **WebGameManager** bridges GameAPI and React UI
+4. **React Components** display state and handle user input
+5. **User Actions** flow back through managers to update state
 
 ## Data Flow Diagram
 
 ```mermaid
 flowchart TD
-    A[Game Engine State] --> B[WebGameManager]
-    B --> C[WebGameState]
-    C --> D[useGameState Hook]
-    D --> E[React Components]
-    E --> F[User Actions]
-    F --> G[WebGameManager Methods]
-    G --> A
+    A[GameState] --> B[GameAPI]
+    B --> C[WebGameManager]
+    C --> D[WebGameState]
+    D --> E[useGameState Hook]
+    E --> F[React Components]
+    F --> G[User Actions]
+    G --> C
+    C --> B
+    B --> A
 
-    H[Game Logic] --> B
-    I[Scoring Engine] --> B
-    J[Charm System] --> B
-    K[Shop System] --> B
+    H[Game Logic Modules] --> B
+    I[Scoring Engine] --> H
+    J[Charm System] --> H
+    K[Shop System] --> H
+    L[Map Generation] --> H
+    M[World Effects] --> H
 ```
 
 ## Data Layers
 
-### Layer 1: Game Engine State
+### Layer 1: Game Logic & State
 
-**Location**: `src/game/types.ts`, `src/game/engine/`
+**Location**: `src/game/logic/`, `src/game/types.ts`
 
 **Purpose**: Core game logic and state
 
 **Key Types**:
 
 - `GameState` - Main game state
+- `WorldState` - Current world state
 - `LevelState` - Current level state
 - `RoundState` - Current round state
 - `Charm`, `Consumable`, `Blessing` - Item types
+
+**Key Modules**:
+
+- `gameActions.ts` - Core game action processing
+- `scoring.ts` - Scoring calculations
+- `charmSystem.ts` - Charm management
+- `shop.ts` - Shop generation
+- `mapGeneration.ts` - World map generation
+- `worldEffects.ts` - World-specific effects
 
 **Characteristics**:
 
@@ -50,31 +65,64 @@ flowchart TD
 - Immutable updates (new objects created)
 - Business logic only (no UI concerns)
 
-### Layer 2: WebGameManager
+### Layer 2: GameAPI
 
-**Location**: `src/app/services/WebGameManager.ts`
+**Location**: `src/game/api/GameAPI.ts`
 
-**Purpose**: Bridge between game engine and React UI
+**Purpose**: Event-driven API layer for game operations
+
+**Responsibilities**:
+
+- Provide clean interface for game operations
+- Emit events for state changes
+- Coordinate game logic modules
+- Handle game state updates
+- Manage charm system integration
+
+**Key Methods**:
+
+- `initializeGame()` - Initialize new game
+- `rollDice()` - Roll dice
+- `scoreDice()` - Score selected dice
+- `bankPoints()` - Bank points and end round
+- `selectWorld()` - Select world from map
+- `purchaseCharm()` - Purchase charm from shop
+- `useConsumable()` - Use consumable item
+
+**Events**:
+
+- `stateChanged` - Game state updated
+- `gameEnded` - Game ended (win/loss/quit)
+- `levelCompleted` - Level completed
+- `error` - Error occurred
+
+### Layer 3: WebGameManager
+
+**Location**: `src/web/services/WebGameManager.ts`
+
+**Purpose**: Bridge between GameAPI and React UI
 
 **Responsibilities**:
 
 - Transform `GameState` → `WebGameState`
 - Calculate derived UI flags (`canRoll`, `canBank`, etc.)
-- Handle user actions and update game state
+- Handle user actions and call GameAPI methods
 - Manage preview scoring
 - Coordinate shop, inventory, and game flow
+- Subscribe to GameAPI events
 
 **Key Methods**:
 
-- `initializeGame()` - Creates initial state
-- `rollDice()` - Handles dice rolling
-- `scoreSelectedDice()` - Processes scoring
-- `bankPoints()` - Ends round and banks points
-- `updateDiceSelection()` - Updates UI selection state
+- `initializeGame()` - Initialize game via GameAPI
+- `rollDice()` - Roll dice via GameAPI
+- `scoreSelectedDice()` - Score dice via GameAPI
+- `bankPoints()` - Bank points via GameAPI
+- `updateDiceSelection()` - Update UI selection state
+- `selectWorld()` - Select world via GameAPI
 
-### Layer 3: React State Management
+### Layer 4: React State Management
 
-**Location**: `src/app/hooks/useGameState.ts`
+**Location**: `src/web/hooks/useGameState.ts`
 
 **Purpose**: React-specific state management
 
@@ -95,9 +143,9 @@ flowchart TD
 - `gameActions` - Game flow actions
 - `inventoryActions` - Item usage actions
 
-### Layer 4: React Components
+### Layer 5: React Components
 
-**Location**: `src/app/components/`
+**Location**: `src/web/ui/`
 
 **Purpose**: UI display and user interaction
 
@@ -114,17 +162,26 @@ flowchart TD
 ### Game State → UI State
 
 ```typescript
-// 1. Game Engine State
+// 1. Game Logic State
 GameState {
-  currentLevel: {
-    currentRound: RoundState {
-      diceHand: Die[],
-      roundPoints: number
+  currentWorld: {
+    currentLevel: {
+      currentRound: RoundState {
+        diceHand: Die[],
+        roundPoints: number
+      }
     }
   }
 }
 
-// 2. WebGameManager transforms to WebGameState
+// 2. GameAPI processes actions and returns updated state
+GameAPI.rollDice(gameState) → {
+  gameState: GameState,  // Updated state
+  roundState: RoundState,
+  // ... other result data
+}
+
+// 3. WebGameManager transforms to WebGameState
 WebGameState {
   gameState: GameState,
   roundState: RoundState,
@@ -134,7 +191,7 @@ WebGameState {
   canBank: boolean   // Derived from state
 }
 
-// 3. useGameState organizes into logical groups
+// 4. useGameState organizes into logical groups
 {
   board: {
     dice: Die[],
@@ -146,7 +203,7 @@ WebGameState {
   }
 }
 
-// 4. Components receive organized props
+// 5. Components receive organized props
 <GameBoard
   board={board}
   rollActions={rollActions}
@@ -163,20 +220,26 @@ sequenceDiagram
     participant GameControls
     participant useGameState
     participant WebGameManager
-    participant GameEngine
+    participant GameAPI
+    participant GameLogic
     participant React
 
     User->>GameControls: Click "Roll"
     GameControls->>useGameState: handleRollDice()
     useGameState->>WebGameManager: rollDice(state)
-    WebGameManager->>GameEngine: RollManager.rollDice()
-    GameEngine-->>WebGameManager: Updated RoundState
+    WebGameManager->>GameAPI: rollDice(gameState)
+    GameAPI->>GameLogic: processRoll(gameState)
+    GameLogic->>GameLogic: Generate dice values
+    GameLogic->>GameLogic: Calculate combinations
+    GameLogic-->>GameAPI: Updated GameState
+    GameAPI->>GameAPI: Emit 'stateChanged' event
+    GameAPI-->>WebGameManager: RollDiceResult
     WebGameManager->>WebGameManager: Calculate preview scoring
     WebGameManager->>WebGameManager: Calculate UI flags
     WebGameManager-->>useGameState: New WebGameState
     useGameState->>React: setWebState(newState)
     React->>GameBoard: Re-render
-    GameBoard->>CasinoDiceArea: Display new dice
+    GameBoard->>DiceDisplay: Display new dice
 ```
 
 ### Example: Selecting Dice
@@ -184,20 +247,25 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant User
-    participant CasinoDiceArea
+    participant DiceSelector
     participant useGameState
     participant WebGameManager
-    participant ScoringEngine
+    participant GameAPI
+    participant ScoringLogic
     participant React
 
-    User->>CasinoDiceArea: Click die
-    CasinoDiceArea->>useGameState: handleDiceSelect(index)
+    User->>DiceSelector: Click die
+    DiceSelector->>useGameState: handleDiceSelect(index)
     useGameState->>WebGameManager: updateDiceSelection(state, indices)
-    WebGameManager->>ScoringEngine: calculatePreviewScoring(dice, indices)
-    ScoringEngine-->>WebGameManager: Preview scoring result
+    WebGameManager->>GameAPI: calculatePreviewScoring(dice, indices)
+    GameAPI->>ScoringLogic: calculatePreviewScoring(dice, indices)
+    ScoringLogic->>ScoringLogic: Find combinations
+    ScoringLogic->>ScoringLogic: Calculate points
+    ScoringLogic-->>GameAPI: Preview scoring result
+    GameAPI-->>WebGameManager: Preview scoring result
     WebGameManager-->>useGameState: New WebGameState with preview
     useGameState->>React: setWebState(newState)
-    React->>CasinoDiceArea: Update selection highlight
+    React->>DiceSelector: Update selection highlight
     React->>PreviewScoring: Display preview
 ```
 
@@ -245,14 +313,14 @@ const canBank =
 ### Module Dependencies
 
 ```
-src/app/
-├── components/          # UI components (depends on hooks, types)
+src/web/
+├── ui/                 # UI components (depends on hooks, types)
 ├── hooks/              # React hooks (depends on services)
-├── services/           # Business logic bridge (depends on game/)
+├── services/           # Business logic bridge (depends on game/api)
 └── types/              # UI-specific types
 
 src/game/
-├── engine/             # Game orchestration (depends on logic/)
+├── api/                # GameAPI layer (depends on logic/)
 ├── logic/              # Game rules (depends on types)
 ├── data/               # Static data (depends on types)
 └── types.ts            # Core types (no dependencies)
@@ -268,9 +336,9 @@ import { GameBoardProps } from "../../types/game";
 // Hooks import from services
 import { WebGameManager } from "../services/WebGameManager";
 
-// Services import from game engine
+// Services import from GameAPI
+import { GameAPI } from "../../game/api";
 import { GameState, RoundState } from "../../game/types";
-import { calculatePreviewScoring } from "../../game/logic/gameActions";
 
 // Game logic imports only types
 import { Die, ScoringCombination } from "../types";
@@ -280,17 +348,22 @@ import { Die, ScoringCombination } from "../types";
 
 ### Single Source of Truth
 
-- **Game Engine State** is the single source of truth
-- **WebGameState** is a derived view of game state
+- **GameState** (from game logic) is the single source of truth
+- **GameAPI** provides access to game state and operations
+- **WebGameState** is a derived view of game state with UI flags
 - **React State** is a cached copy for rendering
 
 ### State Updates
 
-1. User action triggers manager method
-2. Manager updates game engine state
-3. Manager creates new WebGameState
-4. React state updated via `setState`
-5. Components re-render with new state
+1. User action triggers component callback
+2. Hook calls WebGameManager method
+3. WebGameManager calls GameAPI method
+4. GameAPI processes action via game logic
+5. GameAPI returns updated GameState
+6. GameAPI emits 'stateChanged' event
+7. WebGameManager creates new WebGameState
+8. Hook updates React state via `setState`
+9. Components re-render with new state
 
 ### Preventing Race Conditions
 

@@ -6,16 +6,18 @@ This document describes the type system and type relationships in Rollio.
 
 ```mermaid
 graph TD
-    A[GameState] --> B[LevelState]
+    A[GameState] --> B[WorldState]
     A --> C[GameHistory]
     A --> D[GameConfig]
-    B --> E[RoundState]
-    E --> F[RollState]
-    A --> G[Charm]
-    A --> H[Consumable]
-    A --> I[Blessing]
-    A --> J[Die]
-    J --> K[DiceMaterial]
+    A --> E[GameMap]
+    B --> F[LevelState]
+    F --> G[RoundState]
+    G --> H[RollState]
+    A --> I[Charm]
+    A --> J[Consumable]
+    A --> K[Blessing]
+    A --> L[Die]
+    L --> M[DiceMaterial]
 ```
 
 ## Core Types
@@ -30,31 +32,39 @@ graph TD
 interface GameState {
   // Game-wide state
   isActive: boolean;
-  endReason?: GameEndReason;
+  config: GameConfig;
+  settings: GameSettings;
+  history: GameHistory;
+  won?: boolean;
+
+  baseLevelRerolls: number;
+  baseLevelBanks: number;
+  charmSlots: number;
+  consumableSlots: number;
+
+  gamePhase: GamePhase;
+  gameMap?: GameMap;
+  shop?: ShopState;
+  currentWorld?: WorldState; // Current world state (includes currentLevel)
+
   money: number;
   diceSet: Die[];
   charms: Charm[];
   consumables: Consumable[];
   blessings: Blessing[];
-  rerollValue: number;
-  livesValue: number;
-  charmSlots: number;
-  consumableSlots: number;
-  settings: GameSettings;
-  config: GameConfig;
 
-  // Current level state
-  currentLevel: LevelState;
-
-  // History
-  history: GameHistory;
+  lastConsumableUsed?: string;
+  consecutiveBanks: number;
+  consecutiveFlops: number;
 }
 ```
 
 **Key Properties**:
 
 - `isActive` - Whether game is currently active
-- `currentLevel` - Nested level state
+- `gamePhase` - Current game phase (worldSelection, playing, shop, etc.)
+- `gameMap` - World map structure
+- `currentWorld` - Current world state (includes currentLevel)
 - `history` - Cumulative game statistics
 
 ### LevelState
@@ -64,14 +74,34 @@ interface GameState {
 **Purpose**: Current level state
 
 ```typescript
+interface WorldState {
+  worldId: string;
+  worldNumber: number;
+  levelConfigs: LevelConfig[];
+  worldEffects: WorldEffect[];
+  currentLevel: LevelState;
+}
+
 interface LevelState {
   levelNumber: number;
-  pointsBanked: number;
   levelThreshold: number;
-  rerollsRemaining: number;
-  livesRemaining: number;
-  consecutiveFlops: number;
-  currentRound: RoundState | undefined;
+  isMiniboss?: boolean;
+  isMainBoss?: boolean;
+  levelEffects?: LevelEffect[];
+  effectContext?: EffectContext;
+  currentRound?: RoundState;
+  pointsBanked: number;
+  rerollsRemaining?: number;
+  banksRemaining?: number;
+  flopsThisLevel: number;
+  banksThisLevel?: number;
+  rewards?: {
+    baseReward: number;
+    banksBonus: number;
+    charmBonuses: number;
+    blessingBonuses: number;
+    total: number;
+  };
 }
 ```
 
@@ -382,10 +412,12 @@ type PendingAction =
 
 ```typescript
 GameState {
-  currentLevel: LevelState {
-    currentRound: RoundState {
-      diceHand: Die[],
-      rollHistory: RollState[]
+  currentWorld: WorldState {
+    currentLevel: LevelState {
+      currentRound: RoundState {
+        diceHand: Die[],
+        rollHistory: RollState[]
+      }
     }
   },
   charms: Charm[],
@@ -524,12 +556,16 @@ function getCharm(id: CharmID): Charm { ... }
  * Represents the complete game state.
  *
  * @property isActive - Whether the game is currently active
- * @property currentLevel - Current level state (nested)
+ * @property gamePhase - Current game phase (worldSelection, playing, shop, etc.)
+ * @property gameMap - World map structure
+ * @property currentWorld - Current world state (includes currentLevel)
  * @property history - Cumulative game statistics
  */
 interface GameState {
   isActive: boolean;
-  currentLevel: LevelState;
+  gamePhase: GamePhase;
+  gameMap?: GameMap;
+  currentWorld?: WorldState;
   history: GameHistory;
 }
 ```

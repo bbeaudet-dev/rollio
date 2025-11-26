@@ -8,19 +8,22 @@
 classDiagram
     class GameState {
         +isActive: boolean
-        +endReason: GameEndReason
+        +won?: boolean
         +money: number
         +diceSet: Die[]
         +charms: Charm[]
         +consumables: Consumable[]
         +blessings: Blessing[]
-        +rerollValue: number
-        +livesValue: number
+        +baseLevelRerolls: number
+        +baseLevelBanks: number
         +charmSlots: number
         +consumableSlots: number
         +settings: GameSettings
         +config: GameConfig
-        +currentLevel: LevelState
+        +gamePhase: GamePhase
+        +gameMap?: GameMap
+        +currentWorld?: WorldState
+        +shop?: ShopState
         +history: GameHistory
     }
 
@@ -35,14 +38,25 @@ classDiagram
         +penalties: object
     }
 
+    class WorldState {
+        +worldId: string
+        +worldNumber: number
+        +levelConfigs: LevelConfig[]
+        +worldEffects: WorldEffect[]
+        +currentLevel: LevelState
+    }
+
     class LevelState {
         +levelNumber: number
-        +pointsBanked: number
         +levelThreshold: number
-        +rerollsRemaining: number
-        +livesRemaining: number
-        +consecutiveFlops: number
-        +currentRound: RoundState
+        +isMiniboss?: boolean
+        +isMainBoss?: boolean
+        +levelEffects?: LevelEffect[]
+        +pointsBanked: number
+        +rerollsRemaining?: number
+        +banksRemaining?: number
+        +flopsThisLevel: number
+        +currentRound?: RoundState
     }
 
     class RoundState {
@@ -70,9 +84,12 @@ classDiagram
     }
 
     class GameHistory {
-        +totalScore: number
         +combinationCounters: CombinationCounters
-        +levelHistory: LevelState[]
+        +consumableCounters: ConsumableCounters
+        +charmCounters: CharmCounters
+        +blessingCounters: BlessingCounters
+        +highScoreSingleRoll: number
+        +highScoreBank: number
     }
 
     class Charm {
@@ -107,15 +124,17 @@ classDiagram
 
     GameState --> GameSettings : contains
     GameState --> GameConfig : contains
-    GameState --> LevelState : contains
+    GameState --> GameMap : contains
+    GameState --> WorldState : contains
+    GameState --> ShopState : contains
     GameState --> GameHistory : contains
     GameState --> Charm : has many
     GameState --> Consumable : has many
     GameState --> Blessing : has many
     GameState --> Die : has many
+    WorldState --> LevelState : contains
     LevelState --> RoundState : contains
     RoundState --> RollState : has many
-    GameConfig --> ShopState : generates
 ```
 
 ## CLI Interaction Flow
@@ -290,33 +309,31 @@ flowchart TD
 ```mermaid
 graph TD
     A[src/] --> B[game/]
-    A --> C[app/]
+    A --> C[web/]
     A --> D[cli/]
     A --> E[server/]
 
-    B --> B1[core/types.ts]
-    B --> B2[core/gameState.ts]
-    B --> B3[engine/GameEngine.ts]
-    B --> B4[logic/scoring.ts]
-    B --> B5[logic/gameActions.ts]
-    B --> B6[content/charms.ts]
-    B --> B7[content/consumables.ts]
+    B --> B1[types.ts]
+    B --> B2[api/GameAPI.ts]
+    B --> B3[logic/scoring.ts]
+    B --> B4[logic/gameActions.ts]
+    B --> B5[logic/charmSystem.ts]
+    B --> B6[logic/mapGeneration.ts]
+    B --> B7[data/charms.ts]
+    B --> B8[data/consumables.ts]
 
-    C --> C1[components/game/]
-    C --> C2[components/multiplayer/]
-    C --> C3[components/single-player/]
+    C --> C1[ui/game/]
+    C --> C2[ui/menu/]
+    C --> C3[ui/single-player/]
     C --> C4[hooks/useGameState.ts]
     C --> C5[services/WebGameManager.ts]
 
-    C1 --> C1A[GameBoard.tsx]
-    C1 --> C1B[GameStatus.tsx]
-    C1 --> C1C[dice/DiceDisplay.tsx]
+    C1 --> C1A[Game.tsx]
+    C1 --> C1B[board/Board.tsx]
+    C1 --> C1C[board/dice/DiceDisplay.tsx]
+    C1 --> C1D[WorldMap.tsx]
 
-    C2 --> C2A[MultiplayerRoom.tsx]
-    C2 --> C2B[MultiplayerLobby.tsx]
-    C2 --> C2C[MultiplayerGame.tsx]
-
-    C3 --> C3A[SinglePlayerGame.tsx]
+    C --> C6[ui/multiplayer/]
 
     D --> D1[cli.ts]
     D --> D2[cliInterface.ts]
@@ -346,30 +363,34 @@ flowchart TD
     B --> B1[isActive, endReason]
     B --> B2[money, diceSet]
     B --> B3[charms, consumables, blessings]
-    B --> B4[rerollValue, livesValue]
+    B --> B4[baseLevelRerolls, baseLevelBanks]
     B --> B5[charmSlots, consumableSlots]
     B --> B6[settings: GameSettings]
+    B --> B7[gamePhase, gameMap]
 
-    C --> C1[levelNumber, pointsBanked]
-    C --> C2[levelThreshold]
-    C --> C3[rerollsRemaining, livesRemaining]
-    C --> C4[consecutiveFlops]
-    C --> C5[currentRound: RoundState]
+    C --> C1[worldId, worldNumber]
+    C --> C2[levelConfigs, worldEffects]
+    C --> C3[currentLevel: LevelState]
+
+    C3 --> C4[levelNumber, pointsBanked]
+    C3 --> C5[levelThreshold]
+    C3 --> C6[rerollsRemaining, banksRemaining]
+    C3 --> C7[currentRound?: RoundState]
 
     D --> D1[diceSetConfig: DiceSetConfig]
-    D --> D2[penalties]
+    D --> D2[difficulty]
 
-    E --> E1[totalScore]
-    E --> E2[combinationCounters]
-    E --> E3[levelHistory: LevelState array]
+    E --> E1[combinationCounters]
+    E --> E2[consumableCounters, charmCounters]
+    E --> E3[highScoreSingleRoll, highScoreBank]
 
     F[Access Patterns] --> G[gameState.isActive]
     F --> H[gameState.money]
     F --> I[gameState.charms]
-    F --> J[gameState.currentLevel.pointsBanked]
-    F --> K[gameState.currentLevel.currentRound]
+    F --> J[gameState.currentWorld?.currentLevel.pointsBanked]
+    F --> K[gameState.currentWorld?.currentLevel.currentRound]
     F --> L[gameState.settings.sortDice]
-    F --> M[gameState.history.totalScore]
+    F --> M[gameState.history.highScoreSingleRoll]
 ```
 
 ## Component Data Flow
@@ -382,14 +403,15 @@ flowchart LR
     B --> E[roundState: current round state]
     B --> F[inventory: charms, consumables, blessings]
     B --> G[rollActions: handleRollDice, handleDiceSelect]
-    B --> H[gameActions: handleBank, startNewGame]
+    B --> H[gameActions: handleBank, startNewGame, selectWorld]
     B --> I[inventoryActions: handleConsumableUse]
     B --> J[shopActions: handlePurchaseCharm, etc]
 
-    K[GameBoard Component] --> L[Receives Logical Groups]
+    K[Game Component] --> L[Receives Logical Groups]
     L --> M[rollActions, gameActions, inventoryActions]
     L --> N[board, gameState, roundState, inventory]
     L --> O[isInShop, shopActions]
+    L --> P[isInMapSelection, gameActions.selectWorld]
 ```
 
 ## Data Flow Summary

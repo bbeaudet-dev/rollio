@@ -10,24 +10,30 @@ The `GameState` uses a flattened structure with nested level state for hierarchy
 interface GameState {
   // Game-wide state (flattened)
   isActive: boolean;
-  endReason?: GameEndReason;
+  config: GameConfig;
+  settings: GameSettings;
+  history: GameHistory;
+  won?: boolean;
+
+  baseLevelRerolls: number;
+  baseLevelBanks: number;
+  charmSlots: number;
+  consumableSlots: number;
+
+  gamePhase: GamePhase; // Current phase: 'worldSelection' | 'playing' | 'tallying' | 'shop' | 'gameWin' | 'gameLoss'
+  gameMap?: GameMap; // World map generated at game start
+  shop?: ShopState;
+  currentWorld?: WorldState; // Current world state (includes currentLevel)
+
   money: number;
   diceSet: Die[];
   charms: Charm[];
   consumables: Consumable[];
   blessings: Blessing[];
-  rerollValue: number;
-  livesValue: number;
-  charmSlots: number;
-  consumableSlots: number;
-  settings: GameSettings;
-  config: GameConfig;
 
-  // Current level state (nested for hierarchy)
-  currentLevel: LevelState;
-
-  // History (consolidated)
-  history: GameHistory;
+  lastConsumableUsed?: string;
+  consecutiveBanks: number;
+  consecutiveFlops: number;
 }
 ```
 
@@ -70,6 +76,20 @@ interface GameSettings {
 }
 ```
 
+### WorldState
+
+Contains world-specific state including the current level:
+
+```typescript
+interface WorldState {
+  worldId: string;
+  worldNumber: number;
+  levelConfigs: LevelConfig[]; // Pre-generated level configs for this world
+  worldEffects: WorldEffect[]; // Active world effects
+  currentLevel: LevelState; // Current level state
+}
+```
+
 ### LevelState
 
 Contains level-specific state that resets or changes between levels:
@@ -77,12 +97,24 @@ Contains level-specific state that resets or changes between levels:
 ```typescript
 interface LevelState {
   levelNumber: number;
-  pointsBanked: number;
   levelThreshold: number;
-  rerollsRemaining: number;
-  livesRemaining: number;
-  consecutiveFlops: number;
-  currentRound: RoundState | undefined;
+  isMiniboss?: boolean;
+  isMainBoss?: boolean;
+  levelEffects?: LevelEffect[]; // Active boss/miniboss effects
+  effectContext?: EffectContext; // Combined context for filtering
+  currentRound?: RoundState;
+  pointsBanked: number;
+  rerollsRemaining?: number;
+  banksRemaining?: number;
+  flopsThisLevel: number;
+  banksThisLevel?: number;
+  rewards?: {
+    baseReward: number;
+    banksBonus: number;
+    charmBonuses: number;
+    blessingBonuses: number;
+    total: number;
+  };
 }
 ```
 
@@ -121,9 +153,12 @@ Contains game tracking, history, and counter data:
 
 ```typescript
 interface GameHistory {
-  totalScore: number; // Cumulative banked points
   combinationCounters: CombinationCounters; // Scoring combination tracking
-  levelHistory: LevelState[]; // Completed levels
+  consumableCounters: ConsumableCounters; // Consumable usage tracking
+  charmCounters: CharmCounters; // Charm purchase tracking
+  blessingCounters: BlessingCounters; // Blessing purchase tracking
+  highScoreSingleRoll: number; // Highest single roll score
+  highScoreBank: number; // Highest bank score
 }
 ```
 
@@ -131,7 +166,7 @@ interface GameHistory {
 
 1. **Flattened Structure**: Game-wide state is flat for easy access
 2. **Nested Hierarchy**: Level state is nested for logical organization
-3. **Clear Access Patterns**: `gameState.money` vs `gameState.currentLevel.pointsBanked`
+3. **Clear Access Patterns**: `gameState.money` vs `gameState.currentWorld?.currentLevel.pointsBanked`
 4. **Component-Friendly**: Components can receive specific data groups
 5. **Maintainability**: Easy to find and modify related properties
 6. **Type Safety**: Strong TypeScript typing throughout
@@ -150,17 +185,29 @@ gameState.blessings;
 gameState.diceSet;
 gameState.settings.sortDice;
 gameState.config.diceSetConfig;
+gameState.gamePhase;
+gameState.gameMap;
 
-// Level state (nested)
-gameState.currentLevel.levelNumber;
-gameState.currentLevel.pointsBanked;
-gameState.currentLevel.livesRemaining;
-gameState.currentLevel.currentRound;
+// World state (nested)
+gameState.currentWorld?.worldId;
+gameState.currentWorld?.worldNumber;
+gameState.currentWorld?.worldEffects;
+
+// Level state (nested within world)
+gameState.currentWorld?.currentLevel.levelNumber;
+gameState.currentWorld?.currentLevel.pointsBanked;
+gameState.currentWorld?.currentLevel.levelThreshold;
+gameState.currentWorld?.currentLevel.currentRound;
+
+// Round state (nested within level)
+gameState.currentWorld?.currentLevel.currentRound?.roundNumber;
+gameState.currentWorld?.currentLevel.currentRound?.diceHand;
+gameState.currentWorld?.currentLevel.currentRound?.rollHistory;
 
 // History (nested)
-gameState.history.totalScore;
 gameState.history.combinationCounters;
-gameState.history.levelHistory;
+gameState.history.highScoreSingleRoll;
+gameState.history.highScoreBank;
 ```
 
 ## Component Usage
@@ -226,17 +273,23 @@ gameState.money;
 gameState.charms;
 gameState.consumables;
 gameState.blessings;
+gameState.gamePhase;
+gameState.gameMap;
 
-// Level state
-gameState.currentLevel.levelNumber;
-gameState.currentLevel.pointsBanked;
-gameState.currentLevel.livesRemaining;
-gameState.currentLevel.currentRound;
+// World state
+gameState.currentWorld?.worldId;
+gameState.currentWorld?.worldNumber;
 
-// Round state (from currentLevel)
-gameState.currentLevel.currentRound?.roundNumber;
-gameState.currentLevel.currentRound?.diceHand;
-gameState.currentLevel.currentRound?.rollHistory;
+// Level state (nested within world)
+gameState.currentWorld?.currentLevel.levelNumber;
+gameState.currentWorld?.currentLevel.pointsBanked;
+gameState.currentWorld?.currentLevel.levelThreshold;
+gameState.currentWorld?.currentLevel.currentRound;
+
+// Round state (nested within level)
+gameState.currentWorld?.currentLevel.currentRound?.roundNumber;
+gameState.currentWorld?.currentLevel.currentRound?.diceHand;
+gameState.currentWorld?.currentLevel.currentRound?.rollHistory;
 ```
 
 ### Round State Access

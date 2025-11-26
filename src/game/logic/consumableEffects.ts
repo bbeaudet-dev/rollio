@@ -14,7 +14,7 @@ export interface ConsumableEffectResult {
   shouldRemove: boolean;
   requiresInput?: {
     type: 'dieSelection' | 'dieSideSelection' | 'twoDieSelection';
-    consumableId: 'chisel' | 'potteryWheel' | 'copyMaterial' | 'copyDieSide';
+    consumableId: 'chisel' | 'potteryWheel' | 'midasTouch';
     diceSet: any[];
   };
   gameState: GameState;
@@ -49,11 +49,11 @@ export function applyConsumableEffect(
   let shouldRemove = true;
 
   switch (consumable.id) {
-    case 'moneyDoubler':
+    case 'liquidation':
       newGameState.money = (newGameState.money || 0) * 2;
       break;
 
-    case 'extraDie': {
+    case 'freebie': {
       // Add a new default die to the dice set
       const newDieId = `d${newGameState.diceSet.length + 1}`;
       const newDie = {
@@ -66,7 +66,7 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'materialEnchanter': {
+    case 'materialEnchanter': { // Legacy/placeholder - not in current consumable data
       // Find all plastic dice
       const plasticDice = newGameState.diceSet
         .map((die: any, idx: number) => ({ die, idx }))
@@ -105,7 +105,7 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'charmGiver': {
+    case 'youGetACharm': {
       const maxCharms = newGameState.charmSlots || 3;
       if (newGameState.charms.length >= maxCharms) {
         shouldRemove = false;
@@ -125,12 +125,13 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'slotExpander':
+    case 'slotExpander': { // Legacy/placeholder - not in current consumable data
       newGameState.charmSlots = (newGameState.charmSlots || 3) + 1;
       newGameState.consumableSlots = (newGameState.consumableSlots || 2) + 1;
       break;
+    }
 
-    case 'createTwoConsumables': {
+    case 'groceryList': {
       const maxConsumables = newGameState.consumableSlots || 2;
       const availableSlots = maxConsumables - newGameState.consumables.length;
       if (availableSlots < 2) {
@@ -158,25 +159,27 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'createLastConsumable': {
-      // Track last consumable used - stored in gameState.history or we can add a field
-      // For now, use the last consumable in the list (most recently added)
-      // TODO: Properly track last consumable used in GameState
+    case 'echo': {
+      // Get the last consumable used (tracked by GameAPI when other consumables are used)
       const lastConsumable = (newGameState as any).lastConsumableUsed;
       if (!lastConsumable) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       const maxConsumables = newGameState.consumableSlots || 2;
       if (newGameState.consumables.length >= maxConsumables) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
-      newGameState.consumables = [...newGameState.consumables, { ...lastConsumable }];
+      // Create a copy of the last consumable used (reset uses to 1)
+      const copiedConsumable = { ...lastConsumable, uses: 1 };
+      newGameState.consumables = [...newGameState.consumables, copiedConsumable];
       break;
     }
 
-    case 'addMoneyFromItems': {
+    case 'garagesale': {
       let totalValue = 0;
       // Add value of consumables
       for (const consumable of newGameState.consumables) {
@@ -198,14 +201,14 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'doubleMoneyCapped': {
+    case 'doubleMoneyCapped': { // Legacy/placeholder - not in current consumable data
       const currentMoney = newGameState.money || 0;
       const doubled = currentMoney * 2;
       newGameState.money = Math.min(doubled, 50);
       break;
     }
 
-    case 'createTwoHandUpgrades': {
+    case 'grabBag': {
       // TODO: Implement hand upgrade system
       // For now, this is a placeholder - hand upgrades need infrastructure
       // Hand upgrades likely modify combination point values
@@ -213,15 +216,14 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'midasTouch':
-    case 'copyMaterial': {
+    case 'midasTouch': {
       // Requires user input - return request for two die selection
       return {
         success: true,
         shouldRemove: false,
         requiresInput: {
           type: 'twoDieSelection',
-          consumableId: 'copyMaterial',
+          consumableId: 'midasTouch',
           diceSet: newGameState.diceSet
         },
         gameState: newGameState,
@@ -229,8 +231,7 @@ export function applyConsumableEffect(
       };
     }
 
-    case 'freebie':
-    case 'addStandardDie': {
+    case 'freebie': {
       const newDieId = `d${newGameState.diceSet.length + 1}`;
       const newDie = {
         id: newDieId,
@@ -242,8 +243,7 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'sacrifice':
-    case 'deleteDieAddCharmSlot': {
+    case 'sacrifice': {
       if (newGameState.diceSet.length <= 1) {
         shouldRemove = false;
         break;
@@ -256,16 +256,14 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'welfare':
-    case 'upgradeAllHands': {
+    case 'welfare': {
       // TODO: Implement hand upgrade system
       // For now, this is a placeholder - hand upgrades need infrastructure
       shouldRemove = false; // Don't remove until implemented
       break;
     }
 
-    case 'origin':
-    case 'createLegendaryCharm': {
+    case 'origin': {
       const maxCharms = newGameState.charmSlots || 3;
       if (newGameState.charms.length >= maxCharms) {
         shouldRemove = false;
@@ -290,11 +288,10 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'distortion':
-    case 'createTwoRareCharms': {
+    case 'distortion': {
       const maxCharms = newGameState.charmSlots || 3;
       const availableSlots = maxCharms - newGameState.charms.length;
-      const numToCreate = consumable.id === 'distortion' ? 1 : 2;
+      const numToCreate = 1; // Distortion creates 1 rare charm
       if (availableSlots < numToCreate) {
         shouldRemove = false;
         break;
@@ -322,8 +319,7 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'frankenstein':
-    case 'deleteTwoCopyOneCharm': {
+    case 'frankenstein': {
       if (newGameState.charms.length < 3) {
         shouldRemove = false;
         break;
@@ -382,7 +378,7 @@ export function applyConsumableEffect(
       };
     }
 
-    case 'forfeitRecovery': {
+    case 'hospital': {
       if (!newRoundState) {
         shouldRemove = false;
         break;
@@ -397,7 +393,7 @@ export function applyConsumableEffect(
       break;
     }
 
-    case 'luckyToken': {
+    case 'luckyToken': { // Legacy/placeholder - not in current consumable data
       if (!newRoundState) {
         shouldRemove = false;
         break;
@@ -475,12 +471,12 @@ export function applyConsumableEffect(
 }
 
 /**
- * Apply die selection for chisel/potteryWheel consumables
+ * Apply die selection for consumables that require die selection
  * Pure function - processes the user's die selection
  */
 export function applyDieSelectionConsumable(
-  consumableId: 'chisel' | 'potteryWheel',
-  selectedDieIndex: number,
+  consumableId: 'chisel' | 'potteryWheel' | 'midasTouch',
+  selectedDieIndex: number | [number, number],
   gameState: GameState,
   roundState: RoundState | null
 ): ConsumableEffectResult {
@@ -488,36 +484,74 @@ export function applyDieSelectionConsumable(
   const newRoundState = roundState ? { ...roundState } : undefined;
   let shouldRemove = true;
 
-  const selectedDie = newGameState.diceSet[selectedDieIndex];
-  if (!selectedDie) {
-    return {
-      success: false,
-      shouldRemove: false,
-      gameState: newGameState
-    };
-  }
-
-  if (consumableId === 'chisel') {
-    const newSize = getPreviousDieSize(selectedDie.sides);
-    if (newSize === null) {
-      shouldRemove = false;
-    } else {
-      newGameState.diceSet = newGameState.diceSet.map((die, i) =>
-        i === selectedDieIndex
-          ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
-          : die
-      );
+  if (consumableId === 'midasTouch') {
+    // Handle two die selection for midasTouch
+    if (!Array.isArray(selectedDieIndex) || selectedDieIndex.length !== 2) {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
     }
-  } else if (consumableId === 'potteryWheel') {
-    const newSize = getNextDieSize(selectedDie.sides);
-    if (newSize === null) {
-      shouldRemove = false;
-    } else {
-      newGameState.diceSet = newGameState.diceSet.map((die, i) =>
-        i === selectedDieIndex
-          ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
-          : die
-      );
+    const [sourceDieIndex, targetDieIndex] = selectedDieIndex;
+    const sourceDie = newGameState.diceSet[sourceDieIndex];
+    const targetDie = newGameState.diceSet[targetDieIndex];
+    
+    if (!sourceDie || !targetDie) {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+    
+    // Copy material from source to target
+    newGameState.diceSet = newGameState.diceSet.map((die, i) =>
+      i === targetDieIndex
+        ? { ...die, material: sourceDie.material }
+        : die
+    );
+  } else {
+    // Handle single die selection for chisel/potteryWheel
+    if (typeof selectedDieIndex !== 'number') {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+
+    const selectedDie = newGameState.diceSet[selectedDieIndex];
+    if (!selectedDie) {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+
+    if (consumableId === 'chisel') {
+      const newSize = getPreviousDieSize(selectedDie.sides);
+      if (newSize === null) {
+        shouldRemove = false;
+      } else {
+        newGameState.diceSet = newGameState.diceSet.map((die, i) =>
+          i === selectedDieIndex
+            ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
+            : die
+        );
+      }
+    } else if (consumableId === 'potteryWheel') {
+      const newSize = getNextDieSize(selectedDie.sides);
+      if (newSize === null) {
+        shouldRemove = false;
+      } else {
+        newGameState.diceSet = newGameState.diceSet.map((die, i) =>
+          i === selectedDieIndex
+            ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
+            : die
+        );
+      }
     }
   }
 

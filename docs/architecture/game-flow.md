@@ -9,24 +9,30 @@ flowchart TD
     A[App Start] --> B[Main Menu]
     B --> C[Game Config Selector]
     C --> D[Initialize Game]
-    D --> E[Level 1, Round 1]
-    E --> F[Roll Dice]
-    F --> G{Valid Scoring?}
-    G -->|No| H[Flop]
-    G -->|Yes| I[Select Dice]
-    I --> J{Action?}
-    J -->|Bank| K[Bank Points]
-    J -->|Reroll| F
-    H --> L{Lives > 0?}
-    L -->|No| M[Game Over]
-    L -->|Yes| N[Next Round]
-    K --> O{Level Complete?}
-    O -->|Yes| P[Shop]
-    O -->|No| N
-    P --> Q[Purchase Items]
-    Q --> R[Next Level]
-    R --> E
-    N --> E
+    D --> E{World Selected?}
+    E -->|No| F[World Map Selection]
+    E -->|Yes| G[Level 1, Round 1]
+    F --> H[Select World from Map]
+    H --> G
+    G --> I[Roll Dice]
+    I --> J{Valid Scoring?}
+    J -->|No| K[Flop]
+    J -->|Yes| L[Select Dice]
+    L --> M{Action?}
+    M -->|Bank| N[Bank Points]
+    M -->|Reroll| I
+    K --> O{Lives > 0?}
+    O -->|No| P[Game Over]
+    O -->|Yes| Q[Next Round]
+    N --> R{Level Complete?}
+    R -->|Yes| S{World Boundary?}
+    R -->|No| Q
+    S -->|Yes Level 5/10/15/20| F
+    S -->|No| T[Shop]
+    T --> U[Purchase Items]
+    U --> V[Next Level]
+    V --> G
+    Q --> G
 ```
 
 ## Detailed Flow
@@ -40,17 +46,44 @@ flowchart TD
 1. User clicks "Start Adventure" in GameConfigSelector
 2. handleConfigComplete() called with dice set, charms, consumables
 3. game.gameActions.startNewGame() called
-4. WebGameManager.initializeGame() creates initial game state
-5. Initial round state created (Round 1)
-6. Game board displayed with "Roll" button ready
+4. WebGameManager.initializeGame() calls GameAPI.initializeGame()
+5. GameAPI creates initial game state with gameMap
+6. GamePhase set to 'worldSelection'
+7. World map displayed for player to select starting world
 ```
 
 **Key Functions**:
 
-- `WebGameManager.initializeGame()` - Creates initial game state
+- `WebGameManager.initializeGame()` - Initializes game via GameAPI
+- `GameAPI.initializeGame()` - Creates initial game state
 - `createInitialGameState()` - Factory for game state
-- `createInitialLevelState()` - Factory for level state
-- `createInitialRoundState()` - Factory for round state
+- `generateGameMap()` - Generates world map structure
+
+### 1a. World Selection
+
+**Entry Point**: World map displayed → User clicks world → `handleWorldClick()` → `WebGameManager.selectWorld()`
+
+```typescript
+// Flow:
+1. World map displayed showing available worlds
+2. Player clicks on an available world node
+3. handleWorldClick() called with worldId
+4. WebGameManager.selectWorld() calls GameAPI.selectWorld()
+5. GameAPI validates world is available from current position
+6. GameAPI.selectNextWorld() updates game state
+7. GamePhase set to 'playing'
+8. Initial level state created for selected world
+9. First round initialized
+10. Game board displayed with "Roll" button ready
+```
+
+**Key Functions**:
+
+- `WebGameManager.selectWorld()` - Selects world via GameAPI
+- `GameAPI.selectWorld()` - Validates and selects world
+- `selectNextWorld()` - Updates game state with selected world
+- `getAvailableWorldChoices()` - Gets available worlds from current position
+- `initializeLevel()` - Creates initial level state
 
 ### 2. Round Flow
 
@@ -82,9 +115,12 @@ flowchart TD
 
 **Key Functions**:
 
-- `WebGameManager.rollDice()` - Handles dice rolling
-- `WebGameManager.scoreSelectedDice()` - Processes scoring
-- `WebGameManager.bankPoints()` - Ends round and banks points
+- `WebGameManager.rollDice()` - Handles dice rolling via GameAPI
+- `GameAPI.rollDice()` - Processes dice roll
+- `WebGameManager.scoreSelectedDice()` - Processes scoring via GameAPI
+- `GameAPI.scoreDice()` - Processes scoring
+- `WebGameManager.bankPoints()` - Banks points via GameAPI
+- `GameAPI.bankPoints()` - Processes banking
 - `processCompleteScoring()` - Scoring logic
 - `isFlop()` - Checks for valid scoring combinations
 
@@ -134,16 +170,24 @@ flowchart TD
    - Calculate level rewards
    - Apply blessing bonuses
    - Apply charm bonuses
+   - Tally level (tallyLevel function)
 
-2. Shop Phase
+2. Check World Boundary
+   - If level is 5, 10, 15, or 20 (world boundary)
+   - GamePhase set to 'worldSelection'
+   - World map displayed
+   - Player must select next world
+   - After selection, new level created in selected world
+
+3. Shop Phase (if not world boundary)
    - Generate shop inventory
    - Display shop UI
    - Player can purchase items
    - Shop discount calculated from blessings
 
-3. Exit Shop
+4. Exit Shop
    - Advance to next level
-   - Create new level state
+   - Create new level state in current world
    - Reset round to 1
    - Continue game
 ```
@@ -152,7 +196,8 @@ flowchart TD
 
 - `isLevelCompleted()` - Checks level completion
 - `calculateLevelRewards()` - Calculates rewards
-- `applyLevelRewards()` - Applies rewards
+- `tallyLevel()` - Processes level completion
+- `advanceToNextLevel()` - Advances to next level (handles world boundaries)
 - `generateShopInventory()` - Creates shop items
 - `WebGameManager.exitShop()` - Exits shop and advances level
 
@@ -182,10 +227,14 @@ flowchart TD
 
 ## State Transitions
 
-### Game State Transitions
+### Game Phase Transitions
 
 ```
-Initialization → Active → Shop → Active → ... → Game Over
+Initialization → World Selection → Playing → Tallying → Shop → Playing → ...
+                                                              ↓
+                                                      World Selection (every 5 levels)
+                                                              ↓
+                                                      Playing → ... → Game Over
 ```
 
 ### Round State Transitions
@@ -198,7 +247,13 @@ Round Start → Roll → Flop → Continue → Round End
 ### Level State Transitions
 
 ```
-Level 1 → Complete → Shop → Level 2 → Complete → Shop → ... → Game Over
+Level 1 → Complete → Shop → Level 2 → ... → Level 5 → World Selection → Level 6 → ... → Game Over
+```
+
+### World State Transitions
+
+```
+World 1 → Level 1-5 → World Selection → World 2 → Level 6-10 → World Selection → ... → Game Over
 ```
 
 ## Component Interaction Flow
@@ -207,21 +262,25 @@ Level 1 → Complete → Shop → Level 2 → Complete → Shop → ... → Game
 flowchart LR
     A[SinglePlayerGame] --> B[useGameState]
     B --> C[WebGameManager]
-    C --> D[GameEngine Logic]
-    D --> E[RoundManager]
-    D --> F[RollManager]
-    D --> G[CharmManager]
+    C --> D[GameAPI]
+    D --> E[Game Logic Modules]
+    E --> F[Scoring]
+    E --> G[Charm System]
+    E --> H[Shop System]
+    E --> I[Map Generation]
 
-    B --> H[GameBoard]
-    H --> I[GameControls]
-    H --> J[CasinoDiceArea]
-    H --> K[Inventory Components]
-    H --> L[ShopDisplay]
+    B --> J[GameBoard]
+    J --> K[GameControls]
+    J --> L[DiceDisplay]
+    J --> M[Inventory Components]
+    J --> N[ShopDisplay]
+    J --> O[WorldMap]
 
-    I --> C
-    J --> C
     K --> C
     L --> C
+    M --> C
+    N --> C
+    O --> C
 ```
 
 ## Data Flow
@@ -232,23 +291,35 @@ flowchart LR
 
    - `GameControls` → `handleRollDice()` → `useGameState`
    - `useGameState` → `WebGameManager.rollDice()`
-   - `WebGameManager` updates `WebGameState`
+   - `WebGameManager` → `GameAPI.rollDice()`
+   - `GameAPI` processes roll via game logic
+   - `GameAPI` returns updated state
+   - `WebGameManager` creates `WebGameState`
    - `useGameState` updates React state
    - `GameBoard` re-renders with new dice
 
 2. **User selects dice**
 
-   - `CasinoDiceArea` → `onDiceSelect()` → `handleDiceSelect()`
+   - `DiceSelector` → `onDiceSelect()` → `handleDiceSelect()`
    - `WebGameManager.updateDiceSelection()` updates selection
-   - Preview scoring recalculated
+   - Preview scoring calculated via `GameAPI.calculatePreviewScoring()`
    - UI updates to show selection and preview
 
 3. **User banks points**
    - `GameControls` → `handleBank()` → `WebGameManager.bankPoints()`
+   - `WebGameManager` → `GameAPI.bankPoints()`
    - Points added to level
    - Level completion checked
-   - If complete: shop phase
+   - If complete: tally phase, then shop or world selection
    - If not: new round created
+
+4. **User selects world**
+   - `WorldMap` → `handleWorldClick()` → `useGameState`
+   - `useGameState` → `WebGameManager.selectWorld()`
+   - `WebGameManager` → `GameAPI.selectWorld()`
+   - `GameAPI` validates and updates game state
+   - Level initialized for selected world
+   - Game phase set to 'playing'
 
 ## Key State Management
 
