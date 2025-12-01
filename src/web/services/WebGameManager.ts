@@ -1,7 +1,7 @@
 import { ReactGameInterface, PendingAction } from './ReactGameInterface';
 import { resetLevelColors } from '../utils/levelColors';
 import { GameAPI } from '../../game/api';
-import { GameState, RoundState, ShopState, GamePhase } from '../../game/types';
+import { GameState, RoundState, ShopState, GamePhase, DiceSetConfig } from '../../game/types';
 import type { ScoringBreakdown } from '../../game/logic/scoringBreakdown';
 import { playDiceRollSound } from '../utils/sounds';
 
@@ -213,11 +213,11 @@ export class WebGameManager {
     };
   }
 
-  async initializeGame(diceSetIndex: number, difficulty: string): Promise<WebGameState> {
+  async initializeGame(diceSetIndexOrConfig: number | DiceSetConfig, difficulty: string): Promise<WebGameState> {
     resetLevelColors();
     
     // Pass selections to GameAPI 
-    const result = await this.gameAPI.initializeGame(diceSetIndex, difficulty);
+    const result = await this.gameAPI.initializeGame(diceSetIndexOrConfig, difficulty);
     const gameState = result.gameState;
 
     // Check gamePhase to determine what to show

@@ -145,8 +145,8 @@ export interface DifficultyConfig {
   id: DifficultyLevel;
   name: string;
   description: string;
+  startingCredits?: number; // Starting credits for dice set customization
   minValues: CombinationMinValues;
-  // Other difficulty modifiers
   banksModifier?: number; // Modifier for banks per level
   rerollsModifier?: number; // Modifier for rerolls per level
   charmSlotsModifier?: number; // Modifier for charm slots
@@ -167,6 +167,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     description: 'All scoring Combinations available',
     minValues: DIFFICULTY_MIN_VALUES.plastic,
     pointThresholdModifier: 1.0,
+    startingCredits: 30,
   },
   copper: {
     id: 'copper',
@@ -175,6 +176,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     minValues: DIFFICULTY_MIN_VALUES.copper,
     pointThresholdModifier: 1.0,
     rerollsModifier: -1, // new
+    startingCredits: 30, 
   },
   silver: {
     id: 'silver',
@@ -184,6 +186,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     pointThresholdModifier: 1.0,
     rerollsModifier: -1,
     banksModifier: -1, // new
+    startingCredits: 20, // new
   },
   gold: {
     id: 'gold',
@@ -193,6 +196,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     pointThresholdModifier: 1.0,
     rerollsModifier: -1,
     banksModifier: -1,
+    startingCredits: 20,
   },
   roseGold: {
     id: 'roseGold',
@@ -203,6 +207,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     rerollsModifier: -1,
     banksModifier: -1,
     maxFlopsPerLevel: 10,
+    startingCredits: 20,
   },
   platinum: {
     id: 'platinum',
@@ -212,6 +217,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     pointThresholdModifier: 1.0,
     rerollsModifier: -1, 
     banksModifier: -1,
+    startingCredits: 20,
   },
   sapphire: {
     id: 'sapphire',
@@ -221,6 +227,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     pointThresholdModifier: 1.5, // new
     rerollsModifier: -1, 
     banksModifier: -1,
+    startingCredits: 10, // new
   },
   emerald: {
     id: 'emerald',
@@ -232,6 +239,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     banksModifier: -1, 
     consumableSlotsModifier: -1, // new
     charmSlotsModifier: -1, // new
+    startingCredits: 10,
   },
   ruby: {
     id: 'ruby',
@@ -244,6 +252,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     consumableSlotsModifier: -1, // From emerald
     charmSlotsModifier: -1, // From emerald
     shopPriceModifier: 1.5, // 50% more expensive - its own
+    startingCredits: 10,
   },
   diamond: {
     id: 'diamond',
@@ -256,6 +265,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     consumableSlotsModifier: -1, // From emerald
     charmSlotsModifier: -1, // From emerald
     shopPriceModifier: 1.5, // From ruby
+    startingCredits: 10,
   },
   quantum: {
     id: 'quantum',
@@ -268,6 +278,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     consumableSlotsModifier: -1, // From emerald
     charmSlotsModifier: -1, // From emerald
     shopPriceModifier: 1.5, // From ruby
+    startingCredits: 10,
   },
 };
 
@@ -354,4 +365,12 @@ export function getAvailableCombinations(difficulty: DifficultyLevel): ScoringCo
     'straightOfN',
     'pyramidOfN',
   ];
+}
+
+/**
+ * Get starting credits for dice set customization based on difficulty
+ */
+export function getStartingCredits(difficulty: DifficultyLevel): number {
+  const config = getDifficultyConfig(difficulty);
+  return config.startingCredits ?? 30; // Default to 30 if not specified
 }

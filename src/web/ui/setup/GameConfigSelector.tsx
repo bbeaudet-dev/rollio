@@ -4,16 +4,19 @@ import { ConsumableSelector } from './ConsumableSelector';
 import { BlessingSelector } from './BlessingSelector';
 import { PipEffectsSelector } from './PipEffectsSelector';
 import { DiceSetSelector } from './DiceSetSelector';
+import { DiceSetCustomization } from './DiceSetCustomization';
 import { StartGameButton } from './StartGameButton';
 import { DifficultySelector } from './DifficultySelector';
 import { MainMenuReturnButton } from '../components';
 import { DifficultyLevel } from '../../../game/logic/difficulty';
-import { Die } from '../../../game/types';
+import { Die, DiceSetConfig } from '../../../game/types';
 import { PipEffectType } from '../../../game/data/pipEffects';
+import { createDiceSetConfigFromCustomization } from './diceSetCustomizationUtils';
 
 interface GameConfigSelectorProps {
   onConfigComplete: (config: {
-    diceSetIndex: number;
+    diceSetIndex?: number; // For extras mode (legacy)
+    customDiceSetConfig?: DiceSetConfig; // For new game mode (customization)
     selectedCharms: number[];
     selectedConsumables: number[];
     difficulty: string; // Pass as string to avoid coupling frontend to DifficultyLevel type
@@ -24,6 +27,7 @@ type GameMode = 'newGame' | 'challenges' | 'extras';
 
 interface GameConfig {
   diceSetIndex: number;
+  customDiceSetConfig?: DiceSetConfig; 
   selectedCharms: number[];
   selectedConsumables: number[];
   selectedBlessings: number[];
@@ -247,27 +251,34 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
 
       {/* Mode-specific content */}
       {mode === 'newGame' && (
-        <>
-          {/* Main configuration sections - Dice Set and Difficulty only */}
-      <div style={{ 
-        display: 'grid', 
-            gridTemplateColumns: '1fr 1fr', 
-            gap: '20px',
-            marginBottom: '20px'
-      }}>
-        <DiceSetSelector
-          diceSets={availableDiceSets}
-          selectedIndex={config.diceSetIndex}
-          onDiceSetSelect={handleDiceSetSelect}
-        />
-
-        <DifficultySelector
-          difficulty={config.difficulty}
-          onChange={handleDifficultyChange}
-        />
+        <div>
+          {/* Difficulty selector for new game mode */}
+          <div style={{ marginBottom: '20px' }}>
+            <DifficultySelector
+              difficulty={config.difficulty}
+              onChange={handleDifficultyChange}
+            />
           </div>
-        </>
+          <DiceSetCustomization
+            difficulty={config.difficulty}
+            onComplete={(diceSet, creditsRemaining) => {
+              const customConfig = createDiceSetConfigFromCustomization(
+                diceSet,
+                creditsRemaining,
+                config.difficulty
+              );
+              setConfig(prev => ({ ...prev, customDiceSetConfig: customConfig }));
+              onConfigComplete({
+                customDiceSetConfig: customConfig,
+                selectedCharms: [],
+                selectedConsumables: [],
+                difficulty: config.difficulty
+              });
+            }}
+          />
+        </div>
       )}
+
 
       {mode === 'challenges' && (
         <div style={{
@@ -487,8 +498,8 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
           </>
         )}
 
-      {/* Start button at the bottom */}
-      {mode !== 'challenges' && (
+      {/* Start button at the bottom - only for extras mode (newGame handles its own completion) */}
+      {mode === 'extras' && (
         <StartGameButton onClick={() => onConfigComplete({
           diceSetIndex: config.diceSetIndex,
           selectedCharms: config.selectedCharms,

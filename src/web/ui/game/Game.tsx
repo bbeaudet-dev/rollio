@@ -244,6 +244,7 @@ export const Game: React.FC<GameProps> = ({
           breakdownState={board.breakdownState}
           onCompleteBreakdown={rollActions.handleCompleteBreakdown}
           diceSet={gameState.diceSet}
+          hotDiceCounter={roundState?.isActive && roundState.hotDiceCounter > 0 ? roundState.hotDiceCounter : 0}
         />
 
         {/* Game Controls - Bottom Center Overlay */}

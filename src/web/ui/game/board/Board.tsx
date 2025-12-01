@@ -10,6 +10,7 @@ import { ViewDiceSet } from './ViewDiceSet';
 import { DifficultyDiceDisplay } from '../../components/DifficultyDiceDisplay';
 import { useDifficulty } from '../../../contexts/DifficultyContext';
 import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
+import { HotDiceCounter } from './HotDiceCounter';
 
 interface BoardProps {
   dice: any[];
@@ -38,6 +39,7 @@ interface BoardProps {
   breakdownState?: 'hidden' | 'animating' | 'complete';
   onCompleteBreakdown?: () => void;
   diceSet?: Die[];
+  hotDiceCounter?: number;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -61,7 +63,8 @@ export const Board: React.FC<BoardProps> = ({
   scoringBreakdown = null,
   breakdownState = 'hidden',
   onCompleteBreakdown = () => {},
-  diceSet = []
+  diceSet = [],
+  hotDiceCounter = 0
 }) => {
   const difficulty = useDifficulty();
   const { highlightedDiceIndices, setHighlightedDice, clearAll } = useScoringHighlights();
