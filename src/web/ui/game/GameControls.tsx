@@ -154,139 +154,142 @@ export const GameControls: React.FC<GameControlsProps> = ({
 
   return (
     <div ref={containerRef} style={{ marginTop: '15px', position: 'relative' }}>
-      {/* Select All / Deselect buttons - above Roll/Score button */}
-      {canSelectDice && onSelectAll && onDeselect && totalDiceCount > 0 && (
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          justifyContent: 'center',
-          marginBottom: '8px'
-        }}>
-          <button
-            onClick={onSelectAll}
-            disabled={selectedDiceCount === totalDiceCount}
-            style={{
-              padding: '4px 12px',
-              fontSize: '12px',
-              backgroundColor: selectedDiceCount === totalDiceCount ? '#ccc' : '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: selectedDiceCount === totalDiceCount ? 'not-allowed' : 'pointer',
-              opacity: selectedDiceCount === totalDiceCount ? 0.6 : 1
-            }}
-          >
-            Select All
-          </button>
-          <button
-            onClick={onDeselect}
-            disabled={selectedDiceCount === 0}
-            style={{
-              padding: '4px 12px',
-              fontSize: '12px',
-              backgroundColor: selectedDiceCount === 0 ? '#ccc' : '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: selectedDiceCount === 0 ? 'not-allowed' : 'pointer',
-              opacity: selectedDiceCount === 0 ? 0.6 : 1
-            }}
-          >
-            Deselect
-          </button>
-        </div>
-      )}
-      
       {/* Centered button group */}
       <div style={{ 
-        display: 'flex', 
-        gap: 'clamp(8px, 1.5vw, 12px)', 
-        justifyContent: 'center',
+        position: 'relative',
+        width: '100%',
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
         alignItems: 'flex-end',
-        flexWrap: 'nowrap'
+        gap: '16px',
+        minHeight: '60px',
+        paddingLeft: '20px',
+        paddingRight: '20px'
       }}>
-        {/* Left Button - Reroll (Blue) - Split when no dice selected, single when dice selected */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* Left Button - Reroll (Blue) - Separate Skip Reroll when no dice selected, single when dice selected */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'flex-end', 
+          gap: '8px',
+          justifySelf: 'end',
+          alignSelf: 'flex-end'
+        }}>
           {showSplitRerollButton ? (
-            // Split button: Skip Reroll / Reroll All
-            <div style={{
-              display: 'flex',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              border: isRerollEnabled ? '2px solid #007bff' : '2px solid #ccc',
-              backgroundColor: isRerollEnabled ? '#007bff' : '#ccc',
-              cursor: isRerollEnabled ? 'pointer' : 'not-allowed',
-              transition: 'background-color 0.2s ease, border-color 0.2s ease',
-            }}>
-              <div
-                onClick={isRerollEnabled ? onReroll : undefined}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+              {/* Skip Reroll button - smaller, above (doesn't use a reroll, so no indicator) */}
+              <button
+                onClick={onReroll}
+                disabled={!isRerollEnabled}
                 style={{
-                  flex: 1,
-                  padding: '10px 15px',
-                  fontSize: '14px',
-                  color: 'white',
+                  padding: '6px 12px',
+                  fontSize: '11px',
                   fontWeight: 'bold',
-                  textAlign: 'center',
-                  borderRight: '1px solid rgba(255,255,255,0.3)',
+                  backgroundColor: !isRerollEnabled ? '#6c757d' : '#6c757d',
+                  color: 'white',
+                  border: '2px solid black',
+                  borderRadius: '8px',
+                  cursor: isRerollEnabled ? 'pointer' : 'not-allowed',
+                  opacity: isRerollEnabled ? 1 : 0.6,
                   whiteSpace: 'nowrap',
-                  minWidth: '80px',
-                  boxSizing: 'border-box',
-                  backgroundColor: isRerollEnabled ? '#007bff' : '#ccc',
+                  minWidth: '80px'
                 }}
               >
-                {getRerollLeftText()}
-              </div>
-              <div
-                onClick={isRerollEnabled ? onRerollAll : undefined}
-                style={{
-                  flex: 1,
-                  padding: '10px 15px',
-                  fontSize: '14px',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                  whiteSpace: 'nowrap',
-                  minWidth: '80px',
-                  boxSizing: 'border-box',
-                  backgroundColor: isRerollEnabled ? '#0056b3' : '#b0b0b0', // Slightly darker for "Reroll All"
-                }}
+                Skip Reroll
+              </button>
+              {/* Reroll All button - below (uses a reroll, so show indicator) */}
+              <GameControlButton
+                onClick={onRerollAll}
+                disabled={!isRerollEnabled}
+                backgroundColor="#007bff"
+                text="Reroll All"
+                size="normal"
               >
-                {getRerollRightText()}
-              </div>
+                <RerollIndicator count={rerollsRemaining} />
+              </GameControlButton>
             </div>
           ) : (
             // Single button: Reroll # Dice
-            <button
+            <GameControlButton
               onClick={onReroll}
               disabled={!isRerollEnabled}
-              style={{
-                padding: '12px 16px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                backgroundColor: isRerollEnabled ? '#007bff' : '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: isRerollEnabled ? 'pointer' : 'not-allowed',
-                opacity: isRerollEnabled ? 1 : 0.6,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: '120px',
-                whiteSpace: 'nowrap'
-              }}
+              backgroundColor="#007bff"
+              text={getRerollLeftText()}
+              size="normal"
             >
-              {getRerollLeftText()}
-            </button>
+              <RerollIndicator count={rerollsRemaining} />
+            </GameControlButton>
           )}
-          {/* Reroll Indicator - below button(s) */}
-          <div style={{ marginTop: '4px' }}>
-            <RerollIndicator count={rerollsRemaining} />
-          </div>
         </div>
         
-        {/* Roll/Score Button (middle) */}
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+        {/* Roll/Score Button (middle) - Always centered in the middle column */}
+        <div style={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifySelf: 'center'
+        }}>
+          {/* Hot Dice Counter - above buttons */}
+          {hotDiceCounter > 0 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <HotDiceCounter count={hotDiceCounter} />
+            </div>
+          )}
+
+          {/* Select All / Deselect buttons - above Roll/Score button */}
+          {canSelectDice && onSelectAll && onDeselect && totalDiceCount > 0 && breakdownState !== 'animating' && (
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              justifyContent: 'center',
+              marginBottom: '4px'
+            }}>
+              <button
+                onClick={onSelectAll}
+                disabled={selectedDiceCount === totalDiceCount}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  backgroundColor: selectedDiceCount === totalDiceCount ? '#6c757d' : '#6c757d',
+                  color: 'white',
+                  border: '2px solid black',
+                  borderRadius: '8px',
+                  cursor: selectedDiceCount === totalDiceCount ? 'not-allowed' : 'pointer',
+                  opacity: selectedDiceCount === totalDiceCount ? 0.6 : 1,
+                  whiteSpace: 'nowrap',
+                  minWidth: '80px'
+                }}
+              >
+                Select All
+              </button>
+              <button
+                onClick={onDeselect}
+                disabled={selectedDiceCount === 0}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  backgroundColor: selectedDiceCount === 0 ? '#6c757d' : '#6c757d',
+                  color: 'white',
+                  border: '2px solid black',
+                  borderRadius: '8px',
+                  cursor: selectedDiceCount === 0 ? 'not-allowed' : 'pointer',
+                  opacity: selectedDiceCount === 0 ? 0.6 : 1,
+                  whiteSpace: 'nowrap',
+                  minWidth: '80px'
+                }}
+              >
+                Deselect
+              </button>
+            </div>
+          )}
+
           {/* Glow effect - show whenever hot dice counter is active, regardless of button state */}
           {hotDiceCounter > 0 && (
             <FireEffect intensity={hotDiceCounter} />
@@ -298,22 +301,16 @@ export const GameControls: React.FC<GameControlsProps> = ({
             text={getRollOrScoreButtonText()}
             size="large"
           />
-          {/* Hot dice counter - positioned above button */}
-          {hotDiceCounter > 0 && (
-            <div style={{
-              position: 'absolute',
-              bottom: '100%',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              marginBottom: '4px'
-            }}>
-              <HotDiceCounter count={hotDiceCounter} />
-            </div>
-          )}
         </div>
         
         {/* Right Button - Bank (Green) */}
-        <div ref={bankButtonRef}>
+        <div ref={bankButtonRef} style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          justifySelf: 'start'
+        }}>
           <GameControlButton
             onClick={onBank}
             disabled={!isBankEnabled}

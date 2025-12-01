@@ -6,9 +6,10 @@ import { VisualMap } from './VisualMap';
 interface WorldMapProps {
   gameState: GameState;
   onSelectWorld: (worldId: string) => void;
+  onReturnToMenu?: () => void;
 }
 
-export const WorldMap: React.FC<WorldMapProps> = ({ gameState, onSelectWorld }) => {
+export const WorldMap: React.FC<WorldMapProps> = ({ gameState, onSelectWorld, onReturnToMenu }) => {
   if (!gameState.gameMap) {
     return <div>Map not available</div>;
   }
@@ -24,6 +25,7 @@ export const WorldMap: React.FC<WorldMapProps> = ({ gameState, onSelectWorld }) 
     <VisualMap
       gameMap={gameState.gameMap}
       onSelectNode={handleNodeClick}
+      onReturnToMenu={onReturnToMenu}
     />
   );
 };

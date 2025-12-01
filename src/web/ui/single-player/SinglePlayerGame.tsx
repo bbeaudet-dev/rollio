@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Game } from '../game';
 import { GameConfigSelector } from '../setup';
 import { useGameState } from '../../hooks/useGameState';
+import { DiceSetConfig } from '../../../game/types';
 
 export const SinglePlayerGame: React.FC = () => {
   const navigate = useNavigate();
@@ -22,14 +23,22 @@ export const SinglePlayerGame: React.FC = () => {
   }, [searchParams]);
 
   const handleConfigComplete = (config: {
-    diceSetIndex: number;
+    diceSetIndex?: number;
+    customDiceSetConfig?: DiceSetConfig;
     selectedCharms: number[];
     selectedConsumables: number[];
     difficulty: string;
   }) => {
-    setSelectedDiceSetIndex(config.diceSetIndex);
-    setShowConfigSelector(false);
-    game.gameActions.startNewGame(config.diceSetIndex, config.difficulty);
+    if (config.customDiceSetConfig) {
+      // New game mode with custom dice set
+      setShowConfigSelector(false);
+      game.gameActions.startNewGame(config.customDiceSetConfig, config.difficulty);
+    } else if (config.diceSetIndex !== undefined) {
+      // Extras mode with dice set index
+      setSelectedDiceSetIndex(config.diceSetIndex);
+      setShowConfigSelector(false);
+      game.gameActions.startNewGame(config.diceSetIndex, config.difficulty);
+    }
   };
 
   const handleBackToConfig = () => {

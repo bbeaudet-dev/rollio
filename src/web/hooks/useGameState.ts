@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { WebGameManager, WebGameState } from '../services/WebGameManager';
+import { DiceSetConfig } from '../../game/types';
 
 export function useGameState() {
   const [webState, setWebState] = useState<WebGameState | null>(null);
@@ -14,11 +15,11 @@ export function useGameState() {
   }, []);
 
   // Initialize a new game
-  const startNewGame = useCallback(async (diceSetIndex: number, difficulty: string) => {
+  const startNewGame = useCallback(async (diceSetIndexOrConfig: number | DiceSetConfig, difficulty: string) => {
     setIsLoading(true);
     try {
       gameManagerRef.current = new WebGameManager(addMessage);
-      const initialState = await gameManagerRef.current.initializeGame(diceSetIndex, difficulty);
+      const initialState = await gameManagerRef.current.initializeGame(diceSetIndexOrConfig, difficulty);
       setWebState(initialState);
       setMessages([]);
     } catch (error) {

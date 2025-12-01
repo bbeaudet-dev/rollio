@@ -6,6 +6,7 @@ import { WORLD_POOL } from '../../../game/data/worlds';
 interface VisualMapProps {
   gameMap: GameMap;
   onSelectNode: (nodeId: number) => void;
+  onReturnToMenu?: () => void;
 }
 
 interface NodePosition {
@@ -14,7 +15,7 @@ interface NodePosition {
   y: number;
 }
 
-export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode }) => {
+export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onReturnToMenu }) => {
   // Get available nodes - handle case where currentNode might not be set
   // If no currentNode, show all nodes in column 1 (world 1 options)
   let availableNodeIds: number[];
@@ -351,7 +352,37 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode }) =
       backgroundColor: '#f8f9fa',
       minHeight: '100vh',
       color: '#212529',
+      position: 'relative'
     }}>
+      {/* Main Menu Button - Top Left */}
+      {onReturnToMenu && (
+        <button
+          onClick={onReturnToMenu}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            left: '20px',
+            padding: '10px 20px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: '2px solid black',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            zIndex: 100,
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#5a6268';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#6c757d';
+          }}
+        >
+          Main Menu
+        </button>
+      )}
       <h1 style={{ 
         marginBottom: '20px', 
         fontSize: '32px',

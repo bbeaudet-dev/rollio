@@ -180,10 +180,10 @@ export function createInitialLevelState(
     isMainBoss,
     rerollsRemaining: finalRerolls,
     banksRemaining: finalBanks,
-    flopsThisLevel: 0,  // Reset at start of each level (for progressive penalty)
-    pointsBanked: 0,  // Initialize to 0 at level start
+    flopsThisLevel: 0, 
+    pointsBanked: 0, 
     currentRound: firstRound,
-    banksThisLevel: 0,  // Initialize for OneSongGlory charm
+    banksThisLevel: 0, 
     levelEffects,
     effectContext,
   };
@@ -267,11 +267,11 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty:
       consumableCounters: {},
       charmCounters: {},
       blessingCounters: {},
-      highScoreSingleRoll: 0,  // Track highest single roll score
-      highScoreBank: 0,  // Track highest bank score
+      highScoreSingleRoll: 0, 
+      highScoreBank: 0, 
     },
-    consecutiveBanks: 0,  // Initialize consecutive banks counter
-    consecutiveFlops: 0,  // Initialize consecutive flops counter
+    consecutiveBanks: 0,  
+    consecutiveFlops: 0,  
   };
   
   return initialGameState;

@@ -4,7 +4,56 @@
 
 This specification covers updating and polishing existing content (dice sets, materials, charms, blessings, consumables, and scoring).
 
-### Non-Functional Requirement
+## Implementation Status
+
+**Last Updated**: After multiple PRs implementing content polish features
+
+### ✅ Completed
+
+- **Consumable System**: All consumable IDs standardized and implemented (midasTouch, echo, groceryList, chisel, potteryWheel, liquidation, garagesale, youGetACharm, grabBag, freebie, sacrifice, welfare, origin, distortion, frankenstein, hospital)
+- **Material Definitions**: All 9 materials defined (plastic, crystal, flower, golden, volcano, mirror, rainbow, ghost, lead)
+- **Dice Sets**: Multiple dice sets implemented (Basic, Hoarder, Low Baller, Crystal, Golden, Volcano, Mirror, Rainbow, Ghost, Lead, Rainbow Mix)
+- **Shop System**: Basic shop with charms, consumables, and blessings
+- **UI Improvements**: Single-selection for shop/inventory items, Select All/Deselect buttons, improved reroll button UI
+- **Game State Management**: Proper tracking of consumables, charms, and game state
+
+### ⚠️ Partially Implemented
+
+- **Material Effects**:
+
+  - Plastic: ✅ Complete (no effect)
+  - Flower: ⚠️ Implemented for round, needs update to level
+  - Crystal: ❌ Effect not implemented (1.25x multiplier per crystal die held in hand)
+  - Golden: ❌ Effect not implemented (gain +$1 when scoring golden die)
+  - Volcano: ✅ Implemented (score multiplier based on hot dice)
+  - Rainbow: ✅ Implemented (probability effects)
+  - Mirror: ✅ Implemented (copy random value of non-mirror die)
+  - Ghost: ✅ Implemented (don't need to be scored for hot dice)
+  - Lead: ✅ Implemented (remain in hand after scoring)
+
+- **Shop Improvements**:
+
+  - ✅ Basic shop with 3 charms, 3 consumables, 1 blessing
+  - ✅ Shop reroll system implemented
+  - ✅ Items go away when purchased (empty slots)
+  - ⚠️ Booster pack system - not currently planned
+
+- **Scoring Combinations**:
+  - ✅ Fully implemented (including Small Straight, Two Pair, Single Pair, Full House, Pyramid patterns)
+
+### ❌ Not Yet Implemented
+
+- **Pip Effects Editing**: Pip effects system is implemented, but consumables to edit them during gameplay (via dice editing modal) are not yet functional
+- **Combination Upgrades**: System not implemented
+- **Charm Tracking Systems**: Many charms require additional tracking (see Charm Implementation Tracking Systems section)
+- **Shop Improvements**: Reroll, empty slots, booster packs
+- **New Materials**: Fairy Dust/Spectral, Angel/Healing, Moonstone/Lunar (moved to content-polish-v2.md)
+
+### 📝 Notes
+
+- **Consumable Naming**: All consumables now use their actual names (e.g., `midasTouch` instead of `copyMaterial`, `echo` instead of `createLastConsumable`)
+- **Material vs Essence**: Consideration to rename "Material" to "Essence" or "Core" (moved to content-polish-v2.md)
+- **Future Work**: See `content-polish-v2.md` for future content additions and system improvements
 
 ## User Stories
 
@@ -59,33 +108,39 @@ When considering ideas for materials, ask: "Does this ability correspond mainly 
 ❌ Synergy: TBD
 ✅ Design: green border with pink/yellow/blue flower base colors
 
--Essentially the same as volcano if it's per round, look into changing to per level
+**Status**: ⚠️ Implemented - Works per round, consider per level to differentiate from volcano
 
 #### Crystal
 
-✅ Effect: 1.25x score multiplier per crystal die held in hand (not scored) - eq. to steel in Balatro
-❌ Code: not implemented
+✅ Effect: 1.5x score multiplier per crystal die held in hand (not scored) - eq. to steel in Balatro
+✅ Code: implemented
 ✅ Strategy: score minimum number of dice per roll, maximize held in hand
 ✅ Synergy: could have a Mime (retrigger held in hand abilities); benefits from Lead dice that stay in hand after scoring
 ✅ Design: shining purple/magenta and beveled?, maybe add turquiose
+
+**Status**: ✅ Implemented - Multiplies multiplier by 1.5x for each crystal die held in hand (not being scored).
 
 ---
 
 #### Golden / Copper / Emerald
 
-✅ Effect: gain money when banking scored golden die
-❌ Code: not implemented
+✅ Effect: gain +$1 when scoring golden die
+✅ Code: implemented
 ✅ Strategy: economy generation
 ✅ Synergy: charms the increase scoring based on money
 ⚠️ Design: gold and shimmering, or copper, or shining green beveled emerald
 
+**Status**: ✅ Implemented - Gives +$1 per golden die when scored (not when banked). Note: The description in `materials.ts` incorrectly says "+$3 when golden die is banked" but the actual implementation gives $1 when scored.
+
 #### Volcano / Magma
 
 ✅ Effect: score multiplier based on hot dice counter
-✅ Code: mostly implemented
+✅ Code: implemented
 ✅ Strategy: increasing hot dice counter as quickly as possible, more "offensive" strategy
 ✅ Synergy: volcano amplifier charm for scoring; ghost die for getting quicker hot dice, but decrease scoring?; charm based on hot dice counter per level or total per game
 ⚠️ Design: magma, like an almost black base with deep oranges and reds crackling throughout it, or just stick with mainly red/fire
+
+**Status**: ✅ Implemented - Score multiplier based on hot dice counter is functional.
 
 #### Rainbow
 
@@ -95,43 +150,37 @@ When considering ideas for materials, ask: "Does this ability correspond mainly 
 ⚠️ Synergy: probability charm, retrigger charm, something to do with colors, pips?
 ✅ Design: shining rainbow
 
+**Status**: ✅ Implemented - Probability effects are functional.
+
 #### Mirror
 
 ✅ Effect: all rolled mirror dice copy a random value of a non-mirror die (or random value)
-❌ Code: will be tough
+✅ Code: implemented
 ✅ Strategy: maximize same values on dice
-⚠️ Synergy: can structure dice set to focus on a specific value, different values work with different charms/strategies
-⚠️ Design: combination of Balatro's steel and glass, could implement some kind of reflection effect of the dice value
+✅ Synergy: can structure dice set to focus on a specific value, different values work with different charms/strategies
+✅ Design: combination of Balatro's steel and glass, could implement some kind of reflection effect of the dice value
 
-- If a mirror die copies another mirror die, move to a new die (don't recursively copy), or else only search for non-mirror dice somehow, and if false, pick random value
-- Can you reroll mirror dice? I mean I guess you could, but you'd have to reroll all of them? What happens if they try to reroll just one? Does it do nothing, or change all of them?
-- Need to handle mirror dice during combination checking
+**Status**: ✅ Implemented - Mirror dice copy random values of non-mirror dice when rolled.
 
 #### Ghost
 
 ✅ Effect: Ghost dice don't need to be scored to trigger hot dice / Triggers hot dice counter if only ghost dice (or no dice) remain in hand after scoring / Unscored ghost dice do not prevent hot dice
-❌ Code: will also be tough
-⚠️✅ Strategy: stack hot dice with easier combinations
+✅ Code: implemented
+✅ Strategy: stack hot dice with easier combinations
 ⚠️ Synergy: charm bonus if <2 dice scored
-⚠️ Design: negative-themed, maybe just reversed plastic black with white pips? Or slightly green/phantom tint?
+✅ Design: negative-themed, maybe just reversed plastic black with white pips? Or slightly green/phantom tint?
 
-- When scoring dice, if after removing scored dice, only ghost dice (or no dice) remain, trigger hot dice
-- Example: Roll 5556 (6 is ghost), score 555 → only ghost die remains → hot dice triggered
-- This creates interesting strategic decisions: do you score everything including ghosts, or leave ghosts for hot dice?
+**Status**: ✅ Implemented - Ghost dice work as designed, allowing hot dice to trigger even when only ghost dice remain.
 
 #### Lead
 
 ✅ Effect: lead dice remain in hand after being scored
-❌ Code: will be tough
+✅ Code: implemented
 ✅ Strategy: maximize score in current round, nullifies hot dice, harder to flop, more "defensive" strategy
 ⚠️ Synergy: low hanging fruit (more scoring combos)
 ⚠️ Design: dark gray with slight blue tint
 
-- Consider, does there need to be SOME way to remove it or get hot dice? Or are you completely forfeiting hot dice? Is this enough of a benefit?
-- Wait wait wait, it's not impossible to flop... If I have lead dice, and I'm out of rerolls and no scoring dice, I can still flop... It's just harder to flop because you're not removing as many dice as you keep rolling
-- Or you could consider, if I score all of my dice, including lead, should it still give me hot dice and reset my hand? This would make it maybe slightly harder(?) to get hot dice, because imagine I have 5 lead dice, then I need to find a combo that uses all of them. And if I had all lead dice, then the odds of flopping go wayyyyy down, especially if I add in the lower combinations like single pair. Then again, if I institute the limited number of banks, is this strategy still indestructible? Could be. I mean if I got ALL lead dice, which first of all will probably be reasonably difficult, then basically I can continue rolling and racking up my ROUND score basically forever, since the odds that I ever flop are
-- Opposite of volcano (volcano wants hot dice, heavy materials prevent it)
-- Maybe there is a CHANCE it doesn't get removed instead of 100%? Or a chance to BREAK?
+**Status**: ✅ Implemented - Lead dice remain in hand after being scored, creating a defensive strategy.
 
 #### Template
 
@@ -140,29 +189,7 @@ When considering ideas for materials, ask: "Does this ability correspond mainly 
 ❌⚠️✅ Strategy:
 ❌⚠️✅ Synergy:
 
-#### Fairy Dust / Spectral (Reroll-based)
-
-Material that "leave something behind" when scored - a substance that allows you to change the substance of something else, i.e. rerolls
-+1 reroll when scoring spectral die
-Pink, cyan
-
-**Alternatives:** Stardust, Pixie
-
-#### Angel / Healing (Lives/Flop-based)
-
-25% Flop prevention when in dice set (if it's held in hand or scored, it's too much thinking, just give them the buff? Or then they forget about the significance of it?)
-25% for bank to not take a life/bank/hand
-Probability manipulation?
-All of these?
-Orangey/yellow, glowing, halo
-
-**Alternatives:** Light
-
-#### Moonstone / Lunar (Polarity/Value-based)
-
-Scoring bonus if odd/even, single dice or all dice
-Changes requirement each level/round
-very light green, phantom
+**Note**: New material ideas (Fairy Dust/Spectral, Angel/Healing, Moonstone/Lunar) have been moved to `content-polish-v2.md` for future consideration.
 
 ---
 
@@ -553,7 +580,7 @@ The shop currently:
 - No shop reroll functionality
 - No booster pack system
 
-#### Shop Improvements Needed
+#### Shop Improvements
 
 **1. Shop Reroll System**
 
@@ -644,8 +671,6 @@ Level completion bonus is only for miniboss and boss levels
 
 -1 banks/rerolls/charmslot/consumableslot
 
-
-
 #### Available Scoring Combinations
 
 Honestly I think this might be the best place to handle which scoring combinations are available.
@@ -668,8 +693,9 @@ Instead of having 3 lives that get decremented on flops, players have a limited 
 
 Instead of "3 flops in a row = -1000 points", change to "3 flops in a row = game over"?
 This creates a strategic tension:
-  - Players can use flops strategically to extend their chances at getting a good hand
-  - But they can't flop forever - only 2 flops before game over
+
+- Players can use flops strategically to extend their chances at getting a good hand
+- But they can't flop forever - only 2 flops before game over
 
 ---
 
@@ -771,49 +797,100 @@ The following charms require new tracking systems to be fully implemented. These
 
 ---
 
-## TO-DO LIST
+---
 
-[X][X][X][X][ ] Charms
-[X][X][X][X][ ] Materials
-[X][X][ ][ ][ ] Consumables
-[X][X][ ][ ][ ] Blessings
-[X][X][X][ ][ ] Pip Effects
-[X][X][X][X][ ] Combinations
-[X][X][X][X][X] Lives vs. Banks
+---
 
-Rename "Material" to "Essence"
-add Angelic (rerolls/flops/banks) and Lunar (points, polarity) essences (is this too many?)
+## Future Work
 
-New charms for angelic - increase odds, 
+- New essences (Angelic, Lunar)
+- Charm reworks and new charms
+- Additional consumables
+- Pip effects system
+- Levels and world updates
+- Difficulty/Challenges/Achievements
+- Combination/Scoring system improvements
+- Fully custom dice set loadout system
+
+## Other
+
+### Add a couple more essences
+
+Rename "Material" to "Essence" or "Core"
+Add Angelic (rerolls/flops/banks) essence
+Add Lunar (points, polarity) essences
+Is this too many?
+
+### Rework/update all charms and add new ones
+
+New charm - save 50% of points lost when flopping
+Rework sandbagger charm with the new flop penalty system
+New charm - gain some other bonus that scales with flop penalty
+
+Some kind of Assassin charm based on reroll ranger 2 picture
+
+New charm - against the grain: provides bonus when playing straights, pyramids, n=3 pairs? with a mirror die
+
+New charms for angelic - increase odds,
 New charms for lunar - more points, different triggers
 
-Rename hoarder charm to frequentFlyer or Regular, something with like someone who comes to the bank often
-New charm for multiplier based on dice set size (do we have this already?)
+Rename hoarder charm to frequentFlyer or Regular, something related to someone who comes to the bank often
+New charm for multiplier based on dice set size, opposite of Queen's Gambit
+
+### Update/add consumables
+
+New consumable (whim) - assigns a random material/essence to a chosen die
+New consumable (whim) - 1 in 4 chance to give a selected die a selected material/essence
+New consumable (whim) - turns your negative points positive (maximum? percentage of level threshold?)
+
+Rename Consumables to Trinkets?
+
+### Levels and world
+
+Update levels and world effects and bosses
+Make sure everything works
+
+### Difficulty / Challenges / extras / achievements
+
+Rework/reorganize difficulties?
+We have a d6 now we could use?
+But don't want to flood the game with sooooo many difficulties.
+I'd rather there be like 5-7 meaningful difficulties than have 2-3 per die size, i.e. d4,6,8,10,12,20
+
+Add achievements and tracking (gameState.history)
+
+### Combination / Scoring system
+
+Finish setting base scoring algorithms
+
+Create combination upgrade system / algorithms (e.g. level 1 straight is X points, 1x multiplier; level 2 is X+100 points and 1.1x multiplier)
+
+### Fully custom dice set loadout
 
 Could use more dice sets, but not sure how to balance
 Different Essences would make for the coolest looking sets, but might be overpowered. Balatro has no decks focused on enhancements/seals, only values, discards, hands, scoring, starting items/blessings, special abilities like double Tags
 
-Add achievements
+Almost like a Faster Than Light loadout, but even more customization, almost more like the Gummi ships in Kingdom Hearts
 
-Move to new Spec:
-- "View Dice Set" modal
-- Challenges, difficulties, levels, worlds
+- Just think about the EXCITEMENT you have about choosing your FTL loadout, and unlocking new ones. I want to emulate this same excitement
 
+Or like Fallout, you have 8 qualities/characteristics/stats and a limited number of credits to put towards them; you can skew heavily towards 1 or 2, or have an even distribution
 
-new charm/consumable: turns your negative points positive
-    
-new charm - save 50% of points lost when flopping
-new charm - gain some other bonus that scales with flop penalty
-Rework sandbagger
+Or like Castle Crashers!
+On level up, add points to different combinations!!!
+Can reallocate?
 
-Rework difficulties?
-We have a d6 now?
-But don't want to flood the game with sooooo many difficulties.
+#### Mechanics
 
-Wasnt there a consumable to change the material of a selected die? Not implemented
+Instead of static dice sets, players have a certain number of "credits" to put towards different things
+You start with 6 standard plastic dice and 20 credits
+Adding an extra die is 5 credits (and then maybe 10 for another one?)
+Adding an essence is 3 credits (probably same cost for all essences?)
+Buying charms range from 5-15 credits
+Buying consumables, blessings
+Pip effects 1 credit each
 
-Some kind of assassin charm based on reroll ranger 2 picture
-Charm: against the grain: provides bonus when playing straights, pyramids, n=3 pairs? with a mirror die
+Different difficulties change starting credits / avialable upgrades
+Any credits they don't spend lend to their starting money
 
-CAstle Crashers inspiration
-On level up, add points to differnet combinations!!!
+Implications for the rest of the game: can players expect to be able to just "buy" materials/essences troughout the game, or is this a one-time loadout customization? The credits = money paradigm might be confusing then

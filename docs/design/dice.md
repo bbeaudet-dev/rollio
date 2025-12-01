@@ -21,6 +21,36 @@ Points 4 7 6 and back to 4 creates the right half of the triangular die
 
 
 
+D6
+------------------------------------------------------------
+
+VERTICES (pixel coordinates):
+  Point 0: x=134.33, y=994.00
+  Point 1: x=1270.00, y=1647.00
+  Point 2: x=1270.33, y=2957.00
+  Point 3: x=127.50, y=2305.50
+  Point 4: x=2405.00, y=994.00
+  Point 5: x=2411.50, y=2306.50
+  Point 6: x=1269.00, y=328.50
+
+EDGE CONNECTIONS:
+  Connect points 3 and 0 thick
+  Connect points 3 and 2 thick
+  Connect points 5 and 2 thick
+  Connect points 5 and 4 thick
+  Connect points 6 and 4 thick
+  Connect points 6 and 0 thick
+  Connect points 1 and 0 thin
+  Connect points 1 and 2 thin
+  Connect points 1 and 4 thin
+
+AREAS:
+Points 0 1 4 6 and back to 0 creates the top face of the cube, facing up and forward, tilted 40 degrees towards the camera
+Points 0 1 2 3 and back to 0 creates the left face of the cube, tilted 30 degrees left and slightly downwards
+Points 1 2 5 4 and back to 1 creates the right face of the cube, tilted 30 degrees right and slightly downwards
+
+
+
 D8
 ------------------------------------------------------------
 

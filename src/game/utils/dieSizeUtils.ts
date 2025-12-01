@@ -1,7 +1,7 @@
 import { Die } from '../types';
 
 // Die size sequence
-export const DIE_SIZE_SEQUENCE = [3, 4, 6, 10, 20] as const;
+export const DIE_SIZE_SEQUENCE = [3, 4, 6, 8, 10, 12, 20] as const;
 export type DieSize = typeof DIE_SIZE_SEQUENCE[number];
 
 /**

@@ -1,5 +1,5 @@
 import { GameInterface } from '../../cli/interfaces';
-import { GameState, GameConfig, RoundState } from '../types';
+import { GameState, GameConfig, RoundState, DiceSetConfig } from '../types';
 import { CharmManager } from '../logic/charmSystem';
 import { extractCombinationTypesFromBreakdown, trackCombinationUsage } from '../utils/combinationTracking';
 import { 
@@ -97,14 +97,23 @@ export class GameAPI {
 
   /**
    * Initialize a new game
+   * Accepts either a dice set index (legacy) or a custom DiceSetConfig
    */
   async initializeGame(
-    diceSetIndex: number,
+    diceSetIndexOrConfig: number | DiceSetConfig,
     difficulty: string
   ): Promise<InitializeGameResult> {
-    const { ALL_DICE_SETS } = await import('../data/diceSets');
-    const selectedSet = ALL_DICE_SETS[diceSetIndex];
-    const diceSetConfig = typeof selectedSet === 'function' ? selectedSet() : selectedSet;
+    let diceSetConfig: DiceSetConfig;
+    
+    if (typeof diceSetIndexOrConfig === 'number') {
+      // Legacy: dice set index
+      const { ALL_DICE_SETS } = await import('../data/diceSets');
+      const selectedSet = ALL_DICE_SETS[diceSetIndexOrConfig];
+      diceSetConfig = typeof selectedSet === 'function' ? selectedSet() : selectedSet;
+    } else {
+      // New: custom dice set config
+      diceSetConfig = diceSetIndexOrConfig;
+    }
     
     // Initialize game - all logic is in factories
     const { initializeNewGame } = await import('../utils/factories');
