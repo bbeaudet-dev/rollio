@@ -3,7 +3,7 @@ import { Blessing } from '../../../game/types';
 import { getBlessingName, getBlessingDescription } from '../../../game/data/blessings';
 import { getItemTypeColor } from '../../utils/colors';
 import { getRarityColor } from '../../utils/rarityColors';
-import { StandardButton } from './StandardButton';
+import { ActionButton } from './ActionButton';
 
 /**
  * Convert blessing ID to image filename based on blessing type and tier

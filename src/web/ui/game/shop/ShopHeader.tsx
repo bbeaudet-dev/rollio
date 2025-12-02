@@ -1,5 +1,5 @@
 import React from 'react';
-import { StandardButton } from '../../components/StandardButton';
+import { ActionButton } from '../../components/ActionButton';
 
 interface ShopHeaderProps {
   playerMoney: number;
@@ -14,13 +14,13 @@ export const ShopHeader: React.FC<ShopHeaderProps> = ({ playerMoney, discount, o
         <h2 style={{ margin: 0, fontSize: '18px' }}>🛒 Shop</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           {onRefresh && (
-            <StandardButton
+            <ActionButton
               onClick={onRefresh}
               variant="secondary"
               size="medium"
             >
               Refresh Shop
-            </StandardButton>
+            </ActionButton>
           )}
           <div style={{ fontSize: '14px' }}>
             <strong>Money:</strong> <span style={{ color: '#2d5a2d', fontWeight: 'bold' }}>${playerMoney}</span>

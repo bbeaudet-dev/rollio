@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal } from '../components/Modal';
-import { StandardButton } from '../components/StandardButton';
+import { ActionButton } from '../components/ActionButton';
 import { LevelRewards as LevelRewardsType } from '../../../game/logic/tallying';
 import { playLevelCompleteSound } from '../../utils/sounds';
 
@@ -108,9 +108,9 @@ export const TallyModal: React.FC<TallyModalProps> = ({
         </div>
 
         <div style={{ marginTop: '12px', width: '100%' }}>
-          <StandardButton onClick={onContinue} variant="success" size="large" style={{ width: '100%' }}>
+          <ActionButton onClick={onContinue} variant="success" size="large" style={{ width: '100%' }}>
             Continue to Shop
-          </StandardButton>
+          </ActionButton>
         </div>
       </div>
     </Modal>

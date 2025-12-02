@@ -4,7 +4,7 @@ import { PIP_EFFECTS, PipEffectType } from '../../../game/data/pipEffects';
 import { PipEffectIcon } from '../collection/PipEffectIcon';
 import { DiceFace } from '../game/board/dice/DiceFace';
 import { DiceViewerModal } from '../game/DiceViewerModal';
-import { StandardButton } from '../components/StandardButton';
+import { ActionButton } from '../components/ActionButton';
 
 interface PipEffectsSelectorProps {
   diceSet: Die[];
@@ -76,13 +76,13 @@ export const PipEffectsSelector: React.FC<PipEffectsSelectorProps> = ({
         }}>
           Pip Effects
         </h3>
-        <StandardButton
+        <ActionButton
           onClick={() => setShowDiceModal(true)}
           variant="secondary"
           size="small"
         >
           View Dice Modal
-        </StandardButton>
+        </ActionButton>
       </div>
       
       <p style={{

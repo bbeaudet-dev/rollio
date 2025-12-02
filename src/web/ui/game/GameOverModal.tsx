@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from '../components/Modal';
-import { StandardButton } from '../components/StandardButton';
+import { ActionButton } from '../components/ActionButton';
 
 interface GameOverModalProps {
   isOpen: boolean;
@@ -62,22 +62,22 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           {getMessage()}
         </div>
         <div style={buttonContainerStyle}>
-          <StandardButton 
+          <ActionButton 
             onClick={onNewGame}
             variant="success"
             size="large"
             style={{ width: '100%' }}
           >
             New Game
-          </StandardButton>
-          <StandardButton 
+          </ActionButton>
+          <ActionButton 
             onClick={onReturnToMenu}
             variant="secondary"
             size="large"
             style={{ width: '100%' }}
           >
             Return to Menu
-          </StandardButton>
+          </ActionButton>
         </div>
       </div>
     </Modal>

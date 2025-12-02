@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Die, Consumable } from '../../../game/types';
 import { DiceFace } from './board/dice/DiceFace';
 import { ConsumableCard } from '../components/ConsumableCard';
-import { StandardButton } from '../components/StandardButton';
+import { ActionButton } from '../components/ActionButton';
 
 interface DiceViewerModalProps {
   isOpen: boolean;
@@ -311,21 +311,21 @@ export const DiceViewerModal: React.FC<DiceViewerModalProps> = ({
             display: 'flex',
             gap: '12px'
           }}>
-            <StandardButton
+            <ActionButton
               onClick={onClose}
               variant="secondary"
               size="medium"
             >
               Cancel
-            </StandardButton>
-            <StandardButton
+            </ActionButton>
+            <ActionButton
               onClick={handleFinish}
               variant="primary"
               size="medium"
               disabled={selectedViewIndices.size === 0}
             >
               Apply
-            </StandardButton>
+            </ActionButton>
           </div>
         </div>
       </div>

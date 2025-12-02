@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StandardButton } from './StandardButton';
+import { ActionButton } from './ActionButton';
 
 interface InventoryItemProps {
   title: string;
@@ -47,13 +47,13 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({
         
         {showUseButton && onUse && (
           <div style={{ marginTop: '6px' }}>
-            <StandardButton
+            <ActionButton
               onClick={onUse}
               variant="primary"
               size="small"
             >
               Use
-            </StandardButton>
+            </ActionButton>
           </div>
         )}
         

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StandardButton } from '../components/StandardButton';
+import { ActionButton } from '../components/ActionButton';
 
 interface LobbySetupProps {
   onBack?: () => void;
@@ -78,7 +78,7 @@ export const LobbySetup: React.FC<LobbySetupProps> = ({ onBack }) => {
           borderRadius: '8px',
           border: '1px solid #e1e5e9'
         }}>
-          <StandardButton
+          <ActionButton
             onClick={handleCreateLobby}
             disabled={isCreating}
             variant="primary"
@@ -86,7 +86,7 @@ export const LobbySetup: React.FC<LobbySetupProps> = ({ onBack }) => {
             style={{ width: '100%' }}
           >
             {isCreating ? 'Creating...' : 'Create Lobby'}
-          </StandardButton>
+          </ActionButton>
         </div>
 
         {/* Join Lobby Section */}
@@ -120,7 +120,7 @@ export const LobbySetup: React.FC<LobbySetupProps> = ({ onBack }) => {
               }}
             />
           </div>
-          <StandardButton
+          <ActionButton
             onClick={handleJoinLobby}
             disabled={isJoining || !roomCode.trim()}
             variant="success"
@@ -128,7 +128,7 @@ export const LobbySetup: React.FC<LobbySetupProps> = ({ onBack }) => {
             style={{ width: '100%' }}
           >
             {isJoining ? 'Joining...' : 'Join Lobby'}
-          </StandardButton>
+          </ActionButton>
         </div>
       </div>
 

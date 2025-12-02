@@ -1,4 +1,4 @@
-import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState, Charm, Consumable, Blessing, GamePhase, WorldState, ConsumableCounters, CharmCounters, BlessingCounters } from '../types';
+import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState, Charm, Consumable, Blessing, GamePhase, WorldState, ConsumableCounters, CharmCounters, BlessingCounters, DiceMaterialType } from '../types';
 import { ALL_SCORING_TYPES } from '../data/combinations';
 import { getRandomInt } from './effectUtils';
 import { validateDiceSetConfig } from '../validation/diceSetValidation';
@@ -11,7 +11,9 @@ import { getLevelEffectContext } from '../logic/worldEffects';
 import { CHARMS } from '../data/charms';
 import { CONSUMABLES } from '../data/consumables';
 import { ALL_BLESSINGS } from '../data/blessings';
-import { DifficultyLevel, getDifficultyConfig, getDifficulty } from '../logic/difficulty';
+import { DifficultyLevel, getDifficultyConfig, getDifficulty, getStartingCredits } from '../logic/difficulty';
+import { MATERIALS } from '../data/materials';
+import { PIP_EFFECTS, PipEffectType } from '../data/pipEffects';
 
 // Default game configuration
 export const DEFAULT_GAME_CONFIG = {
@@ -275,6 +277,289 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty:
   };
   
   return initialGameState;
+}
+
+/**
+ * Credit transaction interface for dice customization
+ */
+export interface CreditTransaction {
+  type: 'addDie' | 'removeDie' | 'changeMaterial' | 'addPipEffect' | 'removePipEffect' | 'changeSideValue';
+  dieIndex?: number;
+  sideIndex?: number;
+  cost: number; // negative for refunds
+  timestamp: number;
+  metadata?: {
+    material?: DiceMaterialType;
+    pipEffect?: PipEffectType;
+    oldValue?: number;
+    newValue?: number;
+  };
+}
+
+/**
+ * Result of randomizing a dice set configuration
+ */
+export interface RandomizedDiceSetResult {
+  diceSet: Die[];
+  creditTransactions: CreditTransaction[];
+  originalSideValues: Record<string, number[]>;
+  creditsUsed: number;
+}
+
+/**
+ * Randomize a dice set configuration within credit budget
+ * Targets using 60-90% of starting credits (errs on the side of using more)
+ */
+export function randomizeDiceSetConfig(difficulty: DifficultyLevel): RandomizedDiceSetResult {
+  const startingCredits = getStartingCredits(difficulty);
+  
+  // Credit costs - base costs
+  const COST_CHANGE_MATERIAL = 3;
+  const COST_CHANGE_SIDE_VALUE = 2;
+  const COST_ADD_PIP_EFFECT = 2;
+
+  // Helper to get cost of adding a die
+  const getAddDieCost = (currentDiceCount: number): number => {
+    const addedDiceCount = Math.max(0, currentDiceCount - 6);
+    if (addedDiceCount === 0) return 10;
+    if (addedDiceCount === 1) return 20;
+    return 30; // 30 for third and beyond
+  };
+
+  // Create default 6 dice
+  const createDefaultDice = (): Die[] => {
+    return Array.from({ length: 6 }, (_, i) => ({
+      id: `d${i + 1}`,
+      sides: 6,
+      allowedValues: [1, 2, 3, 4, 5, 6],
+      material: 'plastic' as DiceMaterialType,
+      pipEffects: undefined
+    }));
+  };
+  
+  // Start fresh with default dice
+  const defaultDice = createDefaultDice();
+  const newDiceSet: Die[] = defaultDice.map(die => ({ ...die }));
+  const newTransactions: CreditTransaction[] = [];
+  const newOriginalSideValues: Record<string, number[]> = {};
+  let creditsUsed = 0;
+  let timestamp = Date.now();
+
+  // Initialize original side values
+  defaultDice.forEach(die => {
+    newOriginalSideValues[die.id] = [...die.allowedValues];
+  });
+
+  // Target using 75-100% of starting credits (err on the side of using more)
+  // But ensure remaining credits is less than 10
+  const minCreditsToUse = Math.max(
+    Math.floor(startingCredits * 0.75), // At least 75% of credits
+    Math.max(0, startingCredits - 9)    // Or enough to leave < 10 remaining, whichever is higher
+  );
+  const maxCreditsToUse = startingCredits;
+  // Randomly choose between minCreditsToUse and maxCreditsToUse
+  const targetCreditsToUse = Math.floor(
+    minCreditsToUse + (maxCreditsToUse - minCreditsToUse) * Math.random()
+  );
+  // Ensure we don't exceed starting credits
+  const actualMaxCreditsToUse = Math.min(targetCreditsToUse, startingCredits);
+
+  // Available materials (excluding plastic for randomization, but we'll add it back with probability)
+  const availableMaterials: DiceMaterialType[] = MATERIALS.map(m => m.id as DiceMaterialType);
+  const nonPlasticMaterials = availableMaterials.filter(m => m !== 'plastic');
+  
+  // Available pip effects
+  const availablePipEffects: PipEffectType[] = PIP_EFFECTS.map(e => e.type);
+
+  // Randomly decide how many dice to add (0-3, but constrained by credits)
+  // Add dice one at a time, checking costs as we go
+  for (let i = 0; i < 3; i++) {
+    const cost = getAddDieCost(newDiceSet.length);
+    if (creditsUsed + cost <= actualMaxCreditsToUse) {
+      // 45% chance to add another die if we can afford it 
+      if (Math.random() < 0.45) {
+        const newDieIndex = newDiceSet.length;
+        const newDie: Die = {
+          id: `d${newDieIndex + 1}`,
+          sides: 6,
+          allowedValues: [1, 2, 3, 4, 5, 6],
+          material: 'plastic',
+          pipEffects: undefined
+        };
+        newDiceSet.push(newDie);
+        newOriginalSideValues[newDie.id] = [...newDie.allowedValues];
+        creditsUsed += cost;
+        newTransactions.push({
+          type: 'addDie',
+          dieIndex: newDieIndex,
+          cost: cost,
+          timestamp: timestamp++
+        });
+      } else {
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  // Track counts for probability adjustments
+  let totalSideValueChanges = 0;
+  let totalPipEffects = 0;
+
+  // Track current side values for each die (starts as original values)
+  // This ensures we make incremental changes like the UI does
+  const currentSideValues: Record<number, number[]> = {};
+  newDiceSet.forEach((die, index) => {
+    currentSideValues[index] = [...die.allowedValues];
+  });
+
+  // For each die, randomly customize it
+  for (let dieIndex = 0; dieIndex < newDiceSet.length; dieIndex++) {
+    const die = newDiceSet[dieIndex];
+    const remainingCredits = actualMaxCreditsToUse - creditsUsed;
+    
+    // 85% chance to change material (increased from 70% - materials should show up more often)
+    if (remainingCredits >= COST_CHANGE_MATERIAL && Math.random() < 0.85) {
+      const randomMaterial = nonPlasticMaterials[Math.floor(Math.random() * nonPlasticMaterials.length)];
+      die.material = randomMaterial;
+      creditsUsed += COST_CHANGE_MATERIAL;
+      newTransactions.push({
+        type: 'changeMaterial',
+        dieIndex,
+        cost: COST_CHANGE_MATERIAL,
+        metadata: { material: randomMaterial },
+        timestamp: timestamp++
+      });
+    }
+
+    // Calculate probability for side value changes based on how many have been done
+    // Base probability decreases as more changes are made
+    // 0 changes: 40% chance per die, 1 change: 30%, 2 changes: 20%, 3+: 10%
+    const sideValueChangeBaseProb = Math.max(0.1, 0.4 - (totalSideValueChanges * 0.1));
+    const maxSideValueChanges = Math.min(
+      3, // Max 3 changes per die
+      Math.floor((actualMaxCreditsToUse - creditsUsed) / COST_CHANGE_SIDE_VALUE)
+    );
+
+    // Decide how many side value changes to make for this die
+    let numSideValueChanges = 0;
+    for (let attempt = 0; attempt < maxSideValueChanges; attempt++) {
+      // Probability decreases with each attempt on this die
+      const currentProb = sideValueChangeBaseProb * (1 - attempt * 0.3);
+      if (Math.random() < currentProb && creditsUsed + COST_CHANGE_SIDE_VALUE <= actualMaxCreditsToUse) {
+        numSideValueChanges++;
+      } else {
+        break;
+      }
+    }
+
+    // Make incremental side value changes (like the UI does with increment/decrement)
+    for (let i = 0; i < numSideValueChanges; i++) {
+      if (creditsUsed + COST_CHANGE_SIDE_VALUE > actualMaxCreditsToUse) break;
+      
+      // Pick a random side that can still be changed (not at min/max)
+      const availableSides = currentSideValues[dieIndex]
+        .map((val, idx) => ({ value: val, index: idx }))
+        .filter(({ value }) => value > 1 && value < 20); // Can still be incremented or decremented
+      
+      if (availableSides.length === 0) break; // No more sides can be changed
+      
+      const sideToChange = availableSides[Math.floor(Math.random() * availableSides.length)];
+      const sideIndex = sideToChange.index;
+      const oldValue = currentSideValues[dieIndex][sideIndex];
+      
+      // Randomly decide to increment or decrement (with bias towards staying in reasonable range)
+      let delta: number;
+      if (oldValue <= 3) {
+        // Low values: prefer incrementing (70% chance)
+        delta = Math.random() < 0.7 ? 1 : -1;
+      } else if (oldValue >= 18) {
+        // High values: prefer decrementing (70% chance)
+        delta = Math.random() < 0.7 ? -1 : 1;
+      } else {
+        // Middle values: random increment/decrement
+        delta = Math.random() < 0.5 ? 1 : -1;
+      }
+      
+      const newValue = Math.max(1, Math.min(20, oldValue + delta));
+      
+      // Only proceed if the value actually changes
+      if (newValue === oldValue) continue;
+      
+      // Update the current value tracking
+      currentSideValues[dieIndex][sideIndex] = newValue;
+      die.allowedValues[sideIndex] = newValue;
+      
+      creditsUsed += COST_CHANGE_SIDE_VALUE;
+      totalSideValueChanges++;
+      newTransactions.push({
+        type: 'changeSideValue',
+        dieIndex,
+        sideIndex,
+        cost: COST_CHANGE_SIDE_VALUE,
+        metadata: { oldValue, newValue },
+        timestamp: timestamp++
+      });
+    }
+
+    // Calculate probability for pip effects based on how many have been done
+    // Base probability decreases as more effects are added
+    // 0 effects: 45% chance per die, 1 effect: 40%, 2 effects: 35%
+    const pipEffectBaseProb = Math.max(0.20, 0.45 - (totalPipEffects * 0.05));
+    const maxPipEffects = Math.min(
+      3, // Max 3 effects per die
+      Math.floor((actualMaxCreditsToUse - creditsUsed) / COST_ADD_PIP_EFFECT)
+    );
+
+    // Decide how many pip effects to add for this die
+    let numPipEffects = 0;
+    for (let attempt = 0; attempt < maxPipEffects; attempt++) {
+      // Probability decreases with each attempt on this die
+      const currentProb = pipEffectBaseProb * (1 - attempt * 0.4);
+      if (Math.random() < currentProb && creditsUsed + COST_ADD_PIP_EFFECT <= actualMaxCreditsToUse) {
+        numPipEffects++;
+      } else {
+        break;
+      }
+    }
+
+    if (numPipEffects > 0) {
+      die.pipEffects = {};
+      // Get unique side values (in case side values were changed and there are duplicates)
+      const availableSideValues = [...new Set(die.allowedValues)];
+      
+      for (let i = 0; i < numPipEffects; i++) {
+        if (creditsUsed + COST_ADD_PIP_EFFECT > actualMaxCreditsToUse) break;
+        if (availableSideValues.length === 0) break;
+        
+        const sideValueIndex = Math.floor(Math.random() * availableSideValues.length);
+        const sideValue = availableSideValues[sideValueIndex];
+        availableSideValues.splice(sideValueIndex, 1); // Remove to avoid duplicates
+        
+        const randomEffect = availablePipEffects[Math.floor(Math.random() * availablePipEffects.length)];
+        die.pipEffects[sideValue] = randomEffect;
+        
+        creditsUsed += COST_ADD_PIP_EFFECT;
+        totalPipEffects++;
+        newTransactions.push({
+          type: 'addPipEffect',
+          dieIndex,
+          sideIndex: sideValue, // Note: sideIndex in transaction stores the sideValue, not the array index
+          cost: COST_ADD_PIP_EFFECT,
+          metadata: { pipEffect: randomEffect },
+          timestamp: timestamp++
+        });
+      }
+    }
+  }
+
+  return {
+    diceSet: newDiceSet,
+    creditTransactions: newTransactions,
+    originalSideValues: newOriginalSideValues,
+    creditsUsed
+  };
 }
 
 /**

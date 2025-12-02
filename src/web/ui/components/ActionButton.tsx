@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface StandardButtonProps {
+interface ActionButtonProps {
   onClick: () => void;
   disabled?: boolean;
   variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
@@ -38,7 +38,7 @@ const sizeStyles = {
   },
 };
 
-export const StandardButton: React.FC<StandardButtonProps> = ({
+export const ActionButton: React.FC<ActionButtonProps> = ({
   onClick,
   disabled = false,
   variant = 'primary',

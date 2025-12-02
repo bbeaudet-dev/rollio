@@ -1,5 +1,5 @@
 import React from 'react';
-import { StandardButton } from '../../components/StandardButton';
+import { ActionButton } from '../../components/ActionButton';
 import { ShopState } from '../../../../game/types';
 import { calculateShopDiscount } from '../../../../game/logic/shop';
 import { ShopItemList } from './ShopItemList';
@@ -89,13 +89,13 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
           <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
             Money: <span style={{ color: '#2d5a2d' }}>${playerMoney}</span>
           </div>
-          <StandardButton
+          <ActionButton
             onClick={refreshShop}
             variant="secondary"
             size="small"
           >
             Refresh Shop
-          </StandardButton>
+          </ActionButton>
         </div>
         
         {discount > 0 && (
@@ -167,9 +167,9 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
         {/* Continue button at bottom */}
         <div style={{ marginTop: '8px', textAlign: 'center', flexShrink: 0 }}>
           <div style={{ display: 'inline-block' }}>
-            <StandardButton onClick={exitShop} variant="success" size="medium">
+            <ActionButton onClick={exitShop} variant="success" size="medium">
               Continue to Next Level
-            </StandardButton>
+            </ActionButton>
           </div>
         </div>
       </div>
