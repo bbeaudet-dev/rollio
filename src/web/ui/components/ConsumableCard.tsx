@@ -3,7 +3,7 @@ import { Consumable } from '../../../game/types';
 import { WHIMS, WISHES } from '../../../game/data/consumables';
 import { getConsumableColor } from '../../utils/colors';
 import { getRarityColor } from '../../utils/rarityColors';
-import { StandardButton } from './StandardButton';
+import { ActionButton } from './ActionButton';
 
 /**
  * Convert consumable ID to image filename

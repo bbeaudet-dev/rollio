@@ -3,23 +3,10 @@ import { Die, DiceMaterialType } from '../../../game/types';
 import { DifficultyLevel, getStartingCredits } from '../../../game/logic/difficulty';
 import { MATERIALS } from '../../../game/data/materials';
 import { PIP_EFFECTS, PipEffectType } from '../../../game/data/pipEffects';
+import { randomizeDiceSetConfig, CreditTransaction } from '../../../game/utils/factories';
 import { DiceFace } from '../game/board/dice/DiceFace';
 import { PipEffectIcon } from '../collection/PipEffectIcon';
-
-interface CreditTransaction {
-  type: 'addDie' | 'removeDie' | 'changeMaterial' | 'addPipEffect' | 'removePipEffect' | 'changeSideValue' | 'upgradeCombo';
-  dieIndex?: number;
-  sideIndex?: number;
-  cost: number; // negative for refunds
-  timestamp: number;
-  metadata?: {
-    material?: DiceMaterialType;
-    pipEffect?: PipEffectType;
-    oldValue?: number;
-    newValue?: number;
-    comboCategory?: string;
-  };
-}
+import { ActionButton } from '../components/ActionButton';
 
 interface DiceSetCustomizationProps {
   difficulty: DifficultyLevel;
@@ -61,7 +48,6 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
   const [selectedSideForPipEffect, setSelectedSideForPipEffect] = useState<{ dieIndex: number; sideValue: number } | null>(null);
   const [rotatingValues, setRotatingValues] = useState<Record<string, number>>({});
   const [creditTransactions, setCreditTransactions] = useState<CreditTransaction[]>([]);
-  const [upgradedCombos, setUpgradedCombos] = useState<Set<string>>(new Set());
 
   // Initialize rotating values
   useEffect(() => {
@@ -98,7 +84,6 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
   // Credit costs - base costs
   const COST_CHANGE_MATERIAL = 3;
   const COST_CHANGE_SIDE_VALUE = 2;
-  const COST_UPGRADE_COMBO = 1;
 
   // Dynamic cost calculation functions
   const getAddDieCost = (currentDiceCount: number): number => {
@@ -389,17 +374,17 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
     }));
   };
 
-  // Upgrade combination
-  const handleUpgradeCombo = (category: string) => {
-    if (creditsRemaining < COST_UPGRADE_COMBO) return;
-    if (upgradedCombos.has(category)) return;
 
-    setUpgradedCombos(prev => new Set([...prev, category]));
-    addTransaction({
-      type: 'upgradeCombo',
-      cost: COST_UPGRADE_COMBO,
-      metadata: { comboCategory: category }
-    });
+  // Randomize dice set
+  const handleRandomize = () => {
+    const result = randomizeDiceSetConfig(difficulty);
+    
+    // Update all state
+    setDiceSet(result.diceSet);
+    setCreditTransactions(result.creditTransactions);
+    setOriginalSideValues(result.originalSideValues);
+    setSelectedDieIndex(null);
+    setSelectedSideForPipEffect(null);
   };
 
   // Get credit color
@@ -422,9 +407,20 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
       margin: '0 auto'
     }}>
 
+      {/* Header */}
+      <h2 style={{
+        fontSize: '20px',
+        fontWeight: 'bold',
+        color: '#2c3e50',
+        marginBottom: '16px',
+        marginTop: '0'
+      }}>
+        Customize your starting Dice Set
+      </h2>
+
       {/* Credit Display - Fallout Style Bars */}
       <div style={{
-        marginBottom: '12px'
+        marginBottom: '20px'
       }}>
         <div style={{
           display: 'flex',
@@ -495,21 +491,30 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
       }}>
         <div style={{
           display: 'flex',
-          gap: '4px',
+          gap: '16px',
           flexWrap: 'wrap',
-          alignItems: 'center'
+          alignItems: 'flex-start'
         }}>
           {diceSet.map((die, index) => {
             const currentValue = rotatingValues[die.id] || die.allowedValues[0] || 1;
             const isSelected = selectedDieIndex === index;
 
+            // Count side value changes for this die
+            const sideValueChangeCount = creditTransactions.filter(
+              t => t.dieIndex === index && t.type === 'changeSideValue' && t.cost > 0
+            ).length;
+
+            // Get all unique pip effects for this die
+            const pipEffects = die.pipEffects ? Object.values(die.pipEffects).filter((effect): effect is PipEffectType => effect !== 'none') : [];
+            const uniquePipEffects = [...new Set(pipEffects)];
+
             return (
-              <div key={die.id} style={{ position: 'relative' }}>
+              <div key={die.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <button
                   onClick={() => setSelectedDieIndex(isSelected ? null : index)}
                   style={{
-                    width: '44px',
-                    height: '44px',
+                    width: '52px',
+                    height: '52px',
                     border: 'none',
                     borderRadius: '8px',
                     backgroundColor: isSelected ? '#e7f3ff' : 'transparent',
@@ -537,11 +542,46 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
                 >
                   <DiceFace
                     value={currentValue}
-                    size={44}
+                    size={52}
                     material={die.material}
                     pipEffect={die.pipEffects?.[currentValue] || undefined}
                   />
                 </button>
+                {/* Indicators for side value changes and pip effects */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  marginTop: '4px',
+                  minHeight: '12px',
+                  fontSize: '10px'
+                }}>
+                  {sideValueChangeCount > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                      color: '#6c757d'
+                    }}>
+                      <span style={{ fontSize: '10px' }}>↕</span>
+                      <span style={{ fontSize: '9px', fontWeight: 'bold' }}>{sideValueChangeCount}</span>
+                    </div>
+                  )}
+                  {uniquePipEffects.map((effect, effectIndex) => (
+                    <div
+                      key={effectIndex}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: '12px',
+                        height: '12px'
+                      }}
+                    >
+                      <PipEffectIcon type={effect} size={12} />
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })}
@@ -550,8 +590,8 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
               onClick={handleAddDie}
               disabled={creditsRemaining < getAddDieCost(diceSet.length)}
               style={{
-                width: '44px',
-                height: '44px',
+                width: '52px',
+                height: '52px',
                 border: '2px dashed #6c757d',
                 borderRadius: '8px',
                 backgroundColor: creditsRemaining >= getAddDieCost(diceSet.length) ? '#f8f9fa' : '#e9ecef',
@@ -560,7 +600,7 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '24px',
+                fontSize: '28px',
                 fontWeight: 'bold',
                 transition: 'all 0.2s ease',
                 padding: '0',
@@ -1060,86 +1100,36 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
         </div>
       )}
 
-      {/* Combination Upgrades (Placeholder) */}
-      <div style={{
-        marginTop: '12px',
-        padding: '12px',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '6px',
-        border: '1px solid #dee2e6'
-      }}>
-        <div style={{
-          fontSize: '14px',
-          fontWeight: 'bold',
-          marginBottom: '8px',
-          color: '#2c3e50'
-        }}>
-          Combination Upgrades ({COST_UPGRADE_COMBO} credit each) - Placeholder
-        </div>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-          gap: '8px'
-        }}>
-          {['Singles', 'Beginner', 'Intermediate', 'Advanced'].map((category) => {
-            const isUpgraded = upgradedCombos.has(category);
-            return (
-              <button
-                key={category}
-                onClick={() => handleUpgradeCombo(category)}
-                disabled={isUpgraded || creditsRemaining < COST_UPGRADE_COMBO}
-                style={{
-                  padding: '8px',
-                  border: isUpgraded ? '2px solid #28a745' : '1px solid #dee2e6',
-                  borderRadius: '4px',
-                  backgroundColor: isUpgraded ? '#d4edda' : '#fff',
-                  cursor: isUpgraded || creditsRemaining < COST_UPGRADE_COMBO ? 'not-allowed' : 'pointer',
-                  fontSize: '12px',
-                  textAlign: 'center'
-                }}
-              >
-                {category} {isUpgraded && '✓'}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Complete Button */}
+      {/* Complete Button and Randomize Button */}
       <div style={{
         display: 'flex',
         justifyContent: 'flex-end',
-        gap: '12px'
+        gap: '12px',
+        alignItems: 'center'
       }}>
-        <button
+        <ActionButton
+          onClick={handleRandomize}
+          variant="secondary"
+          size="medium"
+        >
+          Randomize Dice Set
+        </ActionButton>
+        <ActionButton
           onClick={() => onComplete(diceSet, creditsRemaining)}
+          variant="success"
+          size="medium"
           style={{
-            padding: '12px 24px',
-            backgroundColor: '#28a745',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s ease',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: '4px'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#218838';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#28a745';
           }}
         >
           <span>Start Game</span>
           <span style={{ fontSize: '11px', opacity: 0.9, fontWeight: 'normal' }}>
             {creditsRemaining} credits → ${creditsRemaining}
           </span>
-        </button>
+        </ActionButton>
       </div>
     </div>
   );

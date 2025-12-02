@@ -64,27 +64,27 @@ export const MainMenu: React.FC = () => {
         gap: '12px',
         marginTop: '30px'
       }}>
-        {/* Continue and New Game buttons on same row */}
+        {/* New Game and Continue Game buttons */}
         <div style={{
           display: 'flex',
           gap: '12px',
           width: '100%'
         }}>
           <MainMenuButton
-            variant="success"
-            onClick={() => navigate('/game?load=true')}
-            disabled={!isAuthenticated || !hasSavedGame}
-            style={{ flex: 1 }}
+            variant="primary"
+            onClick={() => navigate('/game')}
+            style={{ flex: 1, padding: '20px 32px', minHeight: '60px', fontSize: '17px' }}
           >
-            Continue Game
+            New Game
           </MainMenuButton>
           
           <MainMenuButton
-            variant="primary"
-            onClick={() => navigate('/game')}
-            style={{ flex: 1 }}
+            variant="success"
+            onClick={() => navigate('/game?load=true')}
+            disabled={!isAuthenticated || !hasSavedGame}
+            style={{ flex: 1, padding: '20px 32px', minHeight: '60px', fontSize: '17px' }}
           >
-            New Game
+            Continue Game
           </MainMenuButton>
         </div>
         
@@ -96,26 +96,36 @@ export const MainMenu: React.FC = () => {
           Multiplayer
         </MainMenuButton>
         
-        <MainMenuButton
-          variant="secondary"
-          onClick={() => navigate('/collection')}
-        >
-          Collection
-        </MainMenuButton>
-        
-        <MainMenuButton
-          variant="secondary"
-          onClick={() => navigate('/calculator')}
-        >
-          Calculator
-        </MainMenuButton>
-        
-        <MainMenuButton
-          variant="secondary"
-          onClick={() => navigate('/how-to-play')}
-        >
-          How To Play
-        </MainMenuButton>
+        {/* Collection, Calculator, and How to Play buttons on same row */}
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          width: '100%'
+        }}>
+          <MainMenuButton
+            variant="secondary"
+            onClick={() => navigate('/collection')}
+            style={{ flex: 1 }}
+          >
+            Collection
+          </MainMenuButton>
+          
+          <MainMenuButton
+            variant="secondary"
+            onClick={() => navigate('/calculator')}
+            style={{ flex: 1 }}
+          >
+            Calculator
+          </MainMenuButton>
+          
+          <MainMenuButton
+            variant="secondary"
+            onClick={() => navigate('/how-to-play')}
+            style={{ flex: 1 }}
+          >
+            How To Play
+          </MainMenuButton>
+        </div>
         
         <button 
           onClick={() => setIsSettingsOpen(true)}

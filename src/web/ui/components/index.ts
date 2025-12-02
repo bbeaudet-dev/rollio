@@ -1,5 +1,5 @@
 export { Button } from './Button';
-export { StandardButton } from './StandardButton';
+export { ActionButton } from './ActionButton';
 export { GameControlButton } from './GameControlButton';
 export { Input } from './Input';
 export { Modal } from './Modal';
