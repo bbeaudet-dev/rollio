@@ -10,4 +10,5 @@ export { ConsumableCard } from './ConsumableCard';
 export { BlessingCard } from './BlessingCard';
 export { SettingsButton } from './SettingsButton';
 export { MainMenuReturnButton } from './MenuButton';
-export { MainMenuButton } from './MainMenuButton'; 
+export { MainMenuButton } from './MainMenuButton';
+export { ModeButton } from './ModeButton'; 

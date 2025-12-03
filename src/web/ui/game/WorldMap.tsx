@@ -17,7 +17,7 @@ export const WorldMap: React.FC<WorldMapProps> = ({ gameState, onSelectWorld, on
   const handleNodeClick = (nodeId: number) => {
     const worldId = getWorldIdForNode(gameState.gameMap!, nodeId);
     if (worldId) {
-      onSelectWorld(worldId);
+    onSelectWorld(worldId);
     }
   };
 

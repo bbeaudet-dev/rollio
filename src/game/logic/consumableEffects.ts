@@ -521,36 +521,36 @@ export function applyDieSelectionConsumable(
       };
     }
 
-    const selectedDie = newGameState.diceSet[selectedDieIndex];
-    if (!selectedDie) {
-      return {
-        success: false,
-        shouldRemove: false,
-        gameState: newGameState
-      };
-    }
+  const selectedDie = newGameState.diceSet[selectedDieIndex];
+  if (!selectedDie) {
+    return {
+      success: false,
+      shouldRemove: false,
+      gameState: newGameState
+    };
+  }
 
-    if (consumableId === 'chisel') {
-      const newSize = getPreviousDieSize(selectedDie.sides);
-      if (newSize === null) {
-        shouldRemove = false;
-      } else {
-        newGameState.diceSet = newGameState.diceSet.map((die, i) =>
-          i === selectedDieIndex
-            ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
-            : die
-        );
-      }
-    } else if (consumableId === 'potteryWheel') {
-      const newSize = getNextDieSize(selectedDie.sides);
-      if (newSize === null) {
-        shouldRemove = false;
-      } else {
-        newGameState.diceSet = newGameState.diceSet.map((die, i) =>
-          i === selectedDieIndex
-            ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
-            : die
-        );
+  if (consumableId === 'chisel') {
+    const newSize = getPreviousDieSize(selectedDie.sides);
+    if (newSize === null) {
+      shouldRemove = false;
+    } else {
+      newGameState.diceSet = newGameState.diceSet.map((die, i) =>
+        i === selectedDieIndex
+          ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
+          : die
+      );
+    }
+  } else if (consumableId === 'potteryWheel') {
+    const newSize = getNextDieSize(selectedDie.sides);
+    if (newSize === null) {
+      shouldRemove = false;
+    } else {
+      newGameState.diceSet = newGameState.diceSet.map((die, i) =>
+        i === selectedDieIndex
+          ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
+          : die
+      );
       }
     }
   }

@@ -101,7 +101,7 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           if (onSellConsumable) {
-                            onSellConsumable(index);
+                          onSellConsumable(index);
                           }
                           setSelectedIndex(null);
                         }}

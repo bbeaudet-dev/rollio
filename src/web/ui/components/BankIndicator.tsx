@@ -7,7 +7,7 @@ interface BankIndicatorProps {
 
 export const BankIndicator: React.FC<BankIndicatorProps> = ({ 
   count, 
-  maxVisible = 5 
+  maxVisible = 10 
 }) => {
   const indicators = [];
   for (let i = 0; i < count && i < maxVisible; i++) {
@@ -15,8 +15,8 @@ export const BankIndicator: React.FC<BankIndicatorProps> = ({
       <div
         key={i}
         style={{
-          width: '10px',
-          height: '10px',
+          width: '8px',
+          height: '8px',
           backgroundColor: '#ffd700',
           border: '1px solid #ffed4e',
           borderRadius: '2px',
@@ -37,7 +37,7 @@ export const BankIndicator: React.FC<BankIndicatorProps> = ({
   return (
     <div style={{ 
       display: 'flex', 
-      gap: '7px', 
+      gap: '2px', 
       alignItems: 'center', 
       justifyContent: 'center',
       marginTop: '1px'

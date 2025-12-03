@@ -42,12 +42,25 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
       display: 'flex', 
       flexDirection: 'column',
       gap: '15px',
-      padding: '15px',
+      padding: '20px',
       backgroundColor: '#fff',
       borderRadius: '12px',
       border: '2px solid #dee2e6',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      maxWidth: '900px',
+      margin: '0 auto'
     }}>
+      {/* Header */}
+      <h2 style={{
+        fontSize: '20px',
+        fontWeight: 'bold',
+        color: '#2c3e50',
+        marginBottom: '0',
+        marginTop: '0'
+      }}>
+        1. Select a difficulty
+      </h2>
+      
       {/* Main selector row */}
       <div style={{ 
         display: 'flex', 

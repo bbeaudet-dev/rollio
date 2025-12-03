@@ -75,7 +75,7 @@ export const HowToPlayPage: React.FC = () => {
         textAlign: 'center',
         fontStyle: 'italic'
       }}>
-        Welcome to Rollio! The rules take some inspiration from combination poker and Farkle, while also mixing in roguelike elements. Don't worry, I'll explain everything!
+        Welcome to Rollio! The rules take some inspiration from poker and Farkle while also mixing in roguelike elements. Don't worry, I'll explain everything!
       </div>
 
       {/* Rolling and Combinations */}
@@ -92,7 +92,6 @@ export const HowToPlayPage: React.FC = () => {
           <li><strong>Pairs:</strong> Two dice with the same value</li>
           <li><strong>Three of a Kind:</strong> Three dice with the same value</li>
           <li><strong>Straights:</strong> Three or more consecutive values (e.g., 1-2-3, 4-5-6)</li>
-          <li><strong>Pyramids:</strong> Three dice forming a pyramid pattern (e.g., 1-2-1, 3-4-3)</li>
         </ul>
         <p style={textStyle}>
           After scoring, the selected dice are removed. You can then roll the remaining dice again, or bank your points to end the round.

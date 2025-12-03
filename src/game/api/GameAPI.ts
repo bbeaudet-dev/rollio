@@ -107,7 +107,7 @@ export class GameAPI {
     
     if (typeof diceSetIndexOrConfig === 'number') {
       // Legacy: dice set index
-      const { ALL_DICE_SETS } = await import('../data/diceSets');
+    const { ALL_DICE_SETS } = await import('../data/diceSets');
       const selectedSet = ALL_DICE_SETS[diceSetIndexOrConfig];
       diceSetConfig = typeof selectedSet === 'function' ? selectedSet() : selectedSet;
     } else {

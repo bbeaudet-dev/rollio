@@ -8,8 +8,7 @@ import { HotDiceCounter } from './board/HotDiceCounter';
 
 interface GameControlsProps {
   // Button handlers
-  onReroll: () => void; // Left button - only rerolling
-  onRerollAll: () => void; // Reroll all dice
+  onReroll: () => void; // 
   onRollOrScore: () => void; // Middle button - rolling or scoring
   onBank: () => void; // Right button - banking
   onSelectAll?: () => void; // Select all dice
@@ -42,7 +41,6 @@ interface GameControlsProps {
 
 export const GameControls: React.FC<GameControlsProps> = ({
   onReroll,
-  onRerollAll,
   onRollOrScore,
   onBank,
   onSelectAll,
@@ -69,28 +67,13 @@ export const GameControls: React.FC<GameControlsProps> = ({
   const isScoringMode = !canRoll;
   const isValidSelection = previewScoring?.isValid || false;
   
-  // Reroll Button (left) - split when no dice selected, single when dice selected
-  const getRerollLeftText = () => {
-    if (canReroll) {
-      if (selectedDiceCount === 0) {
-        return 'Skip Reroll';
-      }
-      return `Reroll ${selectedDiceCount} ${selectedDiceCount === 1 ? 'Die' : 'Dice'}`;
-    }
-    return 'Reroll';
-  };
-  
-  const getRerollRightText = () => {
-    return 'Reroll All';
-  };
-  
-  // Allow reroll when canReroll is true, even with 0 dice selected
-  // This allows "Skip Reroll" and "Reroll All" to trigger flop checks
-  // Disable during breakdown animation
-  const isRerollEnabled = canReroll && breakdownState !== 'animating';
-  
-  // Show split button when no dice selected, single button when dice selected
-  const showSplitRerollButton = selectedDiceCount === 0;
+  // Reroll Button: Big button always visible, small "Skip Reroll" above when no dice selected
+  const rerollButtonText = selectedDiceCount > 0 
+    ? `Reroll ${selectedDiceCount} ${selectedDiceCount === 1 ? 'Die' : 'Dice'}`
+    : 'Reroll';
+  // Big button disabled when 0 dice selected (use Skip Reroll instead), enabled when dice selected
+  const isRerollEnabled = canReroll && selectedDiceCount > 0 && breakdownState !== 'animating';
+  const showSkipReroll = canReroll && selectedDiceCount === 0 && breakdownState !== 'animating';
   
   // Roll/Score Button (middle)
   const getRollOrScoreButtonText = () => {
@@ -166,7 +149,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
         paddingLeft: '20px',
         paddingRight: '20px'
       }}>
-        {/* Left Button - Reroll (Blue) - Separate Skip Reroll when no dice selected, single when dice selected */}
+        {/* Left Button - Reroll (Blue) */}
         <div style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -176,51 +159,34 @@ export const GameControls: React.FC<GameControlsProps> = ({
           justifySelf: 'end',
           alignSelf: 'flex-end'
         }}>
-          {showSplitRerollButton ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
-              {/* Skip Reroll button - smaller, above (doesn't use a reroll, so no indicator) */}
-              <button
-                onClick={onReroll}
-                disabled={!isRerollEnabled}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  backgroundColor: !isRerollEnabled ? '#6c757d' : '#6c757d',
-                  color: 'white',
-                  border: '2px solid black',
-                  borderRadius: '8px',
-                  cursor: isRerollEnabled ? 'pointer' : 'not-allowed',
-                  opacity: isRerollEnabled ? 1 : 0.6,
-                  whiteSpace: 'nowrap',
-                  minWidth: '80px'
-                }}
-              >
-                Skip Reroll
-              </button>
-              {/* Reroll All button - below (uses a reroll, so show indicator) */}
-              <GameControlButton
-                onClick={onRerollAll}
-                disabled={!isRerollEnabled}
-                backgroundColor="#007bff"
-                text="Reroll All"
-                size="normal"
-              >
-                <RerollIndicator count={rerollsRemaining} />
-              </GameControlButton>
-            </div>
-          ) : (
-            // Single button: Reroll # Dice
-            <GameControlButton
+          {showSkipReroll && (
+            <button
               onClick={onReroll}
-              disabled={!isRerollEnabled}
-              backgroundColor="#007bff"
-              text={getRerollLeftText()}
-              size="normal"
+              style={{
+                padding: '6px 12px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: '2px solid black',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                minWidth: '80px'
+              }}
             >
-              <RerollIndicator count={rerollsRemaining} />
-            </GameControlButton>
+              Skip Reroll
+            </button>
           )}
+          <GameControlButton
+            onClick={onReroll}
+            disabled={!isRerollEnabled}
+            backgroundColor="#007bff"
+            text={rerollButtonText}
+            size="normal"
+          >
+            <RerollIndicator count={rerollsRemaining} />
+          </GameControlButton>
         </div>
         
         {/* Roll/Score Button (middle) - Always centered in the middle column */}
