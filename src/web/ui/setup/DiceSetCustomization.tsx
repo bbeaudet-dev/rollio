@@ -375,6 +375,21 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
   };
 
 
+  // Reset dice set to default
+  const handleReset = () => {
+    const defaultDice = createDefaultDice();
+    const defaultOriginalSideValues: Record<string, number[]> = {};
+    defaultDice.forEach(die => {
+      defaultOriginalSideValues[die.id] = [...die.allowedValues];
+    });
+    
+    setDiceSet(defaultDice);
+    setCreditTransactions([]);
+    setOriginalSideValues(defaultOriginalSideValues);
+    setSelectedDieIndex(null);
+    setSelectedSideForPipEffect(null);
+  };
+
   // Randomize dice set
   const handleRandomize = () => {
     const result = randomizeDiceSetConfig(difficulty);
@@ -401,8 +416,9 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
     <div style={{
       backgroundColor: '#fff',
       padding: '20px',
-      borderRadius: '8px',
-      border: '1px solid #dee2e6',
+      borderRadius: '12px',
+      border: '2px solid #dee2e6',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
       maxWidth: '900px',
       margin: '0 auto'
     }}>
@@ -415,7 +431,7 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
         marginBottom: '16px',
         marginTop: '0'
       }}>
-        Customize your starting Dice Set
+        2. Customize your dice set
       </h2>
 
       {/* Credit Display - Fallout Style Bars */}
@@ -1100,13 +1116,20 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
         </div>
       )}
 
-      {/* Complete Button and Randomize Button */}
+      {/* Complete Button, Reset Button, and Randomize Button */}
       <div style={{
         display: 'flex',
         justifyContent: 'flex-end',
         gap: '12px',
         alignItems: 'center'
       }}>
+        <ActionButton
+          onClick={handleReset}
+          variant="secondary"
+          size="medium"
+        >
+          Reset
+        </ActionButton>
         <ActionButton
           onClick={handleRandomize}
           variant="secondary"

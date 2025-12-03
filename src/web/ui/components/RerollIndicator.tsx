@@ -7,7 +7,7 @@ interface RerollIndicatorProps {
 
 export const RerollIndicator: React.FC<RerollIndicatorProps> = ({ 
   count, 
-  maxVisible = 5 
+  maxVisible = 10 
 }) => {
   const indicators = [];
   for (let i = 0; i < count && i < maxVisible; i++) {
@@ -15,8 +15,8 @@ export const RerollIndicator: React.FC<RerollIndicatorProps> = ({
       <div
         key={i}
         style={{
-          width: '12px',
-          height: '12px',
+          width: '8px',
+          height: '8px',
           backgroundColor: 'white',
           border: '1px solid rgba(0, 0, 0, 0.3)',
           borderRadius: '50%'
@@ -35,7 +35,7 @@ export const RerollIndicator: React.FC<RerollIndicatorProps> = ({
   return (
     <div style={{ 
       display: 'flex', 
-      gap: '4px', 
+      gap: '2px', 
       alignItems: 'center', 
       justifyContent: 'center',
       marginTop: '1px'

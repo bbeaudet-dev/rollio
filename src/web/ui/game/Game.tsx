@@ -264,16 +264,14 @@ export const Game: React.FC<GameProps> = ({
         }}>
           <GameControls 
             onReroll={() => {
-              // Reroll Selected/Skip Button (left half)
-              rollActions.handleRerollSelection(board.selectedDice);
-            }}
-            onRerollAll={() => {
-              // Reroll All Button (right half)
-              // Select all dice indices for reroll
-              const allDiceIndices = board.dice
-                .map((_, index) => index)
-                .filter(index => board.dice[index].rolledValue !== undefined);
-              rollActions.handleRerollSelection(allDiceIndices);
+              // Skip Reroll when no dice selected, or reroll selected dice
+              if (board.selectedDice.length === 0) {
+                // Skip reroll - reroll with empty selection
+                rollActions.handleRerollSelection([]);
+              } else {
+                // Reroll selected dice (though this should be disabled when dice are selected)
+                rollActions.handleRerollSelection(board.selectedDice);
+              }
             }}
             onSelectAll={rollActions.handleSelectAllDice}
             onDeselect={rollActions.handleDeselectAllDice}

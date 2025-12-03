@@ -114,10 +114,10 @@ export function generateGameMap(): GameMap {
           connections.set(randomPrevNode, prevConnections);
         } else {
           // If all previous nodes already have 2 connections, add to one anyway (edge case)
-          const randomPrevNode = previousColumnNodes[Math.floor(Math.random() * previousColumnNodes.length)];
-          const prevConnections = connections.get(randomPrevNode) || [];
-          prevConnections.push(currentNodeId);
-          connections.set(randomPrevNode, prevConnections);
+        const randomPrevNode = previousColumnNodes[Math.floor(Math.random() * previousColumnNodes.length)];
+        const prevConnections = connections.get(randomPrevNode) || [];
+        prevConnections.push(currentNodeId);
+        connections.set(randomPrevNode, prevConnections);
         }
       }
     }

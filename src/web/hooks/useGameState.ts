@@ -68,12 +68,9 @@ export function useGameState() {
     
     // Get all dice that are currently in the dice hand (rolled dice)
     const diceHand = webState.roundState.diceHand || [];
-    const diceSet = webState.gameState?.diceSet || [];
     
-    // Find indices in diceSet for all dice in diceHand
-    const allDiceIndices = diceHand
-      .map(die => diceSet.findIndex(d => d.id === die.id))
-      .filter(index => index !== -1);
+    // selectedDice contains indices into diceHand, so just select all indices 0 to diceHand.length - 1
+    const allDiceIndices = diceHand.map((_, index) => index);
     
     const newState = gameManagerRef.current.updateDiceSelection(webState, allDiceIndices);
     setWebState(newState);

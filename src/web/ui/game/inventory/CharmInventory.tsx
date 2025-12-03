@@ -74,7 +74,7 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
                       onClick={(e) => {
                         e.stopPropagation();
                         if (onSellCharm) {
-                          onSellCharm(index);
+                        onSellCharm(index);
                         }
                         setSelectedIndex(null);
                       }}

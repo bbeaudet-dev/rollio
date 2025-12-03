@@ -4,7 +4,7 @@ import { SettingsModal } from './SettingsModal';
 import { AuthSection } from '../auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { gameApi } from '../../services/api';
-import { MainMenuButton } from '../components/MainMenuButton';
+import { ActionButton } from '../components/ActionButton';
 
 export const MainMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -70,31 +70,34 @@ export const MainMenu: React.FC = () => {
           gap: '12px',
           width: '100%'
         }}>
-          <MainMenuButton
+          <ActionButton
             variant="primary"
             onClick={() => navigate('/game')}
+            size="large"
             style={{ flex: 1, padding: '20px 32px', minHeight: '60px', fontSize: '17px' }}
           >
             New Game
-          </MainMenuButton>
+          </ActionButton>
           
-          <MainMenuButton
+          <ActionButton
             variant="success"
             onClick={() => navigate('/game?load=true')}
             disabled={!isAuthenticated || !hasSavedGame}
+            size="large"
             style={{ flex: 1, padding: '20px 32px', minHeight: '60px', fontSize: '17px' }}
           >
             Continue Game
-          </MainMenuButton>
+          </ActionButton>
         </div>
         
         {/* Multiplayer button */}
-        <MainMenuButton
+        <ActionButton
           variant="secondary"
           onClick={() => navigate('/multiplayer')}
+          size="large"
         >
           Multiplayer
-        </MainMenuButton>
+        </ActionButton>
         
         {/* Collection, Calculator, and How to Play buttons on same row */}
         <div style={{
@@ -102,55 +105,41 @@ export const MainMenu: React.FC = () => {
           gap: '12px',
           width: '100%'
         }}>
-          <MainMenuButton
+          <ActionButton
             variant="secondary"
             onClick={() => navigate('/collection')}
+            size="large"
             style={{ flex: 1 }}
           >
             Collection
-          </MainMenuButton>
+          </ActionButton>
           
-          <MainMenuButton
+          <ActionButton
             variant="secondary"
             onClick={() => navigate('/calculator')}
+            size="large"
             style={{ flex: 1 }}
           >
             Calculator
-          </MainMenuButton>
+          </ActionButton>
           
-          <MainMenuButton
+          <ActionButton
             variant="secondary"
             onClick={() => navigate('/how-to-play')}
+            size="large"
             style={{ flex: 1 }}
           >
             How To Play
-          </MainMenuButton>
+          </ActionButton>
         </div>
         
-        <button 
+        <ActionButton
+          variant="secondary"
           onClick={() => setIsSettingsOpen(true)}
-          style={{
-            backgroundColor: '#6c757d',
-            color: '#fff',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            fontSize: '15px',
-            cursor: 'pointer',
-            fontWeight: '500',
-            transition: 'background-color 0.2s ease',
-            fontFamily: 'Arial, sans-serif',
-            minHeight: '44px'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#5a6268';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#6c757d';
-          }}
+          size="large"
         >
           Settings
-        </button>
+        </ActionButton>
 
         <SettingsModal 
           isOpen={isSettingsOpen} 

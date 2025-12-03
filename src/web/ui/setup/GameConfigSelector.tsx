@@ -7,7 +7,7 @@ import { DiceSetSelector } from './DiceSetSelector';
 import { DiceSetCustomization } from './DiceSetCustomization';
 import { StartGameButton } from './StartGameButton';
 import { DifficultySelector } from './DifficultySelector';
-import { MainMenuReturnButton } from '../components';
+import { MainMenuReturnButton, ModeButton } from '../components';
 import { DifficultyLevel } from '../../../game/logic/difficulty';
 import { Die, DiceSetConfig } from '../../../game/types';
 import { PipEffectType } from '../../../game/data/pipEffects';
@@ -216,36 +216,13 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
         marginBottom: '30px'
       }}>
         {(['newGame', 'challenges', 'extras'] as GameMode[]).map((m) => (
-          <button
+          <ModeButton
             key={m}
             onClick={() => setMode(m)}
-            style={{  
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: mode === m ? 'bold' : 'normal',
-              backgroundColor: mode === m ? '#007bff' : '#fff',
-              color: mode === m ? '#fff' : '#2c3e50',
-              border: `2px solid ${mode === m ? '#007bff' : '#dee2e6'}`,
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              opacity: mode === m ? 1 : 0.7
-            }}
-            onMouseEnter={(e) => {
-              if (mode !== m) {
-                e.currentTarget.style.opacity = '1';
-                e.currentTarget.style.backgroundColor = '#e9ecef';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (mode !== m) {
-                e.currentTarget.style.opacity = '0.7';
-                e.currentTarget.style.backgroundColor = '#fff';
-              }
-            }}
+            selected={mode === m}
           >
             {m === 'newGame' ? 'New Game' : m === 'challenges' ? 'Challenges' : 'Extras'}
-          </button>
+          </ModeButton>
         ))}
       </div>
 
