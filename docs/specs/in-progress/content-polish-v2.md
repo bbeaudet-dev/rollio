@@ -231,3 +231,14 @@ These consumables will upgrade combinations in groups, allowing players to enhan
    - Pip effects system
    - Rename considerations (Material → Essence, Consumables → Trinkets)
    - Add achievements and tracking
+
+
+
+
+
+OTHER
+
+- Scoring algorithms asap, then base scores and algorithm updates
+- Might need to update probability engine before scoring algorithms?
+- Better world/level display, fix level effects
+- Animation for exponent to apply to multiplier, then multiplier to apply to score

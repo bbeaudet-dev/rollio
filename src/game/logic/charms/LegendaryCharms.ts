@@ -10,5 +10,12 @@ import { BaseCharm, CharmScoringContext, ScoringValueModification } from '../cha
 // SCORING CHARMS
 // ============================================================================
 
-// Placeholder for future legendary charms
+export class ParanoiaCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // Copies the effect of the charm to the left/right of this charm, alternating each roll
+    // TODO: Needs charm position tracking
+    // This would need to know the position of charms in the charm array and track which side to copy
+    return {};
+  }
+}
 

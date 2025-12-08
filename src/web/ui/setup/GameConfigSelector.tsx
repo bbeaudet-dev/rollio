@@ -19,6 +19,7 @@ interface GameConfigSelectorProps {
     customDiceSetConfig?: DiceSetConfig; // For new game mode (customization)
     selectedCharms: number[];
     selectedConsumables: number[];
+    selectedBlessings: number[];
     difficulty: string; // Pass as string to avoid coupling frontend to DifficultyLevel type
   }) => void;
 }

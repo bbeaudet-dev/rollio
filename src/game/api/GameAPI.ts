@@ -98,10 +98,14 @@ export class GameAPI {
   /**
    * Initialize a new game
    * Accepts either a dice set index (legacy) or a custom DiceSetConfig
+   * Optionally accepts selectedCharms, selectedConsumables, and selectedBlessings
    */
   async initializeGame(
     diceSetIndexOrConfig: number | DiceSetConfig,
-    difficulty: string
+    difficulty: string,
+    selectedCharms?: number[],
+    selectedConsumables?: number[],
+    selectedBlessings?: number[]
   ): Promise<InitializeGameResult> {
     let diceSetConfig: DiceSetConfig;
     
@@ -115,9 +119,16 @@ export class GameAPI {
       diceSetConfig = diceSetIndexOrConfig;
     }
     
-    // Initialize game - all logic is in factories
+    // Initialize game
     const { initializeNewGame } = await import('../utils/factories');
-    const gameState = initializeNewGame(diceSetConfig, difficulty as any, this.charmManager);
+    const gameState = initializeNewGame(
+      diceSetConfig, 
+      difficulty as any, 
+      this.charmManager,
+      selectedCharms,
+      selectedConsumables,
+      selectedBlessings
+    );
     
     this.emit('stateChanged', { gameState });
     
@@ -181,13 +192,13 @@ export class GameAPI {
   }
 
   /**
-   * Score selected dice
+   * Calculate scoring breakdown for selected dice (does not remove dice or modify state)
+   * Dice remain in hand until the scoring breakdown is completed
    */
-  async scoreDice(
+  calculateScoringBreakdownOnly(
     gameState: GameState,
     selectedIndices: number[]
-
-  ): Promise<ScoreDiceResult> {
+  ): { success: boolean; breakdown?: any; points: number; combinations: string[]; gameState: GameState } {
     const roundState = gameState.currentWorld!.currentLevel.currentRound;
     if (!roundState) {
       throw new Error('No active round to score dice');
@@ -207,33 +218,64 @@ export class GameAPI {
         success: false,
         gameState,
         points: 0,
-        combinations: [],
-        hotDice: false,
-        breakdown: undefined
+        combinations: []
       };
     }
     
     // Extract final score from breakdown
     const finalPoints = calculateFinalScore(breakdown.final);
     
-    // Update high score for single roll if this is higher
-    if (finalPoints > (gameState.history.highScoreSingleRoll || 0)) {
-      gameState.history.highScoreSingleRoll = finalPoints;
-    }
-    
     // Extract combination types from breakdown
     const combinationTypes = extractCombinationTypesFromBreakdown(breakdown);
     
-    // Track combination usage with composite keys
-    let currentGameState = trackCombinationUsage(gameState, breakdown, roundState.diceHand);
+    // Track combination usage with composite keys (this modifies state but doesn't remove dice)
+    const updatedGameState = trackCombinationUsage(gameState, breakdown, roundState.diceHand);
     
+    // Update high score for single roll if this is higher
+    if (finalPoints > (updatedGameState.history.highScoreSingleRoll || 0)) {
+      updatedGameState.history.highScoreSingleRoll = finalPoints;
+    }
+    
+    return {
+      success: true,
+      breakdown,
+      points: finalPoints,
+      combinations: combinationTypes,
+      gameState: updatedGameState
+    };
+  }
+
+  /**
+   * Complete scoring by removing dice and updating state
+   * Should be called after breakdown animation completes
+   */
+  async completeScoring(
+    gameState: GameState,
+    selectedIndices: number[],
+    finalPoints: number,
+    combinations: string[],
+    breakdown: any
+  ): Promise<ScoreDiceResult> {
     // Remove dice from hand and check for hot dice (includes SwordInTheStone special case)
     const { gameState: stateAfterRemoval, wasHotDice } = removeDiceAndCheckHotDice(
-      currentGameState,
+      gameState,
       selectedIndices,
       this.charmManager
     );
-    currentGameState = stateAfterRemoval;
+    let currentGameState = stateAfterRemoval;
+    
+    // Get current round state after dice removal
+    let currentRoundState = currentGameState.currentWorld!.currentLevel.currentRound!;
+    
+    // Check for Russian Roulette auto-flop (set during scoring by charm)
+    const russianRouletteFlop = (currentRoundState as any).russianRouletteFlop;
+    if (russianRouletteFlop) {
+      // Clear the flag
+      delete (currentRoundState as any).russianRouletteFlop;
+      // Clear all dice from hand to trigger flop on next check
+      currentRoundState.diceHand = [];
+      // The flop will be detected on the next action (bank/roll)
+    }
     
     // Add points to round
     currentGameState = addPointsToRound(currentGameState, finalPoints);
@@ -242,8 +284,8 @@ export class GameAPI {
       currentGameState = processHotDice(currentGameState);
     }
     
-    // Update roll history
-    const currentRoundState = currentGameState.currentWorld!.currentLevel.currentRound!;
+    // Update roll history 
+    currentRoundState = currentGameState.currentWorld!.currentLevel.currentRound!;
     const lastRollEntry = currentRoundState.rollHistory.length > 0 
       ? currentRoundState.rollHistory[currentRoundState.rollHistory.length - 1]
       : null;
@@ -257,7 +299,7 @@ export class GameAPI {
       rollPoints: finalPoints,
       maxRollPoints: finalPoints,
       scoringSelection: selectedIndices,
-      combinations: combinationTypes as any, // combinationTypes is string[], but RollState expects ScoringCombination[]
+      combinations: combinations as any, // combinations is string[], but RollState expects ScoringCombination[]
       isHotDice: wasHotDice,
       isFlop: false,
       scoringBreakdown: breakdown, // Store breakdown in history
@@ -268,7 +310,7 @@ export class GameAPI {
     this.emit('diceScored', {
       selectedIndices,
       points: finalPoints,
-      combinations: combinationTypes,
+      combinations: combinations,
       gameState: currentGameState
     });
     this.emit('stateChanged', { gameState: currentGameState });
@@ -277,10 +319,38 @@ export class GameAPI {
       success: true,
       gameState: currentGameState,
       points: finalPoints,
-      combinations: combinationTypes,
+      combinations: combinations,
       hotDice: wasHotDice,
       breakdown
     };
+  }
+
+  /**
+   * Score selected dice (complete flow - for CLI/backward compatibility)
+   */
+  async scoreDice(
+    gameState: GameState,
+    selectedIndices: number[]
+  ): Promise<ScoreDiceResult> {
+    const calculation = this.calculateScoringBreakdownOnly(gameState, selectedIndices);
+    if (!calculation.success || !calculation.breakdown) {
+      return {
+        success: false,
+        gameState,
+        points: 0,
+        combinations: [],
+        hotDice: false,
+        breakdown: undefined
+      };
+    }
+    
+    return this.completeScoring(
+      calculation.gameState,
+      selectedIndices,
+      calculation.points,
+      calculation.combinations,
+      calculation.breakdown
+    );
   }
 
   /**
@@ -813,6 +883,38 @@ export class GameAPI {
       gameState: finalGameState,
       roundState: result.roundState || newRoundState,
       requiresInput: result.requiresInput,
+      shouldRemove: result.shouldRemove
+    };
+  }
+
+  /**
+   * Use consumable with die side selection (for pip effect consumables)
+   */
+  async useConsumableOnDieSideSelection(
+    gameState: GameState,
+    consumableId: 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation',
+    dieIndex: number,
+    sideValue: number,
+    consumableIndex: number
+  ): Promise<{ success: boolean; gameState: GameState; shouldRemove: boolean }> {
+    const roundState = gameState.currentWorld!.currentLevel.currentRound || null;
+    
+    // Apply consumable with die side selection using logic from consumableEffects
+    const { applyConsumableWithDieSideSelection } = await import('../logic/consumableEffects');
+    const result = applyConsumableWithDieSideSelection(
+      consumableIndex,
+      dieIndex,
+      sideValue,
+      gameState,
+      roundState,
+      this.charmManager
+    );
+    
+    this.emit('stateChanged', { gameState: result.gameState });
+    
+    return {
+      success: result.success,
+      gameState: result.gameState,
       shouldRemove: result.shouldRemove
     };
   }

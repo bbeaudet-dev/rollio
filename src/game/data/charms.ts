@@ -4,7 +4,7 @@ export type CharmType =
   // Common charms
   | 'flopShield'
   | 'stairstepper'
-  | 'consumableGenerator'
+  | 'generator'
   | 'oddsAndEnds'
   | 'nowWereEven'
   | 'moneyMagnet'
@@ -41,9 +41,10 @@ export type CharmType =
   | 'digitalNomad'
   | 'hoarder'
   | 'comebackKid'
+
   // Uncommon charms
   | 'quadBoosters'
-  | 'roundMultiplier'
+  | 'snowball'
   | 'rabbitsFoot'
   | 'weightedDice'
   | 'luckySevens'
@@ -64,8 +65,9 @@ export type CharmType =
   | 'whimWhisperer'
   | 'doubleAgent'
   | 'purist'
+  
   // Rare charms
-  | 'whimWisher'
+  | 'shootingStar'
   | 'kingslayer'
   | 'blankSlate'
   | 'doubleDown'
@@ -83,7 +85,11 @@ export type CharmType =
   | 'sizeMatters'
   | 'vesuvius'
   | 'armadilloArmor'
-  | 'refinery';
+  | 'refinery'
+  | 'russianRoulette'
+
+  // Legendary charms
+  | 'paranoia';
 
 // Rarity price mapping
 export const CHARM_PRICES: Record<string, { buy: number; sell: number }> = {
@@ -107,12 +113,12 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'stairstepper',
     name: 'Stairstepper',
-    description: '+20 points when banking. Add +20 per straight played (cumulative)',
+    description: '+20 points when scoring. Add +20 per straight played (cumulative)',
     rarity: 'common'
   },
   {
-    id: 'consumableGenerator',
-    name: 'Consumable Generator',
+    id: 'generator',
+    name: 'Generator',
     description: 'Creates a random consumable when scoring 3 or more pairs',
     rarity: 'common'
   },
@@ -161,13 +167,13 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'pairUp',
     name: 'Pair Up',
-    description: '+20 points for each pair rolled',
+    description: '+20 points for each pair scored',
     rarity: 'common'
   },
   {
     id: 'tripleThreat',
     name: 'Triple Play',
-    description: '+50 points for each triplet rolled',
+    description: '+50 points for each triplet scored',
     rarity: 'common'
   },
   {
@@ -203,13 +209,13 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'goldenTouch',
     name: 'Golden Touch',
-    description: '+$1 for each golden die rolled',
+    description: '+$1 for each golden die scored',
     rarity: 'common'
   },
   {
     id: 'straightShooter',
     name: 'Straight Shooter',
-    description: '+25 points when scoring a straight',
+    description: '+100 points when scoring a straight',
     rarity: 'common'
   },
   {
@@ -221,7 +227,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'roundRobin',
     name: 'Round Robin',
-    description: '+150 points when banking if no repeated hands scored in round',
+    description: '+150 points when scoring when no repeated combinations scored in round',
     rarity: 'common'
   },
   {
@@ -233,25 +239,25 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'ironFortress',
     name: 'Iron Fortress',
-    description: 'Each Lead die gives +15 points when scored and 5% chance to prevent flop',
+    description: 'Each Lead die gives +15 points when scored',
     rarity: 'common'
   },
   {
     id: 'rerollRanger',
     name: 'Reroll Ranger',
-    description: '+5 points when banking. Add +5 for each reroll used (cumulative)',
+    description: '+5 points when scoring. Add +5 for each reroll used (cumulative)',
     rarity: 'common'
   },
   {
     id: 'bankBaron',
     name: 'Bank Baron',
-    description: '+25 points when banking. Add +25 for bank (cumulative)',
+    description: '+5 points when scoring. Add +5 for each bank (cumulative)',
     rarity: 'common'
   },
   {
     id: 'pointPirate',
     name: 'Point Pirate',
-    description: '+500 points on first bank, -10 points per subsequent roll',
+    description: '+500 points on first roll score, -10 points per subsequent roll',
     rarity: 'common'
   },
   {
@@ -343,8 +349,8 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'uncommon'
   },
   {
-    id: 'roundMultiplier',
-    name: 'Round Multiplier',
+    id: 'snowball',
+    name: 'Snowball',
     description: 'Multiplies level score by 1.15x when banking points',
     rarity: 'uncommon'
   },
@@ -473,8 +479,8 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   // RARE CHARMS
   
   {
-    id: 'whimWisher',
-    name: 'Whim Wisher',
+    id: 'shootingStar',
+    name: 'Shooting Star',
     description: 'Using a whim has a 10% chance to create a random wish',
     rarity: 'rare'
   },
@@ -593,16 +599,22 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'rare'
   },
   {
-    id: 'paranoia',
-    name: 'Paranoia',
-    description: 'Copies the effect of the charm to the left/right of this charm, alternating each roll',
-    rarity: 'rare'
-  },
-  {
     id: 'mustBeThisTallToRide',
     name: 'Must Be This Tall to Ride',
     description: 'Copies the effect of the charm to the left if current level is 10 or higher',
     rarity: 'rare'
+  },
+  {
+    id: 'russianRoulette',
+    name: 'Russian Roulette',
+    description: '^1.25 exponent, but 1 in 6 chance of automatically flopping',
+    rarity: 'rare'
+  },
+  {
+    id: 'paranoia',
+    name: 'Paranoia',
+    description: 'Copies the effect of the charm to the left/right of this charm, alternating each roll',
+    rarity: 'legendary'
   },
 
 ];

@@ -13,7 +13,7 @@ function getConsumableImagePath(consumableId: string): string | null {
   // Map of consumable IDs to their image filenames
   const imageMap: Record<string, string> = {
     'chisel': 'Chisel.png',
-    'distortion': 'Distortion.png',
+    'distortion': 'Distortion_3.png',
     'echo': 'Echo.png',
     'frankenstein': 'Frankenstein.png',
     'freebie': 'Freebie.png',
@@ -28,6 +28,12 @@ function getConsumableImagePath(consumableId: string): string | null {
     'sacrifice': 'Sacrifice.png',
     'welfare': 'Welfare.png',
     'youGetACharm': 'You_Get_A_Charm.png',
+    'emptyAsAPocket': 'Empty_As_A_Pocket.png',
+    'moneyPip': 'Midas_Touch_3.png',
+    'stallion': 'Stallion.png',
+    'practice': 'Practice.png',
+    'phantom': 'Phantom.png',
+    'accumulation': 'Accumulation.png',
   };
 
   const filename = imageMap[consumableId];

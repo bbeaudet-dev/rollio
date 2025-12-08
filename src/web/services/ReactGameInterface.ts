@@ -19,7 +19,8 @@ export type PendingAction =
   | { type: 'shopPurchase'; shopType: 'charm' | 'consumable' | 'blessing' }
   | { type: 'flopContinue'; forfeitedPoints: number; consecutiveFlops: number }
   | { type: 'flopShieldChoice'; canPrevent: boolean; log: string | null }
-  | { type: 'consumableDieSelection'; consumableId: 'chisel' | 'potteryWheel' | 'midasTouch'; diceSet: Die[]; consumableIndex: number };
+  | { type: 'consumableDieSelection'; consumableId: 'chisel' | 'potteryWheel' | 'midasTouch'; diceSet: Die[]; consumableIndex: number }
+  | { type: 'consumableDieSideSelection'; consumableId: 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation'; diceSet: Die[]; consumableIndex: number };
 
 export class ReactGameInterface implements GameInterface {
   private pendingAction: PendingAction = { type: 'none' };

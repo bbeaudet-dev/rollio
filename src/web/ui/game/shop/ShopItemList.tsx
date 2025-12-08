@@ -80,17 +80,18 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
                 <div
                   key={`empty-${index}`}
                   style={{
-                    padding: '6px 8px',
+                    width: '120px',
+                    height: '120px',
                     border: '1px dashed #ccc',
-                    borderRadius: '3px',
+                    borderRadius: '8px',
                     backgroundColor: '#f5f5f5',
                     fontSize: '11px',
-                    minHeight: '50px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#999',
-                    fontStyle: 'italic'
+                    fontStyle: 'italic',
+                    boxSizing: 'border-box'
                   }}
                 >
                   Sold

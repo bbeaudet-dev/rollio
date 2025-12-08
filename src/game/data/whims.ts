@@ -33,7 +33,7 @@ export const WHIMS: Whim[] = [
   {
     id: 'grabBag',
     name: 'Grab Bag',
-    description: 'Create 2 hand upgrades.',
+    description: 'Create 2 combination upgrades.',
     uses: 1
   },
   {
@@ -58,6 +58,42 @@ export const WHIMS: Whim[] = [
     id: 'hospital',
     name: 'Hospital',
     description: 'Recover 1.25x of your last forfeited points (after a flop)',
+    uses: 1
+  },
+  {
+    id: 'emptyAsAPocket',
+    name: 'Empty as a Pocket',
+    description: 'Turn one selected side to a Blank pip effect',
+    uses: 1
+  },
+  {
+    id: 'moneyPip',
+    name: 'Money Pip',
+    description: 'Turn one selected side to a Money pip effect',
+    uses: 1
+  },
+  {
+    id: 'stallion',
+    name: 'Stallion',
+    description: 'Turn one selected side to a Wild pip effect',
+    uses: 1
+  },
+  {
+    id: 'practice',
+    name: 'Practice',
+    description: 'Turn one selected side to an Upgrade Combo pip effect',
+    uses: 1
+  },
+  {
+    id: 'phantom',
+    name: 'Phantom',
+    description: 'Turn one selected side to a Two-Faced pip effect',
+    uses: 1
+  },
+  {
+    id: 'accumulation',
+    name: 'Accumulation',
+    description: 'Turn one selected side to a Create Consumable pip effect',
     uses: 1
   }
 ];

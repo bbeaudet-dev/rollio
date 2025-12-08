@@ -19,6 +19,13 @@ interface ScoringContext {
  * If flop shield is available, it's not a flop (shield can prevent it)
  */
 export function isFlop(diceHand: Die[], gameState: GameState): boolean {
+  
+  // Check for Russian Roulette auto-flop flag (set after scoring)
+  const roundState = gameState.currentWorld?.currentLevel.currentRound;
+  if (roundState && (roundState as any).russianRouletteFlop) {
+    return true;
+  }
+  
   const difficulty = gameState.config.difficulty;
   const hasScoringCombinations = hasAnyScoringCombination(diceHand, difficulty);
   
