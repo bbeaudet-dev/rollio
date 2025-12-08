@@ -3,7 +3,7 @@ import { resetLevelColors } from '../utils/levelColors';
 import { GameAPI } from '../../game/api';
 import { GameState, RoundState, ShopState, GamePhase, DiceSetConfig } from '../../game/types';
 import type { ScoringBreakdown } from '../../game/logic/scoringBreakdown';
-import { playDiceRollSound } from '../utils/sounds';
+import { playDiceRollSound, playNewLevelSound, playPurchaseSound, playSellSound } from '../utils/sounds';
 
 export interface WebGameState {
   gameState: GameState | null;
@@ -213,11 +213,23 @@ export class WebGameManager {
     };
   }
 
-  async initializeGame(diceSetIndexOrConfig: number | DiceSetConfig, difficulty: string): Promise<WebGameState> {
+  async initializeGame(
+    diceSetIndexOrConfig: number | DiceSetConfig, 
+    difficulty: string,
+    selectedCharms?: number[],
+    selectedConsumables?: number[],
+    selectedBlessings?: number[]
+  ): Promise<WebGameState> {
     resetLevelColors();
     
     // Pass selections to GameAPI 
-    const result = await this.gameAPI.initializeGame(diceSetIndexOrConfig, difficulty);
+    const result = await this.gameAPI.initializeGame(
+      diceSetIndexOrConfig, 
+      difficulty,
+      selectedCharms,
+      selectedConsumables,
+      selectedBlessings
+    );
     const gameState = result.gameState;
 
     // Check gamePhase to determine what to show
@@ -338,65 +350,115 @@ export class WebGameManager {
     // Don't allow scoring if game is over
     if (!state.gameState.isActive) return state;
 
-    // Store selected dice indices and dice snapshot before scoring (needed for breakdown highlighting)
+    // Store selected dice indices before scoring (needed for breakdown highlighting)
     const selectedIndicesForBreakdown = [...state.selectedDice];
+    
+    // Snapshot of all selected/scored dice (including lead dice that stay in hand)
     const scoredDiceSnapshot = state.selectedDice.map(idx => state.roundState!.diceHand[idx]).filter(Boolean);
+    
+    // Determine which dice will actually be removed (lead dice stay in hand)
+    const { getDiceIndicesToRemove } = await import('../../game/logic/materialSystem');
+    const indicesToRemove = getDiceIndicesToRemove(state.roundState!.diceHand, state.selectedDice);
+    
+    // Snapshot of only dice that will actually be removed (not lead dice)
+    const removedDiceSnapshot = indicesToRemove.map(idx => state.roundState!.diceHand[idx]).filter(Boolean);
 
-    const result = await this.gameAPI.scoreDice(state.gameState, state.selectedDice);
+    // Calculate scoring breakdown (dice remain in hand - NOT removed yet)
+    const calculation = this.gameAPI.calculateScoringBreakdownOnly(state.gameState, state.selectedDice);
 
-    if (!result.success) {
+    if (!calculation.success || !calculation.breakdown) {
       return state;
     }
 
-    const roundState = result.gameState.currentWorld?.currentLevel.currentRound;
+    // Dice are still in hand at this point - use the original roundState
+    const roundState = state.roundState;
     
     // Store breakdown and show animation - don't proceed to bankOrRoll yet
-    // Store selected indices and dice snapshot in breakdown for highlighting
-    if (result.breakdown) {
-      const breakdownWithIndices = {
-        ...result.breakdown,
-        selectedIndices: selectedIndicesForBreakdown,
-        scoredDice: scoredDiceSnapshot
-      } as any;
-      
-      // Create a temporary round state with the scored dice still visible for the breakdown
-      // The scored dice are at the beginning of the array, so their indices are 0, 1, 2, etc.
-      const tempRoundState = roundState ? {
-        ...roundState,
-        diceHand: [...scoredDiceSnapshot, ...(roundState.diceHand || [])]
-      } : null;
-      
-      // Remap selected indices to new positions (scored dice are now at 0, 1, 2, etc.)
-      const remappedSelectedIndices = scoredDiceSnapshot.map((_, idx) => idx);
-      
-      return this.createWebGameState(
-        result.gameState, 
-        tempRoundState, 
-        remappedSelectedIndices, // Remapped indices for highlighting
-        null, 
-        false, 
-        false, 
-        false,
-        false,
-        breakdownWithIndices,
-        'animating' // Animation is starting
-      );
-    }
-
-    // No breakdown available, proceed normally
-    const diceToReroll = roundState?.diceHand.length || 0;
-    this.gameInterface.askForBankOrRoll(diceToReroll);
-
-    return this.createWebGameState(result.gameState, roundState || null, [], null, false, false, false);
+    // Store both snapshots and selected indices in breakdown
+    const breakdownWithIndices = {
+      ...calculation.breakdown,
+      selectedIndices: selectedIndicesForBreakdown,
+      scoredDice: scoredDiceSnapshot,
+      removedDice: removedDiceSnapshot,
+      // Store the scoring data so we can complete it after breakdown
+      pendingScoring: {
+        gameState: calculation.gameState,
+        selectedIndices: state.selectedDice,
+        finalPoints: calculation.points,
+        combinations: calculation.combinations,
+        breakdown: calculation.breakdown
+      }
+    } as any;
+    
+    // Use the original roundState - dice are still in hand
+    // The breakdown will highlight using the original indices
+    return this.createWebGameState(
+      calculation.gameState, // Use calculated gameState (combination tracking updated, but dice not removed)
+      roundState, // Use original roundState (dice still in hand)
+      selectedIndicesForBreakdown, // Use original indices - they still work for highlighting
+      null, 
+      false, 
+      false, 
+      false,
+      false,
+      breakdownWithIndices,
+      'animating' // Animation is starting
+    );
   }
 
-  completeBreakdownAnimation(state: WebGameState): WebGameState {
+  async completeBreakdownAnimation(state: WebGameState): Promise<WebGameState> {
     if (!state.gameState) {
       return state;
     }
 
-    // Use the actual round state from gameState (dice already removed from scoring)
-    const roundState = state.gameState.currentWorld?.currentLevel.currentRound;
+    // Get the pending scoring data from the breakdown
+    const pendingScoring = (state.scoringBreakdown as any)?.pendingScoring;
+    if (!pendingScoring || !pendingScoring.breakdown) {
+      // Fallback: calculate and complete scoring now
+      const calculation = this.gameAPI.calculateScoringBreakdownOnly(state.gameState, state.selectedDice);
+      if (!calculation.success || !calculation.breakdown) {
+        return state;
+      }
+      const result = await this.gameAPI.completeScoring(
+        calculation.gameState,
+        state.selectedDice,
+        calculation.points,
+        calculation.combinations,
+        calculation.breakdown
+      );
+      if (!result.success) {
+        return state;
+      }
+      const roundState = result.gameState.currentWorld?.currentLevel.currentRound || null;
+      const diceToReroll = roundState?.diceHand.length || 0;
+      this.gameInterface.askForBankOrRoll(diceToReroll);
+      return this.createWebGameState(
+        result.gameState,
+        roundState,
+        [],
+        null,
+        false,
+        false,
+        false,
+        false,
+        state.scoringBreakdown,
+        'complete'
+      );
+    }
+
+    // Complete the scoring by removing dice and updating state
+    const result = await this.gameAPI.completeScoring(
+      pendingScoring.gameState,
+      pendingScoring.selectedIndices,
+      pendingScoring.finalPoints,
+      pendingScoring.combinations,
+      pendingScoring.breakdown
+    );
+    if (!result.success) {
+      return state;
+    }
+
+    const roundState = result.gameState.currentWorld?.currentLevel.currentRound || null;
     if (!roundState) {
       return state;
     }
@@ -407,7 +469,7 @@ export class WebGameManager {
     this.gameInterface.askForBankOrRoll(diceToReroll);
 
     return this.createWebGameState(
-      state.gameState,
+      result.gameState,
       roundState, // Use actual roundState (dice removed)
       [], // Clear selected dice
       null, // Clear preview scoring
@@ -697,14 +759,22 @@ export class WebGameManager {
     // Use the roundState from result if available, otherwise use the existing one (might be null between rounds)
     const roundState = result.roundState !== undefined ? result.roundState : state.roundState;
     
-    if (result.requiresInput && result.requiresInput.type === 'dieSelection') {
-      // Set pending action for die selection
-      (this.gameInterface as any).pendingAction = {
-        type: 'consumableDieSelection',
-        consumableId: result.requiresInput.consumableId,
-        diceSet: result.requiresInput.diceSet,
-        consumableIndex: index
-      };
+    if (result.requiresInput) {
+      if (result.requiresInput.type === 'dieSelection' || result.requiresInput.type === 'twoDieSelection') {
+        (this.gameInterface as any).pendingAction = {
+          type: 'consumableDieSelection',
+          consumableId: result.requiresInput.consumableId,
+          diceSet: result.requiresInput.diceSet,
+          consumableIndex: index
+        };
+      } else if (result.requiresInput.type === 'dieSideSelection') {
+        (this.gameInterface as any).pendingAction = {
+          type: 'consumableDieSideSelection',
+          consumableId: result.requiresInput.consumableId,
+          diceSet: result.requiresInput.diceSet,
+          consumableIndex: index
+        };
+      }
     }
     
     const newState = this.createWebGameState(gameState, roundState, state.selectedDice, state.previewScoring, state.justBanked, state.justFlopped, state.isProcessing);
@@ -733,6 +803,7 @@ export class WebGameManager {
     const result = await this.gameAPI.purchaseCharm(state.gameState, state.shopState, charmIndex);
     
     if (result.success) {
+      playPurchaseSound();
       // Mark the purchased item as null instead of regenerating the shop
       const newShopState = {
         ...state.shopState,
@@ -765,6 +836,7 @@ export class WebGameManager {
     const result = await this.gameAPI.purchaseConsumable(state.gameState, state.shopState, consumableIndex);
     
     if (result.success) {
+      playPurchaseSound();
       // Mark the purchased item as null instead of regenerating the shop
       const newShopState = {
         ...state.shopState,
@@ -797,6 +869,7 @@ export class WebGameManager {
     const result = await this.gameAPI.purchaseBlessing(state.gameState, state.shopState, blessingIndex);
     
     if (result.success) {
+      playPurchaseSound();
       // Mark the purchased item as null instead of regenerating the shop
       const newShopState = {
         ...state.shopState,
@@ -841,6 +914,9 @@ export class WebGameManager {
     }
     
     const result = await this.gameAPI.sellCharm(state.gameState, charmIndex);
+    if (result.success) {
+      playSellSound();
+    }
     const gameState = result.gameState;
     const roundState = gameState.currentWorld?.currentLevel?.currentRound || null;
     
@@ -865,6 +941,9 @@ export class WebGameManager {
     }
     
     const result = await this.gameAPI.sellConsumable(state.gameState, consumableIndex);
+    if (result.success) {
+      playSellSound();
+    }
     const gameState = result.gameState;
     const roundState = gameState.currentWorld?.currentLevel?.currentRound || null;
     
@@ -950,6 +1029,9 @@ export class WebGameManager {
     // Auto-save after level completion (after advancing to next level)
     await this.autoSaveGame(newGameState);
     
+    // Play new level sound
+    playNewLevelSound();
+    
     const webState = this.createWebGameState(newGameState, roundState, [], null, false, false, false);
     return {
       ...webState,
@@ -958,6 +1040,43 @@ export class WebGameManager {
       shopState: null,
       levelRewards: state.levelRewards,
     };
+  }
+
+  /**
+   * Apply consumable with die side selection (for pip effect consumables)
+   */
+  async applyConsumableDieSideSelection(
+    state: WebGameState,
+    dieIndex: number,
+    sideValue: number
+  ): Promise<WebGameState> {
+    if (!state.gameState) {
+      return state;
+    }
+
+    const pendingAction = this.gameInterface.getPendingAction();
+    if (pendingAction.type !== 'consumableDieSideSelection') {
+      console.error('[applyConsumableDieSideSelection] Invalid pending action:', pendingAction);
+      return state;
+    }
+
+    const result = await this.gameAPI.useConsumableOnDieSideSelection(
+      state.gameState,
+      pendingAction.consumableId,
+      dieIndex,
+      sideValue,
+      pendingAction.consumableIndex
+    );
+
+    if (!result.success) {
+      return state;
+    }
+
+    // Clear pending action
+    (this.gameInterface as any).pendingAction = { type: 'none' };
+
+    const roundState = state.gameState.currentWorld?.currentLevel.currentRound || null;
+    return this.createWebGameState(result.gameState, roundState, state.selectedDice, state.previewScoring, state.justBanked, state.justFlopped, state.isProcessing);
   }
 
   /**
@@ -995,6 +1114,9 @@ export class WebGameManager {
     
     // Auto-save after world selection
     await this.autoSaveGame(gameState);
+    
+    // Play new level sound
+    playNewLevelSound();
     
     const webState = this.createWebGameState(gameState, roundState, [], null, false, false, false);
     return {

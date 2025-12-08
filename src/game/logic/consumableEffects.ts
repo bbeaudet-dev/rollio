@@ -3,6 +3,7 @@ import { CONSUMABLES, WHIMS, WISHES } from '../data/consumables';
 import { MATERIALS } from '../data/materials';
 import { getNextDieSize, getPreviousDieSize } from '../utils/dieSizeUtils';
 import { GameState, RoundState, DiceMaterialType } from '../types';
+import { PipEffectType } from '../data/pipEffects';
 
 const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
   wish: { buy: 8, sell: 4 },
@@ -14,7 +15,7 @@ export interface ConsumableEffectResult {
   shouldRemove: boolean;
   requiresInput?: {
     type: 'dieSelection' | 'dieSideSelection' | 'twoDieSelection';
-    consumableId: 'chisel' | 'potteryWheel' | 'midasTouch';
+    consumableId: 'chisel' | 'potteryWheel' | 'midasTouch' | 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation';
     diceSet: any[];
   };
   gameState: GameState;
@@ -133,20 +134,24 @@ export function applyConsumableEffect(
 
     case 'groceryList': {
       const maxConsumables = newGameState.consumableSlots || 2;
-      const availableSlots = maxConsumables - newGameState.consumables.length;
+      // Account for the fact that groceryList will be removed, so we have 1 more slot
+      const availableSlots = maxConsumables - (newGameState.consumables.length - 1);
       if (availableSlots < 2) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       // Get all consumables, excluding ones already owned
       const ownedIds = new Set(newGameState.consumables.map(c => c.id));
-      const available = CONSUMABLES.filter(c => !ownedIds.has(c.id));
+      const allConsumables = [...CONSUMABLES, ...WHIMS, ...WISHES];
+      const available = allConsumables.filter(c => !ownedIds.has(c.id));
       if (available.length === 0) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       // Select 2 random consumables
-      const selected: typeof CONSUMABLES = [];
+      const selected: any[] = [];
       const indices = new Set<number>();
       while (selected.length < 2 && indices.size < available.length) {
         const randomIdx = Math.floor(Math.random() * available.length);
@@ -155,7 +160,10 @@ export function applyConsumableEffect(
           selected.push(available[randomIdx]);
         }
       }
-      newGameState.consumables = [...newGameState.consumables, ...selected];
+      const toAdd = Math.min(selected.length, availableSlots);
+      // Create consumable objects with uses property
+      const consumablesToAdd = selected.slice(0, toAdd).map(c => ({ ...c, uses: 1 }));
+      newGameState.consumables = [...newGameState.consumables, ...consumablesToAdd];
       break;
     }
 
@@ -209,9 +217,9 @@ export function applyConsumableEffect(
     }
 
     case 'grabBag': {
-      // TODO: Implement hand upgrade system
-      // For now, this is a placeholder - hand upgrades need infrastructure
-      // Hand upgrades likely modify combination point values
+      // TODO: Implement combination upgrade system
+      // For now, this is a placeholder - combination upgrades need infrastructure
+      // Combination upgrades likely modify combination point values
       shouldRemove = false; // Don't remove until implemented
       break;
     }
@@ -257,8 +265,8 @@ export function applyConsumableEffect(
     }
 
     case 'welfare': {
-      // TODO: Implement hand upgrade system
-      // For now, this is a placeholder - hand upgrades need infrastructure
+      // TODO: Implement combination upgrade system
+      // For now, this is a placeholder - combination upgrades need infrastructure
       shouldRemove = false; // Don't remove until implemented
       break;
     }
@@ -267,6 +275,7 @@ export function applyConsumableEffect(
       const maxCharms = newGameState.charmSlots || 3;
       if (newGameState.charms.length >= maxCharms) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       // Find available legendary charms not already owned
@@ -274,11 +283,13 @@ export function applyConsumableEffect(
       const available = CHARMS.filter(c => !ownedIds.has(c.id) && c.rarity === 'legendary');
       if (available.length === 0) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       // For 'origin', 50% chance to create legendary charm
-      if (consumable.id === 'origin' && Math.random() >= 0.5) {
+      if (Math.random() >= 0.5) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       const randomIdx = Math.floor(Math.random() * available.length);
@@ -322,6 +333,7 @@ export function applyConsumableEffect(
     case 'frankenstein': {
       if (newGameState.charms.length < 3) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       // Delete 2 random charms
@@ -333,28 +345,36 @@ export function applyConsumableEffect(
       const remaining = newGameState.charms.filter((_, i) => !indicesToDelete.has(i));
       if (remaining.length === 0) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
-      // Copy 1 random remaining charm
+      // Copy 1 random remaining charm - preserve all properties
       const randomIdx = Math.floor(Math.random() * remaining.length);
-      const copiedCharm = { ...remaining[randomIdx], id: `${remaining[randomIdx].id}_copy_${Date.now()}` };
+      const charmToCopy = remaining[randomIdx];
+      const copiedCharm = { 
+        ...charmToCopy, 
+        id: `${charmToCopy.id}_copy_${Date.now()}`
+      };
       newGameState.charms = [...remaining, copiedCharm];
-      // Update charm manager
-      newGameState.charms.forEach((charm: any) => {
-        if (!charmManager.getAllCharms().some((c: any) => c.id === charm.id)) {
-          charmManager.addCharm(charm);
+      // Update charm manager - remove deleted charms first
+      indicesToDelete.forEach(idx => {
+        const charmToRemove = newGameState.charms[idx];
+        if (charmToRemove) {
+          charmManager.removeCharm(charmToRemove.id);
         }
       });
+      // Add the copied charm
+      charmManager.addCharm(copiedCharm);
       break;
     }
 
     case 'chisel': {
-      // Requires user input - return request
+      // Requires user input - return request for up to two dice selection
       return {
         success: true,
         shouldRemove: false, // Will be set after user input
         requiresInput: {
-          type: 'dieSelection',
+          type: 'twoDieSelection',
           consumableId: 'chisel',
           diceSet: newGameState.diceSet
         },
@@ -364,12 +384,12 @@ export function applyConsumableEffect(
     }
 
     case 'potteryWheel': {
-      // Requires user input - return request
+      // Requires user input - return request for two die selection
       return {
         success: true,
         shouldRemove: false, // Will be set after user input
         requiresInput: {
-          type: 'dieSelection',
+          type: 'twoDieSelection',
           consumableId: 'potteryWheel',
           diceSet: newGameState.diceSet
         },
@@ -381,6 +401,7 @@ export function applyConsumableEffect(
     case 'hospital': {
       if (!newRoundState) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
       const lastForfeit = newRoundState.forfeitedPoints || 0;
@@ -389,8 +410,29 @@ export function applyConsumableEffect(
         newRoundState.roundPoints += recovered;
       } else {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
       }
       break;
+    }
+
+    case 'emptyAsAPocket':
+    case 'moneyPip':
+    case 'stallion':
+    case 'practice':
+    case 'phantom':
+    case 'accumulation': {
+      // These require die side selection - return request
+      return {
+        success: true,
+        shouldRemove: false, // Will be set after user input
+        requiresInput: {
+          type: 'dieSideSelection',
+          consumableId: consumable.id as any,
+          diceSet: newGameState.diceSet
+        },
+        gameState: newGameState,
+        roundState: newRoundState
+      };
     }
 
     case 'luckyToken': { // Legacy/placeholder - not in current consumable data
@@ -471,6 +513,145 @@ export function applyConsumableEffect(
 }
 
 /**
+ * Apply consumable with die side selection (wrapper that handles state management)
+ * Similar to applyConsumableEffect but for die side selection consumables
+ */
+export function applyConsumableWithDieSideSelection(
+  consumableIndex: number,
+  dieIndex: number,
+  sideValue: number,
+  gameState: GameState,
+  roundState: RoundState | null,
+  charmManager: any
+): ConsumableEffectResult {
+  const consumable = gameState.consumables[consumableIndex];
+  if (!consumable) {
+    return {
+      success: false,
+      shouldRemove: false,
+      gameState
+    };
+  }
+
+  const consumableId = consumable.id as 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation';
+  
+  const newGameState = { ...gameState };
+  const newRoundState = roundState ? { ...roundState } : undefined;
+  
+  // Create a copy of the consumables array
+  newGameState.consumables = [...newGameState.consumables];
+  
+  // Track the last consumable used (for Echo consumable)
+  (newGameState as any).lastConsumableUsed = { ...consumable };
+  
+  // Apply the die side selection
+  const result = applyDieSideSelectionConsumable(consumableId, dieIndex, sideValue, newGameState, newRoundState || null);
+  
+  const finalGameState = result.gameState;
+  
+  // Preserve lastConsumableUsed
+  if ((newGameState as any).lastConsumableUsed) {
+    (finalGameState as any).lastConsumableUsed = (newGameState as any).lastConsumableUsed;
+  }
+  
+  // Remove consumable if needed
+  if (result.shouldRemove) {
+    finalGameState.consumables.splice(consumableIndex, 1);
+  }
+  
+  // Update round state if it exists
+  if (newRoundState && result.roundState && finalGameState.currentWorld) {
+    finalGameState.currentWorld = {
+      ...finalGameState.currentWorld,
+      currentLevel: {
+        ...finalGameState.currentWorld.currentLevel,
+        currentRound: result.roundState
+      }
+    };
+  }
+  
+  return {
+    success: result.success,
+    shouldRemove: result.shouldRemove,
+    gameState: finalGameState,
+    roundState: result.roundState || newRoundState
+  };
+}
+
+/**
+ * Apply die side selection for pip effect consumables
+ * Pure function - processes the user's die and side selection
+ */
+export function applyDieSideSelectionConsumable(
+  consumableId: 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation',
+  dieIndex: number,
+  sideValue: number,
+  gameState: GameState,
+  roundState: RoundState | null
+): ConsumableEffectResult {
+  const newGameState = { ...gameState };
+  const newRoundState = roundState ? { ...roundState } : undefined;
+  let shouldRemove = true;
+
+  const selectedDie = newGameState.diceSet[dieIndex];
+  if (!selectedDie) {
+    return {
+      success: false,
+      shouldRemove: false,
+      gameState: newGameState
+    };
+  }
+
+  // Check if the side value is valid for this die
+  if (!selectedDie.allowedValues.includes(sideValue)) {
+    return {
+      success: false,
+      shouldRemove: false,
+      gameState: newGameState
+    };
+  }
+
+  // Map consumable IDs to pip effect types
+  const pipEffectMap: Record<string, PipEffectType> = {
+    'emptyAsAPocket': 'blank',
+    'moneyPip': 'money',
+    'stallion': 'wild',
+    'practice': 'upgradeCombo',
+    'phantom': 'twoFaced',
+    'accumulation': 'createConsumable'
+  };
+
+  const pipEffectType = pipEffectMap[consumableId];
+  if (!pipEffectType) {
+    return {
+      success: false,
+      shouldRemove: false,
+      gameState: newGameState
+    };
+  }
+
+  // Add pip effect to the selected side
+  newGameState.diceSet = newGameState.diceSet.map((die, i) => {
+    if (i === dieIndex) {
+      const newPipEffects = { ...(die.pipEffects || {}) };
+      newPipEffects[sideValue] = pipEffectType;
+      return {
+        ...die,
+        pipEffects: newPipEffects
+      };
+    }
+    return die;
+  });
+
+  return {
+    success: true,
+    shouldRemove,
+    gameState: newGameState,
+    roundState: newRoundState
+  };
+}
+
+/**
  * Apply die selection for consumables that require die selection
  * Pure function - processes the user's die selection
  */
@@ -511,9 +692,9 @@ export function applyDieSelectionConsumable(
         ? { ...die, material: sourceDie.material }
         : die
     );
-  } else {
-    // Handle single die selection for chisel/potteryWheel
-    if (typeof selectedDieIndex !== 'number') {
+  } else if (consumableId === 'chisel' || consumableId === 'potteryWheel') {
+    // Handle up to two die selection for chisel/potteryWheel - modify rolled values in diceHand
+    if (!Array.isArray(selectedDieIndex)) {
       return {
         success: false,
         shouldRemove: false,
@@ -521,38 +702,47 @@ export function applyDieSelectionConsumable(
       };
     }
 
-  const selectedDie = newGameState.diceSet[selectedDieIndex];
-  if (!selectedDie) {
-    return {
-      success: false,
-      shouldRemove: false,
-      gameState: newGameState
-    };
-  }
-
-  if (consumableId === 'chisel') {
-    const newSize = getPreviousDieSize(selectedDie.sides);
-    if (newSize === null) {
-      shouldRemove = false;
-    } else {
-      newGameState.diceSet = newGameState.diceSet.map((die, i) =>
-        i === selectedDieIndex
-          ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
-          : die
-      );
+    const numSelected: number = selectedDieIndex.length;
+    if (numSelected === 0 || numSelected > 2) {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
     }
-  } else if (consumableId === 'potteryWheel') {
-    const newSize = getNextDieSize(selectedDie.sides);
-    if (newSize === null) {
-      shouldRemove = false;
-    } else {
-      newGameState.diceSet = newGameState.diceSet.map((die, i) =>
-        i === selectedDieIndex
-          ? { ...die, sides: newSize, allowedValues: [1, 2, 3, 4, 5, 6] }
-          : die
-      );
+
+    if (!newRoundState || !newRoundState.diceHand || newRoundState.diceHand.length === 0) {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+
+    // Validate all selected dice exist
+    const selectedIndices: number[] = numSelected === 1 ? [selectedDieIndex[0] as number] : [...selectedDieIndex] as number[];
+    for (const dieIndex of selectedIndices) {
+      if (dieIndex < 0 || dieIndex >= newRoundState.diceHand.length || !newRoundState.diceHand[dieIndex]) {
+        return {
+          success: false,
+          shouldRemove: false,
+          gameState: newGameState
+        };
       }
     }
+
+    // Modify rolled values: chisel decreases, potteryWheel increases
+    newRoundState.diceHand = newRoundState.diceHand.map((die, i) => {
+      if (selectedIndices.includes(i)) {
+        const currentValue = die.rolledValue ?? 1;
+        if (consumableId === 'chisel') {
+          return { ...die, rolledValue: Math.max(1, currentValue - 1) };
+        } else {
+          return { ...die, rolledValue: Math.min(6, currentValue + 1) };
+        }
+      }
+      return die;
+    });
   }
 
   return {

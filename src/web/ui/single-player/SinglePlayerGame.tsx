@@ -27,6 +27,7 @@ export const SinglePlayerGame: React.FC = () => {
     customDiceSetConfig?: DiceSetConfig;
     selectedCharms: number[];
     selectedConsumables: number[];
+    selectedBlessings: number[];
     difficulty: string;
   }) => {
     if (config.customDiceSetConfig) {
@@ -37,7 +38,7 @@ export const SinglePlayerGame: React.FC = () => {
       // Extras mode with dice set index
       setSelectedDiceSetIndex(config.diceSetIndex);
       setShowConfigSelector(false);
-      game.gameActions.startNewGame(config.diceSetIndex, config.difficulty);
+      game.gameActions.startNewGame(config.diceSetIndex, config.difficulty, config.selectedCharms, config.selectedConsumables, config.selectedBlessings);
     }
   };
 

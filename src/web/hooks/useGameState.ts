@@ -15,11 +15,23 @@ export function useGameState() {
   }, []);
 
   // Initialize a new game
-  const startNewGame = useCallback(async (diceSetIndexOrConfig: number | DiceSetConfig, difficulty: string) => {
+  const startNewGame = useCallback(async (
+    diceSetIndexOrConfig: number | DiceSetConfig, 
+    difficulty: string,
+    selectedCharms?: number[],
+    selectedConsumables?: number[],
+    selectedBlessings?: number[]
+  ) => {
     setIsLoading(true);
     try {
       gameManagerRef.current = new WebGameManager(addMessage);
-      const initialState = await gameManagerRef.current.initializeGame(diceSetIndexOrConfig, difficulty);
+      const initialState = await gameManagerRef.current.initializeGame(
+        diceSetIndexOrConfig, 
+        difficulty,
+        selectedCharms,
+        selectedConsumables,
+        selectedBlessings
+      );
       setWebState(initialState);
       setMessages([]);
     } catch (error) {
@@ -90,7 +102,7 @@ export function useGameState() {
     
     // If breakdown is showing, complete it first
     if (webState.breakdownState !== 'hidden') {
-      const completedState = gameManagerRef.current.completeBreakdownAnimation(webState);
+      const completedState = await gameManagerRef.current.completeBreakdownAnimation(webState);
       setWebState(completedState);
       // Continue with roll after completing breakdown
       if (gameManagerRef.current) {
@@ -158,10 +170,10 @@ export function useGameState() {
     }
   }, [webState]);
 
-  const handleCompleteBreakdown = useCallback(() => {
+  const handleCompleteBreakdown = useCallback(async () => {
     if (!webState || !gameManagerRef.current) return;
     
-    const newState = gameManagerRef.current.completeBreakdownAnimation(webState);
+    const newState = await gameManagerRef.current.completeBreakdownAnimation(webState);
     setWebState(newState);
   }, [webState]);
 

@@ -64,16 +64,16 @@ export const RoundInfo: React.FC<RoundInfoProps> = ({
         }}>
           {worldNumber !== undefined && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>🌍</span>
+              <span style={{ fontWeight: 'bold' }}>W</span>
               <span>{worldNumber}</span>
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>🪜</span>
+            <span style={{ fontWeight: 'bold' }}>L</span>
             <span>{levelNumber}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>🔄</span>
+            <span style={{ fontWeight: 'bold' }}>R</span>
             <span>{roundNumber}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

@@ -291,7 +291,7 @@ export class PuristCharm extends BaseCharm {
   }
 }
 
-export class RoundMultiplierCharm extends BaseCharm {
+export class SnowballCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     return {};
   }
@@ -348,6 +348,23 @@ export class WeightedDiceCharm extends BaseCharm {
   public shouldTrigger(baseProbability: number): boolean {
     const doubledProbability = this.doubleProbability(baseProbability);
     return Math.random() < doubledProbability;
+  }
+}
+
+export class RussianRouletteCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // ^1.25 exponent
+    // 1 in 6 chance of automatically flopping (roll 1-6, if 1 then flop)
+    const roll = Math.floor(Math.random() * 6) + 1; // 1-6
+    if (roll === 1) {
+      // Trigger auto-flop by setting a flag in round state
+      // This will be checked after scoring to force a flop
+      (context.roundState as any).russianRouletteFlop = true;
+    }
+    
+    return {
+      exponentMultiply: 1.25
+    };
   }
 }
 

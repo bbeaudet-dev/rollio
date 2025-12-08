@@ -14,8 +14,9 @@ function isProd(): boolean {
 }
 
 // API base URL - points to Render backend in production, local server in development
+// In dev mode, use relative URLs so Vite proxy handles routing to backend
 const API_BASE_URL = getEnvVar('VITE_API_URL') || 
-  (isProd() ? 'https://your-backend.onrender.com' : 'http://localhost:5173');
+  (isProd() ? 'https://your-backend.onrender.com' : '');
 
 export interface ApiResponse<T = any> {
   success: boolean;

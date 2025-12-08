@@ -29,6 +29,29 @@ export function playLevelCompleteSound(): void {
 }
 
 /**
+ * Play the new level sound
+ */
+export function playNewLevelSound(): void {
+  playSound('new-level.mp3');
+}
+
+/**
+ * Play purchase sound
+ */
+export function playPurchaseSound(): void {
+  playSound('purchase.mp3');
+}
+
+/**
+ * Play sell sound
+ */
+export function playSellSound(): void {
+  const coinSounds = ['coin1.mp3', 'coin2.mp3', 'coin3.mp3'];
+  const randomSound = coinSounds[Math.floor(Math.random() * coinSounds.length)];
+  playSound(randomSound);
+}
+
+/**
  * Play a sound file
  */
 function playSound(filename: string): void {

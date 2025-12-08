@@ -12,10 +12,9 @@ import { getPipEffectForDie } from '../pipEffectSystem';
  * - inheritance: Needs rainbow effect guarantee system
  * - resonance: Needs crystal bounce effect system
  * - bloom: Needs flower counter system
- * - paranoia: Needs charm position tracking
  * - mustBeThisTallToRide: Needs charm position tracking
  * - queensGambit: Needs dice set size tracking and dice removal tracking
- * - whimWisher: Needs consumable use tracking
+ * - shootingStar: Needs consumable use tracking
  */
 
 // ============================================================================
@@ -198,7 +197,7 @@ export class VesuviusCharm extends BaseCharm {
   }
 }
 
-export class WhimWisherCharm extends BaseCharm {
+export class ShootingStarCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // Using a whim has a 10% chance to create a random wish
     // TODO: Needs consumable use tracking system
@@ -273,15 +272,6 @@ export class BloomCharm extends BaseCharm {
     // The multiplier should be based on the counter value after this scoring
     // For now, just track the counter - multiplier logic can be added later
     
-    return {};
-  }
-}
-
-export class ParanoiaCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Copies the effect of the charm to the left/right of this charm, alternating each roll
-    // TODO: Needs charm position tracking
-    // This would need to know the position of charms in the charm array
     return {};
   }
 }

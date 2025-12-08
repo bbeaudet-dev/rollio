@@ -75,48 +75,45 @@ export const HowToPlayPage: React.FC = () => {
         textAlign: 'center',
         fontStyle: 'italic'
       }}>
-        Welcome to Rollio! The rules take some inspiration from poker and Farkle while also mixing in roguelike elements. Don't worry, I'll explain everything!
+        Welcome to Rollio, the dice-rolling roguelike!
+        The rules take some inspiration from poker, Farkle, and Balatro, so if you're familiar with any of those, you'll pick up Rollio in no time!
       </div>
 
-      {/* Rolling and Combinations */}
+      {/* Rolling and Scoring */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Rolling and Combinations</h2>
         <p style={textStyle}>
-          At the start of each round, you'll roll all your dice. Your goal is to create scoring combinations from the rolled dice. Select dice that form valid combinations, then click "Score" to add those points to your round total.
+          You start by rolling all of your dice. Your goal is to combine the dice values in different ways (like the different *hands* in Poker, e.g. Two Pair, Full House, Straight) in order to score points. 
         </p>
         <p style={textStyle}>
           Valid combinations include:
         </p>
         <ul style={listStyle}>
           <li><strong>Singles:</strong> Individual dice with values 1 or 5</li>
-          <li><strong>Pairs:</strong> Two dice with the same value</li>
-          <li><strong>Three of a Kind:</strong> Three dice with the same value</li>
-          <li><strong>Straights:</strong> Three or more consecutive values (e.g., 1-2-3, 4-5-6)</li>
+          <li><strong>Pairs:</strong> Set(s) of two dice with the same value</li>
+          <li><strong>N of a Kind:</strong> Three or more dice with the same value (3-3-3, 6-6-6-6-6</li>
+          <li><strong>Straights:</strong> Four or more dice with consecutive values (e.g., 1-2-3-4)</li>
+          <li><strong>Pyramids:</strong> Dice forming a consecutive "layered" pattern (e.g. 3-3-3-2-2-1))</li>
         </ul>
         <p style={textStyle}>
-          After scoring, the selected dice are removed. You can then roll the remaining dice again, or bank your points to end the round.
+          After selecting dice and scoring these combinations, the selected dice are removed from your hand. You can then choose to roll the remaining dice again or play it safe and end the round.
+        </p>
+        <p style={textStyle}>
+          If you manage to score 
         </p>
       </div>
 
-      {/* Scoring vs Banking */}
-      <div style={sectionStyle}>
-        <h2 style={headerStyle}>Scoring vs Banking</h2>
-        <p style={textStyle}>
-          When you score dice, those points are added to your <strong>round total</strong>, but they're not yet safe. You can continue rolling the remaining dice to score more points, or you can <strong>bank</strong> your round total to add it to your <strong>level progress</strong>.
-        </p>
-        <p style={textStyle}>
-          Banking ends the round and adds your round points to your level progress. Once banked, those points count toward completing the level. However, if you flop (roll with no valid combinations), you lose all unbanked points for that round.
-        </p>
-        <p style={textStyle}>
-          <strong>Hot Dice:</strong> If you score all your dice in a single roll, you get "Hot Dice" and can roll all your dice again without using a reroll!
-        </p>
-      </div>
-
-      {/* Flopping and Rerolls */}
+      {/* Flopping and Hot Dice */}
       <div style={sectionStyle}>
         <h2 style={headerStyle}>Flopping and Rerolls</h2>
         <p style={textStyle}>
-          A <strong>flop</strong> occurs when you roll dice and there are no valid scoring combinations available. When you flop, you lose all unbanked points for that round and the round ends.
+          Each time you score dice, the points are added to a running <strong>round total</strong> - but they're not safe yet! Continuing to roll the remaining dice risks losing these points - that is, until you decide to stop rolling and <strong>Bank</strong> them. A core element of Rollio is the risk/reward balance of deciding when to play it safe and when to risk it all.
+        </p>
+        <p style={textStyle}>
+           <strong>flop</strong> occurs when you roll dice and there are no valid scoring combinations available. When you flop, you lose all unbanked points for that round and the round ends.
+        </p>
+        <p style={textStyle}>
+          <strong>Hot Dice:</strong> If you score all your dice in a single roll, you get "Hot Dice" and can roll all your dice again without using a reroll!
         </p>
         <p style={textStyle}>
           Each level gives you a certain number of <strong>rerolls</strong>. After scoring dice, you can choose to reroll some or all of the remaining dice. You can also skip the reroll if you want to bank your points instead.

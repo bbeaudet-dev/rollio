@@ -569,10 +569,42 @@ export function randomizeDiceSetConfig(difficulty: DifficultyLevel): RandomizedD
 export function initializeNewGame(
   diceSetConfig: DiceSetConfig,
   difficulty: DifficultyLevel,
-  charmManager: any
+  charmManager: any,
+  selectedCharms?: number[],
+  selectedConsumables?: number[],
+  selectedBlessings?: number[]
 ): GameState {
   // Create initial game state (without level state - player selects world first)
   const gameState = createInitialGameState(diceSetConfig, difficulty);
+  
+  // Add selected charms, consumables, and blessings 
+  if (selectedCharms && selectedCharms.length > 0) {
+    const charmsToAdd = selectedCharms
+      .filter(index => index < CHARMS.length)
+      .map(index => {
+        const charm = CHARMS[index];
+        const runtimeCharm = { ...charm, active: true };
+        charmManager.addCharm(runtimeCharm);
+        return runtimeCharm;
+      });
+    gameState.charms = [...gameState.charms, ...charmsToAdd];
+  }
+  
+  if (selectedConsumables && selectedConsumables.length > 0) {
+    const { CONSUMABLES } = require('../data/consumables');
+    const consumablesToAdd = selectedConsumables
+      .filter(index => index < CONSUMABLES.length)
+      .map(index => ({ ...CONSUMABLES[index], uses: CONSUMABLES[index].uses || 1 }));
+    gameState.consumables = [...gameState.consumables, ...consumablesToAdd];
+  }
+  
+  if (selectedBlessings && selectedBlessings.length > 0) {
+    const { ALL_BLESSINGS } = require('../data/blessings');
+    const blessingsToAdd = selectedBlessings
+      .filter(index => index < ALL_BLESSINGS.length)
+      .map(index => ALL_BLESSINGS[index]);
+    gameState.blessings = [...gameState.blessings, ...blessingsToAdd];
+  }
   
   // Register starting charms with the charm manager
   registerStartingCharms(gameState, charmManager);

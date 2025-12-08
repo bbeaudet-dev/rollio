@@ -168,10 +168,18 @@ export class NinetyEightPercentAPlusCharm extends BaseCharm {
 }
 
 export class OddOdysseyCharm extends BaseCharm {
-  private cumulativeBonus: number = 0.25; // Starts at 0.25, increases by 0.25 per odd value
-
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // +0.25 points when scoring. Add +0.25 for each odd value scored (cumulative)
+    // Find this charm in gameState to update its state
+    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
+    if (!charm) return {};
+    
+    // Initialize state if needed
+    if (charm.oddOdysseyBonus === undefined) {
+      charm.oddOdysseyBonus = 0.25; // Starts at 0.25
+    }
+    
+    // Count odd values in current selection
     let oddCount = 0;
     for (const idx of context.selectedIndices) {
       const value = context.roundState.diceHand[idx]?.rolledValue;
@@ -180,8 +188,16 @@ export class OddOdysseyCharm extends BaseCharm {
       }
     }
     
-    const bonus = this.cumulativeBonus + (0.25 * oddCount);
-    this.cumulativeBonus += 0.25 * oddCount; // Increase for next time
+    // Apply current bonus
+    const bonus = charm.oddOdysseyBonus;
+    
+    // Increase bonus for next time: +0.25 per odd value scored
+    charm.oddOdysseyBonus += 0.25 * oddCount;
+    
+    // Update description
+    const baseDescription = '+0.25 points when scoring. Add +0.25 for each odd value scored';
+    charm.description = `${baseDescription} (Current: +${charm.oddOdysseyBonus.toFixed(2)} points)`;
+    this.description = charm.description; // Update instance description too
     
     return {
       basePointsDelta: Math.floor(bonus)
@@ -303,12 +319,11 @@ export class CrystalClearCharm extends BaseCharm {
 
 export class GoldenTouchCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +$1 for each golden die rolled
-    // Note: This says "rolled" not "scored", so we check all dice in hand
-    const goldenCount = context.roundState.diceHand.filter(
-      (die: Die) => die.material === 'golden'
+    // +$1 for each golden die scored
+    const goldenCount = context.selectedIndices.filter(
+      idx => context.roundState.diceHand[idx]?.material === 'golden'
     ).length;
-    if (context.gameState) {
+    if (context.gameState && goldenCount > 0) {
       context.gameState.money = (context.gameState.money || 0) + goldenCount;
     }
     return {};
@@ -317,12 +332,12 @@ export class GoldenTouchCharm extends BaseCharm {
 
 export class StraightShooterCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +25 points when scoring a straight
+    // +100 points when scoring a straight
     const hasStraight = context.combinations.some(
       combo => combo.type === 'straight' || combo.type === 'straightOfN'
     );
     return {
-      basePointsDelta: hasStraight ? 25 : 0
+      basePointsDelta: hasStraight ? 100 : 0
     };
   }
 }
@@ -448,56 +463,117 @@ export class PipCollectorCharm extends BaseCharm {
 // ============================================================================
 
 export class StairstepperCharm extends BaseCharm {
-  private straightCount: number = 0;
-
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Track straights played (for banking bonus)
+    // +20 points when scoring. Add +20 per straight played (cumulative)
+    // Find this charm in gameState to update its state
+    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
+    if (!charm) return {};
+    
+    // Initialize state if needed
+    if (charm.stairstepperCount === undefined) {
+      charm.stairstepperCount = 0; // Number of straights played
+      charm.stairstepperBonus = 20; // Current bonus (starts at 20)
+    }
+    
+    // Check if this scoring includes a straight
     const hasStraight = context.combinations.some(
       combo => combo.type === 'straight' || combo.type === 'straightOfN'
     );
+    
+    // Apply current bonus
+    const bonus = charm.stairstepperBonus;
+    
+    // If straight was played, increase count and bonus for next time
     if (hasStraight) {
-      this.straightCount++;
+      charm.stairstepperCount++;
+      charm.stairstepperBonus += 20; // Increase by 20 for next time
     }
-    return {};
-  }
-
-  onBank(context: CharmBankContext): number {
-    // +20 points when banking. Add +20 per straight played (cumulative)
-    const bonus = 20 + (this.straightCount * 20);
-    return Math.floor(context.bankedPoints + bonus);
+    
+    // Update description
+    const baseDescription = '+20 points when scoring. Add +20 per straight played (cumulative)';
+    charm.description = `${baseDescription} (Current: +${charm.stairstepperBonus} points)`;
+    this.description = charm.description; // Update instance description too
+    
+    return {
+      basePointsDelta: bonus
+    };
   }
 }
 
 export class RerollRangerCharm extends BaseCharm {
-  private cumulativeBonus: number = 0; // Cumulative bonus across all banks
-
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // No scoring effect
-    return {};
-  }
-
-  onBank(context: CharmBankContext): number {
-    // +5 points when banking. Add +5 for each reroll used (cumulative)
-    // Count rerolls used in this round
+    // +5 points when scoring. Add +5 for each reroll used (cumulative)
+    // Find this charm in gameState to update its state
+    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
+    if (!charm) return {};
+    
+    // Initialize state if needed
+    if (charm.rerollRangerBonus === undefined) {
+      charm.rerollRangerBonus = 5; // Starts at 5
+    }
+    
+    // Count rerolls used in this round (before this scoring)
     const rerollsUsed = context.roundState.rollHistory?.filter((roll: any) => roll.isReroll).length || 0;
-    this.cumulativeBonus += 5 + (rerollsUsed * 5);
-    return Math.floor(context.bankedPoints + this.cumulativeBonus);
+    
+    // Apply current bonus
+    const bonus = charm.rerollRangerBonus;
+    
+    // Increase bonus for next time: +5 per reroll used
+    charm.rerollRangerBonus += 5 * rerollsUsed;
+    
+    // Update description
+    const baseDescription = '+5 points when scoring. Add +5 for each reroll used (cumulative)';
+    charm.description = `${baseDescription} (Current: +${charm.rerollRangerBonus} points)`;
+    this.description = charm.description; // Update instance description too
+    
+    return {
+      basePointsDelta: bonus
+    };
   }
 }
 
 export class BankBaronCharm extends BaseCharm {
-  private bankCount: number = 0;
-
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // No scoring effect
-    return {};
+    // +5 points when scoring. Add +5 for each bank (cumulative)
+    // Find this charm in gameState to update its state
+    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
+    if (!charm) return {};
+    
+    // Initialize state if needed
+    if (charm.bankBaronBonus === undefined) {
+      charm.bankBaronBonus = 5; // Starts at 5
+    }
+    
+    // Apply current bonus
+    const bonus = charm.bankBaronBonus;
+    
+    // Note: Bank count is incremented in processBankPoints, so we'll update bonus there
+    // For now, just apply the current bonus
+    
+    // Update description
+    const baseDescription = '+5 points when scoring. Add +5 for each bank (cumulative)';
+    charm.description = `${baseDescription} (Current: +${charm.bankBaronBonus} points)`;
+    this.description = charm.description; // Update instance description too
+    
+    return {
+      basePointsDelta: bonus
+    };
   }
-
+  
   onBank(context: CharmBankContext): number {
-    // +25 points when banking. Add +25 for bank (cumulative)
-    this.bankCount++;
-    const bonus = 25 * this.bankCount;
-    return Math.floor(context.bankedPoints + bonus);
+    // Increment bonus for next scoring after banking
+    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
+    if (charm) {
+      if (charm.bankBaronBonus === undefined) {
+        charm.bankBaronBonus = 5;
+      }
+      charm.bankBaronBonus += 5; // Increase by 5 for next time
+      
+      // Update description
+      const baseDescription = '+5 points when scoring. Add +5 for each bank (cumulative)';
+      charm.description = `${baseDescription} (Current: +${charm.bankBaronBonus} points)`;
+    }
+    return context.bankedPoints; // Don't modify banked points, bonus is applied on scoring
   }
 }
 
@@ -631,7 +707,7 @@ export class FlopStrategistCharm extends BaseCharm {
 // CONSUMABLE GENERATION CHARMS
 // ============================================================================
 
-export class ConsumableGeneratorCharm extends BaseCharm {
+export class GeneratorCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // Creates a random consumable when scoring 3 or more pairs
     const valueCounts: Record<number, number> = {};

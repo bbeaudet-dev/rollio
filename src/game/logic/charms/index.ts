@@ -40,7 +40,7 @@ import {
   LowHangingFruitCharm,
   HoarderCharm,
   ComebackKidCharm,
-  ConsumableGeneratorCharm,
+  GeneratorCharm,
 } from './CommonCharms';
 
 import {
@@ -61,11 +61,12 @@ import {
   WildCardCharm,
   SwordInTheStoneCharm,
   WhimWhispererCharm,
-  RoundMultiplierCharm,
+  SnowballCharm,
   RabbitsFootCharm,
   WeightedDiceCharm,
   DoubleAgentCharm,
   PuristCharm,
+  RussianRouletteCharm,
 } from './UncommonCharms';
 
 import {
@@ -79,14 +80,13 @@ import {
   EyeOfHorusCharm,
   ArmadilloArmorCharm,
   VesuviusCharm,
-  WhimWisherCharm,
+  ShootingStarCharm,
   BlankSlateCharm,
   LeadTitanCharm,
   BodyDoubleCharm,
   InheritanceCharm,
   ResonanceCharm,
   BloomCharm,
-  ParanoiaCharm,
   MustBeThisTallToRideCharm,
   QueensGambitCharm,
   FlopCollectorCharm,
@@ -94,8 +94,9 @@ import {
   RefineryCharm,
 } from './RareCharms';
 
-// Legendary charms (empty for now, will be added later)
-// import { ... } from './LegendaryCharms';
+import {
+  ParanoiaCharm,
+} from './LegendaryCharms';
 
 /**
  * Register all charm implementations with the registry
@@ -142,7 +143,7 @@ export function registerCharms(): void {
   registry.register(LowHangingFruitCharm, 'lowHangingFruit'); // legacy charm, might be duplicate
   registry.register(HoarderCharm, 'hoarder');
   registry.register(ComebackKidCharm, 'comebackKid');
-  registry.register(ConsumableGeneratorCharm, 'consumableGenerator');
+  registry.register(GeneratorCharm, 'generator');
   
   // Uncommon charms
   registry.register(QuadBoostersCharm, 'quadBoosters');
@@ -162,11 +163,12 @@ export function registerCharms(): void {
   registry.register(WildCardCharm, 'wildCard');
   registry.register(SwordInTheStoneCharm, 'swordInTheStone');
   registry.register(WhimWhispererCharm, 'whimWhisperer');
-  registry.register(RoundMultiplierCharm, 'roundMultiplier'); // legacy charm, might be duplicate
+  registry.register(SnowballCharm, 'snowball');
   registry.register(RabbitsFootCharm, 'rabbitsFoot'); // legacy charm, might be duplicate
   registry.register(WeightedDiceCharm, 'weightedDice'); // legacy charm, might be duplicate
   registry.register(DoubleAgentCharm, 'doubleAgent');
   registry.register(PuristCharm, 'purist');
+  registry.register(RussianRouletteCharm, 'russianRoulette');
   
   // Rare charms
   registry.register(KingslayerCharm, 'kingslayer');
@@ -179,17 +181,19 @@ export function registerCharms(): void {
   registry.register(EyeOfHorusCharm, 'eyeOfHorus');
   registry.register(ArmadilloArmorCharm, 'armadilloArmor');
   registry.register(VesuviusCharm, 'vesuvius');
-  registry.register(WhimWisherCharm, 'whimWisher');
+  registry.register(ShootingStarCharm, 'shootingStar');
   registry.register(BlankSlateCharm, 'blankSlate');
   registry.register(LeadTitanCharm, 'leadTitan');
   registry.register(BodyDoubleCharm, 'bodyDouble');
   registry.register(InheritanceCharm, 'inheritance');
   registry.register(ResonanceCharm, 'resonance');
   registry.register(BloomCharm, 'bloom');
-  registry.register(ParanoiaCharm, 'paranoia');
   registry.register(MustBeThisTallToRideCharm, 'mustBeThisTallToRide');
   registry.register(QueensGambitCharm, 'queensGambit');
   registry.register(FlopCollectorCharm, 'flopCollector'); // legacy charm, might be duplicate
   registry.register(SizeMattersCharm, 'sizeMatters'); // legacy charm, might be duplicate
   registry.register(RefineryCharm, 'refinery');
+  
+  // Legendary charms
+  registry.register(ParanoiaCharm, 'paranoia');
 } 
