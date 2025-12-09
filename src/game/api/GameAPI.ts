@@ -1,5 +1,5 @@
 import { GameInterface } from '../../cli/interfaces';
-import { GameState, GameConfig, RoundState, DiceSetConfig } from '../types';
+import { GameState, GameConfig, RoundState, DiceSetConfig, Consumable } from '../types';
 import { CharmManager } from '../logic/charmSystem';
 import { extractCombinationTypesFromBreakdown, trackCombinationUsage } from '../utils/combinationTracking';
 import { 
@@ -29,7 +29,7 @@ import { getAvailableWorldChoices, getWorldIdForNode } from '../logic/mapGenerat
 import { tallyLevel as tallyLevelFunction, calculateLevelRewards, LevelRewards } from '../logic/tallying';
 import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, sellCharm as sellCharmLogic, sellConsumable as sellConsumableLogic } from '../logic/shop';
 import { validateRerollSelection } from '../logic/rerollLogic';
-import { applyConsumableEffect } from '../logic/consumableEffects';
+import { applyConsumableEffect, updateLastConsumableUsed } from '../logic/consumableEffects';
 import { calculateScoringBreakdown } from '../logic/scoring';
 import { calculateFinalScore } from '../logic/scoringElements';
 import { RollState } from '../types';
@@ -822,43 +822,68 @@ export class GameAPI {
   /**
    * Use a consumable
    */
-  async useConsumable(gameState: GameState, index: number): Promise<{ success: boolean; gameState: GameState; roundState?: RoundState; requiresInput?: any; shouldRemove: boolean }> {
+  async useConsumable(
+    gameState: GameState, 
+    index: number, 
+    selectedDiceIndices?: number[]
+  ): Promise<{ success: boolean; gameState: GameState; roundState?: RoundState; requiresInput?: any; shouldRemove: boolean }> {
     const roundState = gameState.currentWorld!.currentLevel.currentRound || null;
+    const consumable = gameState.consumables[index];
     
-    // Get the consumable being used (before we modify anything)
-    const consumableBeingUsed = gameState.consumables[index];
-    
-    // Create a proper deep copy to avoid mutation issues
-    const newGameState = {
-      ...gameState,
-      consumables: [...gameState.consumables],
-    };
-    if (gameState.currentWorld) {
-      newGameState.currentWorld = {
-        ...gameState.currentWorld,
-        currentLevel: {
-          ...gameState.currentWorld.currentLevel,
-          currentRound: roundState ? { ...roundState } : undefined
-        }
+    if (!consumable) {
+      return {
+        success: false,
+        gameState,
+        roundState: roundState || undefined,
+        shouldRemove: false
       };
     }
-    const newRoundState = roundState ? { ...roundState } : undefined;
-    
-    // Track the last consumable used (for Echo consumable) - but only if it's not Echo itself
-    // Store it in the gameState before applying the effect
-    if (consumableBeingUsed && consumableBeingUsed.id !== 'echo') {
-      (newGameState as any).lastConsumableUsed = { ...consumableBeingUsed };
+
+    // Determine what input the consumable needs based on selected dice
+    let dieSelectionInput: number | [number, number] | undefined;
+    let dieSideSelectionInput: { dieIndex: number; sideValue: number } | undefined;
+
+    if (selectedDiceIndices && selectedDiceIndices.length > 0) {
+      const diceHand = roundState?.diceHand || [];
+      
+      // Check if this consumable needs die selection (chisel, potteryWheel, midasTouch)
+      if (consumable.id === 'chisel' || consumable.id === 'potteryWheel' || consumable.id === 'midasTouch') {
+        if (consumable.id === 'midasTouch' && selectedDiceIndices.length >= 2) {
+          dieSelectionInput = [selectedDiceIndices[0], selectedDiceIndices[1]] as [number, number];
+        } else if (selectedDiceIndices.length >= 1) {
+          // For chisel/potteryWheel, can select 1 or 2 dice
+          dieSelectionInput = selectedDiceIndices.length === 1 
+            ? selectedDiceIndices[0] 
+            : [selectedDiceIndices[0], selectedDiceIndices[1]] as [number, number];
+        }
+      }
+      
+      // Check if this consumable needs die side selection (pip effect consumables)
+      // dieIndex here is from diceHand (the board), not diceSet
+      if (consumable.id === 'emptyAsAPocket' || consumable.id === 'moneyPip' || 
+          consumable.id === 'stallion' || consumable.id === 'practice' || 
+          consumable.id === 'phantom' || consumable.id === 'accumulation') {
+        if (selectedDiceIndices.length >= 1) {
+          const dieIndex = selectedDiceIndices[0];
+          const die = diceHand[dieIndex];
+          if (die && die.rolledValue !== undefined) {
+            // dieIndex is from diceHand, pass it through - the function will find the corresponding diceSet die
+            dieSideSelectionInput = { dieIndex, sideValue: die.rolledValue };
+          }
+        }
+      }
     }
+
+    const result = applyConsumableEffect(
+      index,
+      gameState,
+      roundState,
+      this.charmManager,
+      dieSelectionInput,
+      dieSideSelectionInput
+    );
     
-    const result = applyConsumableEffect(index, newGameState, newRoundState || null, this.charmManager);
-    
-    // Use the gameState from result (it has all the updates)
     const finalGameState = result.gameState;
-    
-    // Preserve lastConsumableUsed in final state (it might have been cleared by the effect)
-    if ((newGameState as any).lastConsumableUsed) {
-      (finalGameState as any).lastConsumableUsed = (newGameState as any).lastConsumableUsed;
-    }
     
     // Remove consumable if needed
     if (result.shouldRemove) {
@@ -866,7 +891,7 @@ export class GameAPI {
     }
     
     // Update round state if it exists
-    if (newRoundState && result.roundState && finalGameState.currentWorld) {
+    if (roundState && result.roundState && finalGameState.currentWorld) {
       finalGameState.currentWorld = {
         ...finalGameState.currentWorld,
         currentLevel: {
@@ -881,111 +906,8 @@ export class GameAPI {
     return {
       success: result.success,
       gameState: finalGameState,
-      roundState: result.roundState || newRoundState,
+      roundState: result.roundState || roundState || undefined,
       requiresInput: result.requiresInput,
-      shouldRemove: result.shouldRemove
-    };
-  }
-
-  /**
-   * Use consumable with die side selection (for pip effect consumables)
-   */
-  async useConsumableOnDieSideSelection(
-    gameState: GameState,
-    consumableId: 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation',
-    dieIndex: number,
-    sideValue: number,
-    consumableIndex: number
-  ): Promise<{ success: boolean; gameState: GameState; shouldRemove: boolean }> {
-    const roundState = gameState.currentWorld!.currentLevel.currentRound || null;
-    
-    // Apply consumable with die side selection using logic from consumableEffects
-    const { applyConsumableWithDieSideSelection } = await import('../logic/consumableEffects');
-    const result = applyConsumableWithDieSideSelection(
-      consumableIndex,
-      dieIndex,
-      sideValue,
-      gameState,
-      roundState,
-      this.charmManager
-    );
-    
-    this.emit('stateChanged', { gameState: result.gameState });
-    
-    return {
-      success: result.success,
-      gameState: result.gameState,
-      shouldRemove: result.shouldRemove
-    };
-  }
-
-  /**
-   * Use consumable with die selection (for chisel/potteryWheel/midasTouch)
-   */
-  async useConsumableOnDiceSelection(
-    gameState: GameState,
-    consumableId: 'chisel' | 'potteryWheel' | 'midasTouch',
-    selectedDieIndex: number | [number, number],
-    consumableIndex: number
-  ): Promise<{ success: boolean; gameState: GameState; shouldRemove: boolean }> {
-    const roundState = gameState.currentWorld!.currentLevel.currentRound || null;
-    
-    // Get the consumable being used (before we modify anything)
-    const consumableBeingUsed = gameState.consumables[consumableIndex];
-    
-    // Create a proper deep copy
-    const newGameState = {
-      ...gameState,
-      consumables: [...gameState.consumables],
-    };
-    if (gameState.currentWorld) {
-      newGameState.currentWorld = {
-        ...gameState.currentWorld,
-        currentLevel: {
-          ...gameState.currentWorld.currentLevel,
-          currentRound: roundState ? { ...roundState } : undefined
-        }
-      };
-    }
-    const newRoundState = roundState ? { ...roundState } : undefined;
-    
-    // Track the last consumable used (for Echo consumable)
-    if (consumableBeingUsed && consumableBeingUsed.id !== 'echo') {
-      (newGameState as any).lastConsumableUsed = { ...consumableBeingUsed };
-    }
-    
-    // Apply the die selection using pure function from consumableEffects
-    const { applyDieSelectionConsumable } = await import('../logic/consumableEffects');
-    const result = applyDieSelectionConsumable(consumableId, selectedDieIndex, newGameState, newRoundState || null);
-    
-    const finalGameState = result.gameState;
-    
-    // Preserve lastConsumableUsed
-    if ((newGameState as any).lastConsumableUsed) {
-      (finalGameState as any).lastConsumableUsed = (newGameState as any).lastConsumableUsed;
-    }
-    
-    // Remove consumable if needed
-    if (result.shouldRemove) {
-      finalGameState.consumables.splice(consumableIndex, 1);
-    }
-    
-    // Update round state if it exists
-    if (newRoundState && result.roundState && finalGameState.currentWorld) {
-      finalGameState.currentWorld = {
-        ...finalGameState.currentWorld,
-        currentLevel: {
-          ...finalGameState.currentWorld.currentLevel,
-          currentRound: result.roundState
-        }
-      };
-    }
-    
-    this.emit('stateChanged', { gameState: finalGameState });
-    
-    return {
-      success: result.success,
-      gameState: finalGameState,
       shouldRemove: result.shouldRemove
     };
   }
@@ -1034,23 +956,33 @@ export class GameAPI {
   /**
    * Select a world and advance to first level of that world
    */
-  async selectWorld(gameState: GameState, selectedWorldId: string): Promise<{ gameState: GameState }> {
+  async selectWorld(gameState: GameState, selectedNodeId: number): Promise<{ gameState: GameState }> {
     if (!gameState.gameMap) {
       throw new Error('Game map not found - cannot select world');
     }
 
-    // Validate that the world is available
-    const availableWorlds = this.getAvailableWorlds(gameState);
-    const isAvailable = availableWorlds.some(w => w.worldId === selectedWorldId);
-    
-    if (!isAvailable) {
-      throw new Error(`World ${selectedWorldId} is not available from current position`);
+    // Validate that the node is available
+    const availableNodeIds = getAvailableWorldChoices(gameState.gameMap);
+    if (!availableNodeIds.includes(selectedNodeId)) {
+      // Also check if this is game start (no currentWorld)
+      if (!gameState.currentWorld) {
+        const world1Nodes = gameState.gameMap.nodes.filter(n => n.column === 1 && n.worldNumber === 1);
+        const world1NodeIds = world1Nodes.map(n => n.nodeId);
+        if (!world1NodeIds.includes(selectedNodeId)) {
+          throw new Error(`Node ${selectedNodeId} is not available from current position`);
+        }
+      } else {
+        throw new Error(`Node ${selectedNodeId} is not available from current position`);
+      }
     }
 
-    const newGameState = selectNextWorld(gameState, selectedWorldId, this.charmManager);
+    const newGameState = selectNextWorld(gameState, selectedNodeId, this.charmManager);
+    
+    const selectedNode = gameState.gameMap.nodes.find(n => n.nodeId === selectedNodeId);
+    const worldId = selectedNode?.worldId || '';
     
     this.emit('worldSelected', {
-      worldId: selectedWorldId,
+      worldId: worldId,
       gameState: newGameState
     });
     this.emit('stateChanged', { gameState: newGameState });

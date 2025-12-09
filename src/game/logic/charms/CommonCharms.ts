@@ -1,6 +1,8 @@
 import { BaseCharm, CharmScoringContext, CharmBankContext, CharmFlopContext, CharmRoundStartContext, ScoringValueModification } from '../charmSystem';
 import { Die, GameState } from '../../types';
 import { getPipEffectForDie } from '../pipEffectSystem';
+import { CHARMS } from '../../data/charms';
+import { CONSUMABLES } from '../../data/consumables';
 
 /**
  * Common Charms Implementation
@@ -195,8 +197,9 @@ export class OddOdysseyCharm extends BaseCharm {
     charm.oddOdysseyBonus += 0.25 * oddCount;
     
     // Update description
-    const baseDescription = '+0.25 points when scoring. Add +0.25 for each odd value scored';
-    charm.description = `${baseDescription} (Current: +${charm.oddOdysseyBonus.toFixed(2)} points)`;
+    const originalCharm = CHARMS.find((c: any) => c.id === this.id);
+    const baseDescription = originalCharm?.description || charm.description;
+    charm.description = baseDescription.replace(/^\+?\d+\.?\d*/, `+${charm.oddOdysseyBonus.toFixed(2)}`);
     this.description = charm.description; // Update instance description too
     
     return {
@@ -490,8 +493,9 @@ export class StairstepperCharm extends BaseCharm {
     }
     
     // Update description
-    const baseDescription = '+20 points when scoring. Add +20 per straight played (cumulative)';
-    charm.description = `${baseDescription} (Current: +${charm.stairstepperBonus} points)`;
+    const originalCharm = CHARMS.find((c: any) => c.id === this.id);
+    const baseDescription = originalCharm?.description || charm.description;
+    charm.description = baseDescription.replace(/^\+?\d+/, `+${charm.stairstepperBonus}`);
     this.description = charm.description; // Update instance description too
     
     return {
@@ -522,8 +526,9 @@ export class RerollRangerCharm extends BaseCharm {
     charm.rerollRangerBonus += 5 * rerollsUsed;
     
     // Update description
-    const baseDescription = '+5 points when scoring. Add +5 for each reroll used (cumulative)';
-    charm.description = `${baseDescription} (Current: +${charm.rerollRangerBonus} points)`;
+    const originalCharm = CHARMS.find((c: any) => c.id === this.id);
+    const baseDescription = originalCharm?.description || charm.description;
+    charm.description = baseDescription.replace(/^\+?\d+/, `+${charm.rerollRangerBonus}`);
     this.description = charm.description; // Update instance description too
     
     return {
@@ -551,8 +556,9 @@ export class BankBaronCharm extends BaseCharm {
     // For now, just apply the current bonus
     
     // Update description
-    const baseDescription = '+5 points when scoring. Add +5 for each bank (cumulative)';
-    charm.description = `${baseDescription} (Current: +${charm.bankBaronBonus} points)`;
+    const originalCharm = CHARMS.find((c: any) => c.id === this.id);
+    const baseDescription = originalCharm?.description || charm.description;
+    charm.description = baseDescription.replace(/^\+?\d+/, `+${charm.bankBaronBonus}`);
     this.description = charm.description; // Update instance description too
     
     return {
@@ -570,8 +576,9 @@ export class BankBaronCharm extends BaseCharm {
       charm.bankBaronBonus += 5; // Increase by 5 for next time
       
       // Update description
-      const baseDescription = '+5 points when scoring. Add +5 for each bank (cumulative)';
-      charm.description = `${baseDescription} (Current: +${charm.bankBaronBonus} points)`;
+      const originalCharm = CHARMS.find((c: any) => c.id === this.id);
+      const baseDescription = originalCharm?.description || charm.description;
+      charm.description = baseDescription.replace(/^\+?\d+/, `+${charm.bankBaronBonus}`);
     }
     return context.bankedPoints; // Don't modify banked points, bonus is applied on scoring
   }
@@ -720,7 +727,6 @@ export class GeneratorCharm extends BaseCharm {
     const pairCount = Object.values(valueCounts).reduce((sum, count) => sum + Math.floor(count / 2), 0);
     
     if (pairCount >= 3 && context.gameState) {
-      const { CONSUMABLES } = require('../../data/consumables');
       const maxSlots = context.gameState.consumableSlots ?? 2;
       if (context.gameState.consumables.length < maxSlots) {
         const idx = Math.floor(Math.random() * CONSUMABLES.length);

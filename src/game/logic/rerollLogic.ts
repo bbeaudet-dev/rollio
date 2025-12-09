@@ -64,7 +64,7 @@ export function calculateRerollsForLevel(gameState: GameState, charmManager?: an
  * @returns The number of banks available for this level
  */
 export function calculateBanksForLevel(gameState: GameState, charmManager?: any): number {
-  let baseBanks = gameState.baseLevelBanks || 5;
+  let baseBanks = gameState.baseLevelBanks || 4;
   
   // Apply bonuses and multipliers from charms
   // Read directly from gameState.charms to ensure we include newly purchased charms

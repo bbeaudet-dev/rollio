@@ -239,17 +239,19 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
           </div>
           <DiceSetCustomization
             difficulty={config.difficulty}
-            onComplete={(diceSet, creditsRemaining) => {
+            onComplete={(diceSet, creditsRemaining, customizationOptions) => {
               const customConfig = createDiceSetConfigFromCustomization(
                 diceSet,
                 creditsRemaining,
-                config.difficulty
+                config.difficulty,
+                customizationOptions
               );
               setConfig(prev => ({ ...prev, customDiceSetConfig: customConfig }));
               onConfigComplete({
                 customDiceSetConfig: customConfig,
                 selectedCharms: [],
                 selectedConsumables: [],
+                selectedBlessings: [],
                 difficulty: config.difficulty
               });
             }}
@@ -482,6 +484,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
           diceSetIndex: config.diceSetIndex,
           selectedCharms: config.selectedCharms,
           selectedConsumables: config.selectedConsumables,
+          selectedBlessings: config.selectedBlessings,
           difficulty: config.difficulty
         })} />
       )}

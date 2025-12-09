@@ -242,3 +242,8 @@ OTHER
 - Might need to update probability engine before scoring algorithms?
 - Better world/level display, fix level effects
 - Animation for exponent to apply to multiplier, then multiplier to apply to score
+- Cumulative hot dice charm
+- Fix pip effects, consumables, materials, etc.
+- Echo consumable, show last used
+- Fix world map!
+- UNLOCK system!

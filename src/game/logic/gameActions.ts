@@ -376,23 +376,20 @@ export function advanceToNextWorld(
  */
 export function selectNextWorld(
   gameState: GameState,
-  selectedWorldId: string,
+  selectedNodeId: number,
   charmManager?: any
 ): GameState {
   if (!gameState.gameMap) {
     throw new Error('Game map not found - cannot select world');
   }
 
-  // Get available node choices from current position
-  const availableNodeIds = getAvailableWorldChoices(gameState.gameMap);
-  
-  // Find the node that matches the worldId AND is available from current position
-  const selectedNode = gameState.gameMap.nodes.find(
-    node => node.worldId === selectedWorldId && availableNodeIds.includes(node.nodeId)
-  );
+  // Find the selected node
+  const selectedNode = gameState.gameMap.nodes.find(n => n.nodeId === selectedNodeId);
   if (!selectedNode) {
-    throw new Error(`World ${selectedWorldId} is not available from current position`);
+    throw new Error(`Node ${selectedNodeId} not found in game map`);
   }
+
+  const selectedWorldId = selectedNode.worldId;
 
   // Find world from pool to get world effects
   const worldFromPool = WORLD_POOL.find(w => w.id === selectedWorldId);
@@ -401,7 +398,7 @@ export function selectNextWorld(
   }
 
   // Update game map with selected world
-  const updatedMap = selectWorldMap(gameState.gameMap, selectedNode.nodeId);
+  const updatedMap = selectWorldMap(gameState.gameMap, selectedNodeId);
 
   // Calculate the world number and first level number
   const worldNumber = selectedNode.worldNumber;

@@ -113,53 +113,54 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
         )}
       
         {/* Content area */}
-        <div style={{ flex: 1, overflow: 'visible', minHeight: 0 }}>
-          {/* Charms Section - Full width, 2 columns */}
-          <div style={{ marginBottom: '12px' }}>
-            <ShopItemList
-              items={shopState.availableCharms}
-              itemType="charm"
-              playerMoney={playerMoney}
-              discount={discount}
-              onPurchase={purchaseCharm}
-            />
-          </div>
-          
-          {/* Consumables and Blessings - Side by side */}
-          <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '8px',
-            marginBottom: '12px',
-            alignItems: 'flex-start'
-          }}>
-            <ShopItemList
-              items={shopState.availableConsumables}
-              itemType="consumable"
-              playerMoney={playerMoney}
-              discount={discount}
-              onPurchase={purchaseConsumable}
-            />
+        <div style={{ flex: 1, overflow: 'visible', minHeight: 0, display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          {/* Left side: Shop items */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Charms Section - Full width, 2 columns */}
+            <div style={{ marginBottom: '12px' }}>
+              <ShopItemList
+                items={shopState.availableCharms}
+                itemType="charm"
+                playerMoney={playerMoney}
+                discount={discount}
+                onPurchase={purchaseCharm}
+              />
+            </div>
             
-            <ShopItemList
-              items={shopState.availableBlessings}
-              itemType="blessing"
-              playerMoney={playerMoney}
-              discount={discount}
-              onPurchase={purchaseBlessing}
-            />
+            {/* Consumables and Blessings - Side by side */}
+            <div style={{ 
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px',
+              marginBottom: '12px',
+              alignItems: 'flex-start'
+            }}>
+              <ShopItemList
+                items={shopState.availableConsumables}
+                itemType="consumable"
+                playerMoney={playerMoney}
+                discount={discount}
+                onPurchase={purchaseConsumable}
+              />
+              
+              <ShopItemList
+                items={shopState.availableBlessings}
+                itemType="blessing"
+                playerMoney={playerMoney}
+                discount={discount}
+                onPurchase={purchaseBlessing}
+              />
+            </div>
           </div>
           
-          {/* Next Level Preview - Below shop items, aligned to the right */}
+          {/* Right side: Next Level Preview */}
           {currentLevelNumber !== undefined && difficulty && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-              <div style={{ maxWidth: '400px', width: '100%' }}>
-                <NextLevelPreview 
-                  currentLevelNumber={currentLevelNumber}
-                  difficulty={difficulty}
-                  gameState={gameState}
-                />
-              </div>
+            <div style={{ flexShrink: 0, width: '400px' }}>
+              <NextLevelPreview 
+                currentLevelNumber={currentLevelNumber}
+                difficulty={difficulty}
+                gameState={gameState}
+              />
             </div>
           )}
         </div>

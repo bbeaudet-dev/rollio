@@ -1,4 +1,5 @@
 import { Die, DiceSetConfig } from '../../../game/types';
+import { BASIC_DICE_SET } from '../../../game/data/diceSets';
 
 /**
  * Convert customization state to DiceSetConfig
@@ -7,7 +8,13 @@ import { Die, DiceSetConfig } from '../../../game/types';
 export function createDiceSetConfigFromCustomization(
   dice: Die[],
   creditsRemaining: number,
-  difficulty: string
+  difficulty: string,
+  customizationOptions?: {
+    baseLevelRerolls?: number;
+    baseLevelBanks?: number;
+    charmSlots?: number;
+    consumableSlots?: number;
+  }
 ): DiceSetConfig {
   return {
     name: 'Custom Set',
@@ -19,10 +26,10 @@ export function createDiceSetConfigFromCustomization(
       pipEffects: d.pipEffects
     })),
     startingMoney: creditsRemaining, // Unused credits = starting money
-    charmSlots: 6, // Default
-    consumableSlots: 2, // Default
-    baseLevelRerolls: 6, // Default
-    baseLevelBanks: 6, // Default
+    charmSlots: customizationOptions?.charmSlots ?? BASIC_DICE_SET.charmSlots,
+    consumableSlots: customizationOptions?.consumableSlots ?? BASIC_DICE_SET.consumableSlots,
+    baseLevelRerolls: customizationOptions?.baseLevelRerolls ?? BASIC_DICE_SET.baseLevelRerolls,
+    baseLevelBanks: customizationOptions?.baseLevelBanks ?? BASIC_DICE_SET.baseLevelBanks,
     setType: 'standard'
   };
 }

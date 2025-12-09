@@ -9,6 +9,8 @@ interface InventoryProps {
   consumables: any[];
   blessings: any[];
   money?: number;
+  charmSlots?: number;
+  consumableSlots?: number;
   onConsumableUse?: (index: number) => void;
   onSellCharm?: (index: number) => void;
   onSellConsumable?: (index: number) => void;
@@ -19,6 +21,8 @@ export const Inventory: React.FC<InventoryProps> = ({
   consumables, 
   blessings,
   money,
+  charmSlots,
+  consumableSlots,
   onConsumableUse,
   onSellCharm,
   onSellConsumable
@@ -43,11 +47,12 @@ export const Inventory: React.FC<InventoryProps> = ({
           gap: '8px'
         }}
       >
-        <CharmInventory charms={charms} onSellCharm={onSellCharm} />
+        <CharmInventory charms={charms} onSellCharm={onSellCharm} maxSlots={charmSlots} />
         <ConsumableInventory 
           consumables={consumables}
           onConsumableUse={onConsumableUse || (() => {})}
           onSellConsumable={onSellConsumable}
+          maxSlots={consumableSlots}
         />
         <BlessingInventory blessings={blessings} />
       </div>

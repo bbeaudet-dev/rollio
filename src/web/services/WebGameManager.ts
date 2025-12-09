@@ -748,35 +748,20 @@ export class WebGameManager {
       return state;
     }
     
+    // Pass selected dice indices from the game board
+    const selectedDiceIndices = state.selectedDice || [];
+    
     // Use GameAPI for consumable effects
-    const result = await this.gameAPI.useConsumable(state.gameState, index);
+    const result = await this.gameAPI.useConsumable(state.gameState, index, selectedDiceIndices);
     
     if (!result.success) {
       return state;
     }
     
     const gameState = result.gameState;
-    // Use the roundState from result if available, otherwise use the existing one (might be null between rounds)
     const roundState = result.roundState !== undefined ? result.roundState : state.roundState;
     
-    if (result.requiresInput) {
-      if (result.requiresInput.type === 'dieSelection' || result.requiresInput.type === 'twoDieSelection') {
-        (this.gameInterface as any).pendingAction = {
-          type: 'consumableDieSelection',
-          consumableId: result.requiresInput.consumableId,
-          diceSet: result.requiresInput.diceSet,
-          consumableIndex: index
-        };
-      } else if (result.requiresInput.type === 'dieSideSelection') {
-        (this.gameInterface as any).pendingAction = {
-          type: 'consumableDieSideSelection',
-          consumableId: result.requiresInput.consumableId,
-          diceSet: result.requiresInput.diceSet,
-          consumableIndex: index
-        };
-      }
-    }
-    
+    // Keep selected dice after using consumable
     const newState = this.createWebGameState(gameState, roundState, state.selectedDice, state.previewScoring, state.justBanked, state.justFlopped, state.isProcessing);
     
     // Preserve shop state - don't switch views when using consumables from shop
@@ -1042,51 +1027,15 @@ export class WebGameManager {
     };
   }
 
-  /**
-   * Apply consumable with die side selection (for pip effect consumables)
-   */
-  async applyConsumableDieSideSelection(
-    state: WebGameState,
-    dieIndex: number,
-    sideValue: number
-  ): Promise<WebGameState> {
-    if (!state.gameState) {
-      return state;
-    }
-
-    const pendingAction = this.gameInterface.getPendingAction();
-    if (pendingAction.type !== 'consumableDieSideSelection') {
-      console.error('[applyConsumableDieSideSelection] Invalid pending action:', pendingAction);
-      return state;
-    }
-
-    const result = await this.gameAPI.useConsumableOnDieSideSelection(
-      state.gameState,
-      pendingAction.consumableId,
-      dieIndex,
-      sideValue,
-      pendingAction.consumableIndex
-    );
-
-    if (!result.success) {
-      return state;
-    }
-
-    // Clear pending action
-    (this.gameInterface as any).pendingAction = { type: 'none' };
-
-    const roundState = state.gameState.currentWorld?.currentLevel.currentRound || null;
-    return this.createWebGameState(result.gameState, roundState, state.selectedDice, state.previewScoring, state.justBanked, state.justFlopped, state.isProcessing);
-  }
 
   /**
    * Select a world from the map
    * This generates all level configs for the world and starts level 1
    */
-  async selectWorld(state: WebGameState, worldId: string): Promise<WebGameState> {
+  async selectWorld(state: WebGameState, nodeId: number): Promise<WebGameState> {
     if (!state.gameState || !state.isInMapSelection) return state;
     
-    const newGameState = await this.gameAPI.selectWorld(state.gameState, worldId);
+    const newGameState = await this.gameAPI.selectWorld(state.gameState, nodeId);
     
     // Initialize the new level (creates level state and first round, emits events)
     const levelResult = await this.gameAPI.initializeLevel(newGameState.gameState, newGameState.gameState.currentWorld!.currentLevel.levelNumber);

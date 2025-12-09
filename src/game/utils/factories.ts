@@ -127,8 +127,10 @@ export function createInitialLevelState(
     throw new Error('Cannot create level state without currentWorld');
   }
   
-  // Use pre-generated config if available, otherwise generate on the fly
-  const levelConfig = preGeneratedConfig || getLevelConfig(levelNumber, getDifficulty(gameState));
+  // Use pre-generated config if available and level number matches, otherwise generate on the fly
+  const levelConfig = (preGeneratedConfig && preGeneratedConfig.levelNumber === levelNumber) 
+    ? preGeneratedConfig 
+    : getLevelConfig(levelNumber, getDifficulty(gameState));
   
   const isMiniboss = isMinibossLevel(levelNumber);
   const isMainBoss = isMainBossLevel(levelNumber);
@@ -283,7 +285,7 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty:
  * Credit transaction interface for dice customization
  */
 export interface CreditTransaction {
-  type: 'addDie' | 'removeDie' | 'changeMaterial' | 'addPipEffect' | 'removePipEffect' | 'changeSideValue';
+  type: 'addDie' | 'removeDie' | 'changeMaterial' | 'addPipEffect' | 'removePipEffect' | 'changeSideValue' | 'addBaseReroll' | 'addBaseBank' | 'addCharmSlot' | 'addConsumableSlot';
   dieIndex?: number;
   sideIndex?: number;
   cost: number; // negative for refunds
@@ -320,15 +322,15 @@ export function randomizeDiceSetConfig(difficulty: DifficultyLevel): RandomizedD
 
   // Helper to get cost of adding a die
   const getAddDieCost = (currentDiceCount: number): number => {
-    const addedDiceCount = Math.max(0, currentDiceCount - 6);
-    if (addedDiceCount === 0) return 10;
-    if (addedDiceCount === 1) return 20;
-    return 30; // 30 for third and beyond
+    const addedDiceCount = Math.max(0, currentDiceCount - 5);
+    if (addedDiceCount === 0) return 5; // First extra die: 5 credits
+    if (addedDiceCount === 1) return 10; // Second extra die: 10 credits
+    return 15; // Third and beyond: 15 credits each
   };
 
-  // Create default 6 dice
+  // Create default 5 dice
   const createDefaultDice = (): Die[] => {
-    return Array.from({ length: 6 }, (_, i) => ({
+    return Array.from({ length: 5 }, (_, i) => ({
       id: `d${i + 1}`,
       sides: 6,
       allowedValues: [1, 2, 3, 4, 5, 6],
@@ -591,7 +593,6 @@ export function initializeNewGame(
   }
   
   if (selectedConsumables && selectedConsumables.length > 0) {
-    const { CONSUMABLES } = require('../data/consumables');
     const consumablesToAdd = selectedConsumables
       .filter(index => index < CONSUMABLES.length)
       .map(index => ({ ...CONSUMABLES[index], uses: CONSUMABLES[index].uses || 1 }));
@@ -599,7 +600,6 @@ export function initializeNewGame(
   }
   
   if (selectedBlessings && selectedBlessings.length > 0) {
-    const { ALL_BLESSINGS } = require('../data/blessings');
     const blessingsToAdd = selectedBlessings
       .filter(index => index < ALL_BLESSINGS.length)
       .map(index => ALL_BLESSINGS[index]);

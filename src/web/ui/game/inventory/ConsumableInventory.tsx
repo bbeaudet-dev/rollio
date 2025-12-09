@@ -11,7 +11,8 @@ const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
 export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({ 
   consumables, 
   onConsumableUse,
-  onSellConsumable
+  onSellConsumable,
+  maxSlots
 }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,17 +33,13 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
     }
   }, [selectedIndex]);
 
+  const slotsToShow = maxSlots || consumables.length;
+  const emptySlots = Math.max(0, slotsToShow - consumables.length);
+
   return (
     <div ref={containerRef}>
-      {consumables.length === 0 ? (
-        <p style={{ 
-          fontSize: '10px', 
-          margin: '0',
-          color: '#666'
-        }}>No consumables</p>
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {consumables.map((consumable, index) => {
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {consumables.map((consumable, index) => {
             const isWish = WISHES.some((w: any) => w.id === consumable.id);
             const isWhim = WHIMS.some((w: any) => w.id === consumable.id);
             const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
@@ -124,8 +121,28 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
               </div>
             );
           })}
-        </div>
-      )}
+        {emptySlots > 0 && Array.from({ length: emptySlots }).map((_, index) => (
+          <div
+            key={`empty-${index}`}
+            style={{
+              width: '96px',
+              height: '96px',
+              border: '1px dashed #ccc',
+              borderRadius: '8px',
+              backgroundColor: '#f5f5f5',
+              fontSize: '11px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#999',
+              fontStyle: 'italic',
+              boxSizing: 'border-box'
+            }}
+          >
+            Empty
+          </div>
+        ))}
+      </div>
     </div>
   );
 }; 

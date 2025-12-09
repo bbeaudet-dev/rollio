@@ -124,37 +124,51 @@ export function findAllPossibleCombinations(
       // For two-faced dice, we need to map one die index to potentially two values
       // For wild dice, we use the value from the expanded array
       const subsetExpandedValues: number[] = [];
-      let expandedIndex = 0;
+      // Map from expanded value index to die index (for wild/two-faced dice)
+      const expandedValueToDieIndex: Map<number, number> = new Map();
       
+      // Build a map from selectedIndices to their position in expandedValues
+      const selectedIndexToExpandedIndex: Map<number, number> = new Map();
+      let expandedIndex = 0;
       for (const idx of selectedIndices) {
+        const die = diceHand[idx];
+        if (!die || die.rolledValue === undefined) continue;
+        const pipEffect = die.pipEffects?.[die.rolledValue] || 'none';
+        selectedIndexToExpandedIndex.set(idx, expandedIndex);
+        if (pipEffect === 'twoFaced') {
+          expandedIndex += 2;
+        } else {
+          expandedIndex++;
+        }
+      }
+      
+      // Now iterate over subsetIndices to build subsetExpandedValues
+      for (const idx of subsetIndices) {
         const die = diceHand[idx];
         if (!die || die.rolledValue === undefined) continue;
         
         const pipEffect = die.pipEffects?.[die.rolledValue] || 'none';
+        const startExpandedIndex = selectedIndexToExpandedIndex.get(idx);
+        if (startExpandedIndex === undefined) continue;
         
-        if (subsetIndices.includes(idx)) {
-          if (pipEffect === 'twoFaced') {
-            // Two-faced: add both values from expansion
-            subsetExpandedValues.push(expandedValues[expandedIndex]);
-            expandedIndex++;
-            subsetExpandedValues.push(expandedValues[expandedIndex]);
-            expandedIndex++;
-          } else if (pipEffect === 'wild') {
-            // Wild: add the value from expansion
-            subsetExpandedValues.push(expandedValues[expandedIndex]);
-            expandedIndex++;
-          } else {
-            // Normal: add the value once
-            subsetExpandedValues.push(expandedValues[expandedIndex]);
-            expandedIndex++;
-          }
+        if (pipEffect === 'twoFaced') {
+          // Two-faced: add both values from expansion
+          const val1 = expandedValues[startExpandedIndex];
+          subsetExpandedValues.push(val1);
+          expandedValueToDieIndex.set(subsetExpandedValues.length - 1, idx);
+          const val2 = expandedValues[startExpandedIndex + 1];
+          subsetExpandedValues.push(val2);
+          expandedValueToDieIndex.set(subsetExpandedValues.length - 1, idx);
+        } else if (pipEffect === 'wild') {
+          // Wild: add the value from expansion
+          const val = expandedValues[startExpandedIndex];
+          subsetExpandedValues.push(val);
+          expandedValueToDieIndex.set(subsetExpandedValues.length - 1, idx);
         } else {
-          // Skip this die, but advance expandedIndex if needed
-          if (pipEffect === 'twoFaced') {
-            expandedIndex += 2;
-          } else {
-            expandedIndex++;
-          }
+          // Normal: add the value once
+          const val = expandedValues[startExpandedIndex];
+          subsetExpandedValues.push(val);
+          expandedValueToDieIndex.set(subsetExpandedValues.length - 1, idx);
         }
       }
       
@@ -167,8 +181,20 @@ export function findAllPossibleCombinations(
       const count = counts[i];
       // Generate for all N >= 3
       for (let n = 3; n <= count; n++) {
-        const valueIndices = subsetIndices.filter(idx => diceHand[idx].rolledValue! === value);
-        const diceIndices = valueIndices.slice(0, n);
+        // Find indices in subsetExpandedValues that match this value
+        const matchingExpandedIndices: number[] = [];
+        for (let j = 0; j < subsetExpandedValues.length; j++) {
+          if (subsetExpandedValues[j] === value) {
+            matchingExpandedIndices.push(j);
+          }
+        }
+        // Map expanded indices back to die indices
+        const diceIndices = matchingExpandedIndices
+          .slice(0, n)
+          .map(expandedIdx => expandedValueToDieIndex.get(expandedIdx)!)
+          .filter((dieIdx, idx, arr) => arr.indexOf(dieIdx) === idx); // Remove duplicates (for two-faced)
+        
+        if (diceIndices.length < n) continue; // Not enough unique dice
         
         // Use algorithm-based type for all N-of-a-kind
         combinations.push({
@@ -197,11 +223,54 @@ export function findAllPossibleCombinations(
     
     // Generate N pairs (algorithm-based) for any number of pairs >= 1
     if (pairCount >= 1 && subsetSize === pairCount * 2) {
-      combinations.push({
-        type: 'nPairs',
-        dice: subsetIndices,
-        points: calculateCombinationPoints('nPairs', { n: pairCount, faceValue: highestPairValue }),
-      });
+      // Map expanded values back to actual dice indices for the pair combination
+      const pairDiceIndices: number[] = [];
+      const usedExpandedIndices = new Set<number>();
+      
+      // For each value that has pairs, find the dice that match
+      for (let i = 0; i < counts.length; i++) {
+        const value = i + 1;
+        const count = counts[i];
+        const pairsForThisValue = Math.floor(count / 2);
+        
+        if (pairsForThisValue > 0) {
+          // Find all expanded indices that match this value
+          const matchingExpandedIndices: number[] = [];
+          for (let j = 0; j < subsetExpandedValues.length; j++) {
+            if (subsetExpandedValues[j] === value && !usedExpandedIndices.has(j)) {
+              matchingExpandedIndices.push(j);
+            }
+          }
+          
+          // Take pairs of matching indices and map back to die indices
+          for (let p = 0; p < pairsForThisValue; p++) {
+            const idx1 = matchingExpandedIndices[p * 2];
+            const idx2 = matchingExpandedIndices[p * 2 + 1];
+            if (idx1 !== undefined && idx2 !== undefined) {
+              const dieIdx1 = expandedValueToDieIndex.get(idx1);
+              const dieIdx2 = expandedValueToDieIndex.get(idx2);
+              // Allow same die to appear twice (for two-faced dice that pair with themselves)
+              if (dieIdx1 !== undefined) {
+                pairDiceIndices.push(dieIdx1);
+              }
+              if (dieIdx2 !== undefined) {
+                pairDiceIndices.push(dieIdx2);
+              }
+              usedExpandedIndices.add(idx1);
+              usedExpandedIndices.add(idx2);
+            }
+          }
+        }
+      }
+      
+      // Only add the combination if we have the right number of dice
+      if (pairDiceIndices.length === pairCount * 2) {
+        combinations.push({
+          type: 'nPairs',
+          dice: pairDiceIndices,
+          points: calculateCombinationPoints('nPairs', { n: pairCount, faceValue: highestPairValue }),
+        });
+      }
     }
     
     // Generate straights (algorithm-based: detect all straight lengths)
@@ -222,12 +291,17 @@ export function findAllPossibleCombinations(
             const straightDiceIndices: number[] = [];
             const usedIndices = new Set<number>();
             
+            // Map straight sequence values to dice indices using expanded values
             for (const value of straightSequence) {
-              for (let idx = 0; idx < subsetIndices.length; idx++) {
-                if (!usedIndices.has(idx) && diceHand[subsetIndices[idx]].rolledValue === value) {
-                  straightDiceIndices.push(subsetIndices[idx]);
-                  usedIndices.add(idx);
-                  break;
+              // Find an expanded value index that matches this value and hasn't been used
+              for (let expandedIdx = 0; expandedIdx < subsetExpandedValues.length; expandedIdx++) {
+                if (subsetExpandedValues[expandedIdx] === value && !usedIndices.has(expandedIdx)) {
+                  const dieIdx = expandedValueToDieIndex.get(expandedIdx);
+                  if (dieIdx !== undefined && !straightDiceIndices.includes(dieIdx)) {
+                    straightDiceIndices.push(dieIdx);
+                    usedIndices.add(expandedIdx);
+                    break;
+                  }
                 }
               }
             }

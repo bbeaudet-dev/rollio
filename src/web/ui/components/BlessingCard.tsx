@@ -124,8 +124,8 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
   
   const glowStyle = getGlowStyle();
   
-  // Square aspect ratio (1:1) - same as charms
-  const cardSize = 120; // Base size, can be adjusted
+  // Square aspect ratio (1:1) 
+  const cardSize = 84; // 120 * 0.7 = 84
   
   const handleClick = (e: React.MouseEvent) => {
     // On mobile/touch devices, toggle tooltip on click
