@@ -9,6 +9,7 @@ import { PipEffectType } from '../data/pipEffects';
 import { ScoringElements, addExponent, addBasePoints } from './scoringElements';
 import { Die, GameState, RoundState } from '../types';
 import { CharmManager } from './charmSystem';
+import { CONSUMABLES } from '../data/consumables';
 
 export interface PipEffectContext {
   die: Die;
@@ -60,12 +61,17 @@ export function applyPipEffect(
 
     case 'createConsumable':
       // Create consumable pip effect: creates a random consumable, no score change
-      // TODO: Implement consumable creation logic
-      // For now, just mark that a consumable should be created
-      result.sideEffects = {
-        ...result.sideEffects,
-        consumableCreated: true,
-      };
+      const maxSlots = context.gameState.consumableSlots ?? 2;
+      if (context.gameState.consumables.length < maxSlots) {
+        const availableConsumables = CONSUMABLES.filter((c: any) => 
+          !context.gameState.consumables.some((owned: any) => owned.id === c.id)
+        );
+        if (availableConsumables.length > 0) {
+          const randomIdx = Math.floor(Math.random() * availableConsumables.length);
+          const newConsumable = { ...availableConsumables[randomIdx] };
+          context.gameState.consumables.push(newConsumable);
+        }
+      }
       break;
 
     case 'upgradeCombo':

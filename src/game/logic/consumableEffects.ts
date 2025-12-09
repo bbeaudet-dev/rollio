@@ -10,6 +10,26 @@ const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
   whim: { buy: 4, sell: 2 },
 };
 
+/**
+ * Update last consumable used tracking and Echo consumable description
+ * Pure function that modifies gameState in place
+ */
+export function updateLastConsumableUsed(gameState: GameState, consumable: any): void {
+  // Track the last consumable used (for Echo consumable) - but only if it's not Echo itself
+  if (consumable && consumable.id !== 'echo') {
+    (gameState as any).lastConsumableUsed = { ...consumable };
+    
+    // Update Echo consumable description
+    const echoIndex = gameState.consumables.findIndex((c: any) => c.id === 'echo');
+    if (echoIndex >= 0) {
+      gameState.consumables[echoIndex] = {
+        ...gameState.consumables[echoIndex],
+        description: `Create the last consumable used: ${consumable.name || 'Unknown'}`
+      };
+    }
+  }
+}
+
 export interface ConsumableEffectResult {
   success: boolean;
   shouldRemove: boolean;
@@ -23,6 +43,33 @@ export interface ConsumableEffectResult {
 }
 
 /**
+ * Apply consumable effect with die selection (for consumables that require die selection)
+ * This is called from applyConsumableEffect when input is provided
+ */
+function applyConsumableWithDieSelection(
+  consumableId: 'chisel' | 'potteryWheel' | 'midasTouch',
+  selectedDieIndex: number | [number, number],
+  gameState: GameState,
+  roundState: RoundState | null
+): ConsumableEffectResult {
+  return applyDieSelectionConsumable(consumableId, selectedDieIndex, gameState, roundState);
+}
+
+/**
+ * Apply consumable effect with die side selection (for pip effect consumables)
+ * This is called from applyConsumableEffect when input is provided
+ */
+function applyConsumableWithDieSideSelectionInternal(
+  consumableId: 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation',
+  dieIndex: number,
+  sideValue: number,
+  gameState: GameState,
+  roundState: RoundState | null
+): ConsumableEffectResult {
+  return applyDieSideSelectionConsumable(consumableId, dieIndex, sideValue, gameState, roundState);
+}
+
+/**
  * Apply consumable effect - pure function
  * Returns only state changes - no messages, no I/O
  */
@@ -30,7 +77,9 @@ export function applyConsumableEffect(
   idx: number,
   gameState: GameState,
   roundState: RoundState | null,
-  charmManager: any
+  charmManager: any,
+  dieSelectionInput?: number | [number, number], // For chisel, potteryWheel, midasTouch
+  dieSideSelectionInput?: { dieIndex: number; sideValue: number } // For pip effect consumables
 ): ConsumableEffectResult {
   const consumable = gameState.consumables[idx];
   if (!consumable) {
@@ -48,6 +97,40 @@ export function applyConsumableEffect(
   newGameState.consumables = [...newGameState.consumables];
   let wasSuccessfullyUsed = true;
   let shouldRemove = true;
+  
+  // Handle consumables that require input - if input is provided, process it
+  if (dieSelectionInput !== undefined && (consumable.id === 'chisel' || consumable.id === 'potteryWheel' || consumable.id === 'midasTouch')) {
+    const result = applyDieSelectionConsumable(
+      consumable.id as 'chisel' | 'potteryWheel' | 'midasTouch',
+      dieSelectionInput,
+      newGameState,
+      newRoundState || null
+    );
+    // Update last consumable used and return
+    if (result.success && result.shouldRemove) {
+      updateLastConsumableUsed(result.gameState, consumable);
+    }
+    return result;
+  }
+  
+  if (dieSideSelectionInput !== undefined && (
+    consumable.id === 'emptyAsAPocket' || consumable.id === 'moneyPip' || 
+    consumable.id === 'stallion' || consumable.id === 'practice' || 
+    consumable.id === 'phantom' || consumable.id === 'accumulation'
+  )) {
+    const result = applyDieSideSelectionConsumable(
+      consumable.id as 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation',
+      dieSideSelectionInput.dieIndex,
+      dieSideSelectionInput.sideValue,
+      newGameState,
+      newRoundState || null
+    );
+    // Update last consumable used and return
+    if (result.success && result.shouldRemove) {
+      updateLastConsumableUsed(result.gameState, consumable);
+    }
+    return result;
+  }
 
   switch (consumable.id) {
     case 'liquidation':
@@ -252,13 +335,22 @@ export function applyConsumableEffect(
     }
 
     case 'sacrifice': {
-      if (newGameState.diceSet.length <= 1) {
+      if (!newRoundState || !newRoundState.diceHand || newRoundState.diceHand.length <= 1) {
         shouldRemove = false;
+        wasSuccessfullyUsed = false;
         break;
       }
-      // Delete a random die
-      const randomIndex = Math.floor(Math.random() * newGameState.diceSet.length);
-      newGameState.diceSet = newGameState.diceSet.filter((_, i) => i !== randomIndex);
+      
+      // Delete a random die from diceHand (the dice currently on the board)
+      const randomIndex = Math.floor(Math.random() * newRoundState.diceHand.length);
+      const dieToRemove = newRoundState.diceHand[randomIndex];
+      
+      // Remove from diceHand
+      newRoundState.diceHand = newRoundState.diceHand.filter((_, i) => i !== randomIndex);
+      
+      // Also remove from diceSet by matching ID
+      newGameState.diceSet = newGameState.diceSet.filter(d => d.id !== dieToRemove.id);
+      
       // Add charm slot
       newGameState.charmSlots = (newGameState.charmSlots || 3) + 1;
       break;
@@ -331,39 +423,54 @@ export function applyConsumableEffect(
     }
 
     case 'frankenstein': {
-      if (newGameState.charms.length < 3) {
+      if (newGameState.charms.length < 1) {
         shouldRemove = false;
         wasSuccessfullyUsed = false;
         break;
       }
-      // Delete 2 random charms
-      const indicesToDelete = new Set<number>();
-      while (indicesToDelete.size < 2) {
-        const randomIdx = Math.floor(Math.random() * newGameState.charms.length);
-        indicesToDelete.add(randomIdx);
-      }
-      const remaining = newGameState.charms.filter((_, i) => !indicesToDelete.has(i));
-      if (remaining.length === 0) {
-        shouldRemove = false;
-        wasSuccessfullyUsed = false;
-        break;
-      }
-      // Copy 1 random remaining charm - preserve all properties
-      const randomIdx = Math.floor(Math.random() * remaining.length);
-      const charmToCopy = remaining[randomIdx];
+      
+      // Step 1: Copy a random charm first
+      const charmToCopyIndex = Math.floor(Math.random() * newGameState.charms.length);
+      const charmToCopy = newGameState.charms[charmToCopyIndex];
       const copiedCharm = { 
         ...charmToCopy, 
         id: `${charmToCopy.id}_copy_${Date.now()}`
       };
-      newGameState.charms = [...remaining, copiedCharm];
-      // Update charm manager - remove deleted charms first
-      indicesToDelete.forEach(idx => {
-        const charmToRemove = newGameState.charms[idx];
-        if (charmToRemove) {
-          charmManager.removeCharm(charmToRemove.id);
-        }
-      });
-      // Add the copied charm
+      
+      // Step 2: Add the copy to the charms array
+      newGameState.charms = [...newGameState.charms, copiedCharm];
+      
+      // Step 3: Destroy 0, 1, or 2 random charms (never the original or the copy)
+      const numToDestroy = Math.floor(Math.random() * 3); // 0, 1, or 2
+      const indicesToDelete = new Set<number>();
+      const protectedIndices = new Set([charmToCopyIndex, newGameState.charms.length - 1]); // Original and copy
+      
+      // Get all indices that can be deleted (not protected)
+      const availableIndices = newGameState.charms
+        .map((_, i) => i)
+        .filter(i => !protectedIndices.has(i));
+      
+      // Randomly select up to numToDestroy indices to delete
+      const shuffled = [...availableIndices].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < Math.min(numToDestroy, shuffled.length); i++) {
+        indicesToDelete.add(shuffled[i]);
+      }
+      
+      // Remove the selected charms
+      if (indicesToDelete.size > 0) {
+        // Update charm manager - remove deleted charms
+        indicesToDelete.forEach(idx => {
+          const charmToRemove = newGameState.charms[idx];
+          if (charmToRemove) {
+            charmManager.removeCharm(charmToRemove.id);
+          }
+        });
+        
+        // Remove from charms array
+        newGameState.charms = newGameState.charms.filter((_, i) => !indicesToDelete.has(i));
+      }
+      
+      // Add the copied charm to charm manager
       charmManager.addCharm(copiedCharm);
       break;
     }
@@ -497,6 +604,9 @@ export function applyConsumableEffect(
     wasSuccessfullyUsed = true;
     // All consumables have 1 use, so always remove after successful use
     shouldRemove = true;
+    
+    // Update last consumable used tracking (for Echo consumable) - only after successful use
+    updateLastConsumableUsed(newGameState, consumable);
   } else {
     // shouldRemove is false, so the consumable couldn't be used
     wasSuccessfullyUsed = false;
@@ -509,72 +619,6 @@ export function applyConsumableEffect(
     shouldRemove,
     gameState: newGameState,
     roundState: newRoundState
-  };
-}
-
-/**
- * Apply consumable with die side selection (wrapper that handles state management)
- * Similar to applyConsumableEffect but for die side selection consumables
- */
-export function applyConsumableWithDieSideSelection(
-  consumableIndex: number,
-  dieIndex: number,
-  sideValue: number,
-  gameState: GameState,
-  roundState: RoundState | null,
-  charmManager: any
-): ConsumableEffectResult {
-  const consumable = gameState.consumables[consumableIndex];
-  if (!consumable) {
-    return {
-      success: false,
-      shouldRemove: false,
-      gameState
-    };
-  }
-
-  const consumableId = consumable.id as 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation';
-  
-  const newGameState = { ...gameState };
-  const newRoundState = roundState ? { ...roundState } : undefined;
-  
-  // Create a copy of the consumables array
-  newGameState.consumables = [...newGameState.consumables];
-  
-  // Track the last consumable used (for Echo consumable)
-  (newGameState as any).lastConsumableUsed = { ...consumable };
-  
-  // Apply the die side selection
-  const result = applyDieSideSelectionConsumable(consumableId, dieIndex, sideValue, newGameState, newRoundState || null);
-  
-  const finalGameState = result.gameState;
-  
-  // Preserve lastConsumableUsed
-  if ((newGameState as any).lastConsumableUsed) {
-    (finalGameState as any).lastConsumableUsed = (newGameState as any).lastConsumableUsed;
-  }
-  
-  // Remove consumable if needed
-  if (result.shouldRemove) {
-    finalGameState.consumables.splice(consumableIndex, 1);
-  }
-  
-  // Update round state if it exists
-  if (newRoundState && result.roundState && finalGameState.currentWorld) {
-    finalGameState.currentWorld = {
-      ...finalGameState.currentWorld,
-      currentLevel: {
-        ...finalGameState.currentWorld.currentLevel,
-        currentRound: result.roundState
-      }
-    };
-  }
-  
-  return {
-    success: result.success,
-    shouldRemove: result.shouldRemove,
-    gameState: finalGameState,
-    roundState: result.roundState || newRoundState
   };
 }
 
@@ -593,14 +637,27 @@ export function applyDieSideSelectionConsumable(
   const newRoundState = roundState ? { ...roundState } : undefined;
   let shouldRemove = true;
 
-  const selectedDie = newGameState.diceSet[dieIndex];
-  if (!selectedDie) {
+  // dieIndex is from diceHand, find the corresponding die in diceSet by matching the die from diceHand
+  const diceHandDie = roundState?.diceHand?.[dieIndex];
+  if (!diceHandDie) {
     return {
       success: false,
       shouldRemove: false,
       gameState: newGameState
     };
   }
+
+  // Find the die in diceSet by matching ID
+  const diceSetIndex = newGameState.diceSet.findIndex(d => d.id === diceHandDie.id);
+  if (diceSetIndex === -1) {
+    return {
+      success: false,
+      shouldRemove: false,
+      gameState: newGameState
+    };
+  }
+
+  const selectedDie = newGameState.diceSet[diceSetIndex];
 
   // Check if the side value is valid for this die
   if (!selectedDie.allowedValues.includes(sideValue)) {
@@ -630,9 +687,9 @@ export function applyDieSideSelectionConsumable(
     };
   }
 
-  // Add pip effect to the selected side
+  // Add pip effect to the selected side in diceSet
   newGameState.diceSet = newGameState.diceSet.map((die, i) => {
-    if (i === dieIndex) {
+    if (i === diceSetIndex) {
       const newPipEffects = { ...(die.pipEffects || {}) };
       newPipEffects[sideValue] = pipEffectType;
       return {
@@ -642,6 +699,21 @@ export function applyDieSideSelectionConsumable(
     }
     return die;
   });
+
+  // Also update the die in diceHand so it shows immediately on the board
+  if (newRoundState && newRoundState.diceHand) {
+    newRoundState.diceHand = newRoundState.diceHand.map((die, i) => {
+      if (i === dieIndex) {
+        const newPipEffects = { ...(die.pipEffects || {}) };
+        newPipEffects[sideValue] = pipEffectType;
+        return {
+          ...die,
+          pipEffects: newPipEffects
+        };
+      }
+      return die;
+    });
+  }
 
   return {
     success: true,
@@ -731,14 +803,14 @@ export function applyDieSelectionConsumable(
       }
     }
 
-    // Modify rolled values: chisel decreases, potteryWheel increases
+    // Modify rolled values: chisel increases, potteryWheel decreases
     newRoundState.diceHand = newRoundState.diceHand.map((die, i) => {
       if (selectedIndices.includes(i)) {
         const currentValue = die.rolledValue ?? 1;
         if (consumableId === 'chisel') {
-          return { ...die, rolledValue: Math.max(1, currentValue - 1) };
-        } else {
           return { ...die, rolledValue: Math.min(6, currentValue + 1) };
+        } else {
+          return { ...die, rolledValue: Math.max(1, currentValue - 1) };
         }
       }
       return die;

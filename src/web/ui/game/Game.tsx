@@ -83,7 +83,7 @@ interface GameProps {
   pendingRewards?: any;
   onReturnToMenu?: () => void;
   onNewGame?: () => void;
-  onSelectWorld?: (worldId: string) => void;
+  onSelectWorld?: (nodeId: number) => void;
 }
 
 export const Game: React.FC<GameProps> = ({ 
@@ -309,6 +309,8 @@ export const Game: React.FC<GameProps> = ({
         consumables={inventory.consumables}
         blessings={gameState.blessings || []}
         money={gameState.money}
+        charmSlots={gameState.charmSlots}
+        consumableSlots={gameState.consumableSlots}
         onConsumableUse={inventoryActions.handleConsumableUse}
         onSellCharm={inventoryActions.handleSellCharm}
         onSellConsumable={inventoryActions.handleSellConsumable}

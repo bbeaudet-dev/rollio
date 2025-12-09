@@ -76,12 +76,14 @@ export const ShopItemList: React.FC<ShopItemListProps> = ({
           {items.map((item, index) => {
             // Show blank spot if item was purchased (null)
             if (!item) {
+              // Match empty slot size to item type
+              const emptySlotSize = itemType === 'charm' ? 108 : itemType === 'consumable' ? 96 : 84;
               return (
                 <div
                   key={`empty-${index}`}
                   style={{
-                    width: '120px',
-                    height: '120px',
+                    width: `${emptySlotSize}px`,
+                    height: `${emptySlotSize}px`,
                     border: '1px dashed #ccc',
                     borderRadius: '8px',
                     backgroundColor: '#f5f5f5',

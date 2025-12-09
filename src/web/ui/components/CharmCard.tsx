@@ -173,7 +173,7 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   const glowStyle = getGlowStyle();
   
   // Square aspect ratio (1:1)
-  const cardSize = 120; // Base size, can be adjusted
+  const cardSize = 108; // 120 * 0.9 = 108
   
   const handleClick = (e: React.MouseEvent) => {
     // On mobile/touch devices, toggle tooltip on click

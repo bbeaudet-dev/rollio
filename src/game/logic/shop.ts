@@ -105,11 +105,11 @@ export function generateShopInventory(gameState: GameState): ShopState {
   const ownedCharmIds = new Set(gameState.charms.map(c => c.id));
   const ownedConsumableIds = new Set(gameState.consumables.map(c => c.id));
   
-  // Select 5 random charms (excluding owned ones)
+  // Select 4 random charms (excluding owned ones)
   const availableCharms = CHARMS.filter(c => !ownedCharmIds.has(c.id));
   const selectedCharms: Charm[] = [];
   const charmIndices = new Set<number>();
-  while (selectedCharms.length < 5 && charmIndices.size < availableCharms.length) {
+  while (selectedCharms.length < 4 && charmIndices.size < availableCharms.length) {
     const randomIndex = Math.floor(Math.random() * availableCharms.length);
     if (!charmIndices.has(randomIndex)) {
       charmIndices.add(randomIndex);
@@ -117,14 +117,14 @@ export function generateShopInventory(gameState: GameState): ShopState {
     }
   }
   
-  // Select 3 random consumables (excluding owned ones)
+  // Select 2 random consumables (excluding owned ones)
   // 10% chance for wishes, 90% chance for whims
   const availableWhims = WHIMS.filter(c => !ownedConsumableIds.has(c.id));
   const availableWishes = WISHES.filter(c => !ownedConsumableIds.has(c.id));
   const selectedConsumables: Consumable[] = [];
   const consumableIndices = new Set<number>();
   
-  while (selectedConsumables.length < 3 && (consumableIndices.size < availableWhims.length + availableWishes.length)) {
+  while (selectedConsumables.length < 2 && (consumableIndices.size < availableWhims.length + availableWishes.length)) {
     // 10% chance to pick from wishes, 90% chance from whims
     const isWish = Math.random() < 0.1;
     const pool = isWish ? availableWishes : availableWhims;
@@ -411,7 +411,7 @@ export function applyBlessingEffect(gameState: GameState, blessing: Blessing): G
     case 'baseLevelBanks':
       return {
         ...gameState,
-        baseLevelBanks: (gameState.baseLevelBanks || 5) + blessing.effect.amount
+        baseLevelBanks: (gameState.baseLevelBanks || 4) + blessing.effect.amount
       };
     case 'charmSlots':
       return {

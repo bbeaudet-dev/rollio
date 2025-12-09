@@ -1,6 +1,6 @@
 import { BaseCharm, CharmScoringContext, CharmFlopContext, CharmBankContext, ScoringValueModification } from '../charmSystem';
-import { Die } from '../../types';
 import { getPipEffectForDie } from '../pipEffectSystem';
+import { getSizeMultiplier } from '../../utils/dieSizeUtils';
 
 /**
  * Rare Charms Implementation
@@ -344,7 +344,6 @@ export class FlopCollectorCharm extends BaseCharm {
 export class SizeMattersCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // Multiplier based on die size: 6 faces = 1x, below 6 = -0.5x per size, above 6 = +0.5x per size
-    const { getSizeMultiplier } = require('../../utils/dieSizeUtils');
     
     let totalMultiplier = 0;
     let diceCount = 0;

@@ -85,9 +85,6 @@ const diceCounts = [6, 7, 8, 9, 10];
 
 async function calculateProbabilities() {
   const results: { [diceCount: number]: { [key: string]: number } } = {};
-
-  // Temporarily override processChunk to process synchronously for speed
-  const originalProcessChunk = require('../src/game/logic/probability');
   
   for (const numDice of diceCounts) {
     console.log(`\nCalculating for ${numDice} dice...`);

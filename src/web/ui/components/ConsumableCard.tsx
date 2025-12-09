@@ -107,8 +107,8 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
   
   const glowStyle = getGlowStyle();
   
-  // Square aspect ratio (1:1) - same as charms
-  const cardSize = 120; // Base size, can be adjusted
+  // Square aspect ratio (1:1) 
+  const cardSize = 96; // 120 * 0.8 = 96
   
   const handleClick = (e: React.MouseEvent) => {
     // On mobile/touch devices, toggle tooltip on click

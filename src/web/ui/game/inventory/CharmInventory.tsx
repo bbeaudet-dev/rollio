@@ -4,7 +4,7 @@ import { CharmCard } from '../../components/CharmCard';
 import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
 import { CHARM_PRICES } from '../../../../game/data/charms';
 
-export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm }) => {
+export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm, maxSlots }) => {
   const { highlightedCharmIds } = useScoringHighlights();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,17 +25,13 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
     }
   }, [selectedIndex]);
 
+  const slotsToShow = maxSlots || charms.length;
+  const emptySlots = Math.max(0, slotsToShow - charms.length);
+
   return (
     <div ref={containerRef}>
-      {charms.length === 0 ? (
-        <p style={{ 
-          fontSize: '10px', 
-          margin: '0',
-          color: '#666'
-        }}>No charms</p>
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 8px' }}>
-          {charms.map((charm, index) => {
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 8px' }}>
+        {charms.map((charm, index) => {
             const rarity = charm.rarity || 'common';
             const sellValue = CHARM_PRICES[rarity]?.sell || 2;
             const isSelected = selectedIndex === index;
@@ -96,8 +92,28 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
               </div>
             );
           })}
-        </div>
-      )}
+        {emptySlots > 0 && Array.from({ length: emptySlots }).map((_, index) => (
+          <div
+            key={`empty-${index}`}
+            style={{
+              width: '108px',
+              height: '108px',
+              border: '1px dashed #ccc',
+              borderRadius: '8px',
+              backgroundColor: '#f5f5f5',
+              fontSize: '11px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#999',
+              fontStyle: 'italic',
+              boxSizing: 'border-box'
+            }}
+          >
+            Empty
+          </div>
+        ))}
+      </div>
     </div>
   );
 }; 

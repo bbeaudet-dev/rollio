@@ -29,7 +29,9 @@ export const RoundInfo: React.FC<RoundInfoProps> = ({
 
   const formatLevelEffects = () => {
     if (!levelEffects || levelEffects.length === 0) return null;
-    return levelEffects.map(effect => effect.name || effect.description).join(', ');
+    // Deduplicate effects by name/description (like NextLevelPreview does)
+    const uniqueEffects = Array.from(new Map(levelEffects.map(e => [e.name || e.description, e])).values());
+    return uniqueEffects.map(effect => effect.name || effect.description).join(', ');
   };
 
   const worldEffectsText = formatWorldEffects();

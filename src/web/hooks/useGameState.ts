@@ -333,9 +333,9 @@ export function useGameState() {
     pendingRewards: webState?.pendingRewards || null,
     
     // World selection
-    selectWorld: useCallback(async (worldId: string) => {
+    selectWorld: useCallback(async (nodeId: number) => {
       if (!webState || !gameManagerRef.current) return;
-      const newState = await gameManagerRef.current.selectWorld(webState, worldId);
+      const newState = await gameManagerRef.current.selectWorld(webState, nodeId);
       setWebState(newState);
     }, [webState]),
   };
