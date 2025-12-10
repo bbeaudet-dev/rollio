@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CharmSelector } from './CharmSelector';
 import { ConsumableSelector } from './ConsumableSelector';
 import { BlessingSelector } from './BlessingSelector';
@@ -8,6 +8,7 @@ import { DiceSetCustomization } from './DiceSetCustomization';
 import { StartGameButton } from './StartGameButton';
 import { DifficultySelector } from './DifficultySelector';
 import { MainMenuReturnButton, ModeButton } from '../components';
+import { ActionButton } from '../components/ActionButton';
 import { DifficultyLevel } from '../../../game/logic/difficulty';
 import { Die, DiceSetConfig } from '../../../game/types';
 import { PipEffectType } from '../../../game/data/pipEffects';
@@ -46,6 +47,9 @@ const DUMMY_CHALLENGES = [
 
 export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfigComplete }) => {
   const [mode, setMode] = useState<GameMode>('newGame');
+  const [startGameHandler, setStartGameHandler] = useState<(() => void) | null>(null);
+  const [isDifficultyLocked, setIsDifficultyLocked] = useState(false);
+  const startGameHandlerRef = useRef<(() => void) | null>(null);
   const [config, setConfig] = useState<GameConfig>({
     diceSetIndex: 0,
     selectedCharms: [],
@@ -196,6 +200,29 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
   const maxCharmSlots = currentDiceSet?.charmSlots || 0;
   const maxConsumableSlots = currentDiceSet?.consumableSlots || 0;
 
+  // Memoize the callback to prevent infinite re-renders
+  const handleStartGameReady = useCallback((startGame: () => void, isLocked: boolean) => {
+    startGameHandlerRef.current = startGame; // Store directly in ref
+    setStartGameHandler(() => startGameHandlerRef.current!); // Update state with stable function
+    setIsDifficultyLocked(isLocked);
+  }, []);
+
+  // Memoize the dice set change callback for Debug mode
+  const handleDiceSetChange = useCallback((diceSet: Die[], creditsRemaining: number, customizationOptions?: {
+    baseLevelRerolls?: number;
+    baseLevelBanks?: number;
+    charmSlots?: number;
+    consumableSlots?: number;
+  }) => {
+    const customConfig = createDiceSetConfigFromCustomization(
+      diceSet,
+      creditsRemaining,
+      config.difficulty,
+      customizationOptions
+    );
+    setConfig(prev => ({ ...prev, customDiceSetConfig: customConfig }));
+  }, [config.difficulty]);
+
   return (
     <div style={{
       fontFamily: 'Arial, sans-serif',
@@ -222,7 +249,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
             onClick={() => setMode(m)}
             selected={mode === m}
           >
-            {m === 'newGame' ? 'New Game' : m === 'challenges' ? 'Challenges' : 'Extras'}
+            {m === 'newGame' ? 'New Game' : m === 'challenges' ? 'Challenges' : 'Debug'}
           </ModeButton>
         ))}
       </div>
@@ -239,6 +266,7 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
           </div>
           <DiceSetCustomization
             difficulty={config.difficulty}
+            onStartGameReady={handleStartGameReady}
             onComplete={(diceSet, creditsRemaining, customizationOptions) => {
               const customConfig = createDiceSetConfigFromCustomization(
                 diceSet,
@@ -256,6 +284,23 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
               });
             }}
           />
+          {/* Start Game Button */}
+          <div style={{
+            marginTop: '20px',
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <div title={isDifficultyLocked ? 'This difficulty is locked. Complete the previous difficulty to unlock it.' : undefined}>
+              <ActionButton
+                onClick={() => startGameHandler?.()}
+                variant="success"
+                size="large"
+                disabled={isDifficultyLocked || !startGameHandler}
+              >
+                Start Game
+              </ActionButton>
+            </div>
+          </div>
         </div>
       )}
 
@@ -396,53 +441,60 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
       )}
 
       {mode === 'extras' && (
-        <>
-          {/* Main configuration sections - Dice Set and Difficulty */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr 1fr', 
-            gap: '20px',
-            marginBottom: '20px'
-          }}>
-            <DiceSetSelector
-              diceSets={availableDiceSets}
-              selectedIndex={config.diceSetIndex}
-              onDiceSetSelect={handleDiceSetSelect}
-            />
-
+        <div>
+          {/* Difficulty selector for debug mode */}
+          <div style={{ marginBottom: '20px' }}>
             <DifficultySelector
               difficulty={config.difficulty}
               onChange={handleDifficultyChange}
             />
           </div>
-
-          {/* Charms and Consumables - always shown in Extras mode */}
+          <DiceSetCustomization
+            difficulty={config.difficulty}
+            infiniteCredits={true}
+            onStartGameReady={handleStartGameReady}
+            onComplete={(diceSet, creditsRemaining, customizationOptions) => {
+              const customConfig = createDiceSetConfigFromCustomization(
+                diceSet,
+                creditsRemaining,
+                config.difficulty,
+                customizationOptions
+              );
+              setConfig(prev => {
+                const updatedConfig = { ...prev, customDiceSetConfig: customConfig };
+                // For Debug mode, we don't auto-start the game here
+                // The button will handle calling onConfigComplete with selections
+                return updatedConfig;
+              });
+            }}
+            onDiceSetChange={handleDiceSetChange}
+          />
+          
+          {/* Charms, Consumables, and Blessings selectors */}
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: '1fr 1fr', 
             gap: '20px',
+            marginTop: '20px',
             marginBottom: '20px'
           }}>
             <CharmSelector
               charms={charms}
               selectedCharms={config.selectedCharms}
-              maxSlots={maxCharmSlots}
+              maxSlots={config.customDiceSetConfig?.charmSlots || 6}
               onCharmSelect={handleCharmSelect}
             />
 
             <ConsumableSelector
               consumables={consumables}
               selectedConsumables={config.selectedConsumables}
-              maxSlots={maxConsumableSlots}
+              maxSlots={config.customDiceSetConfig?.consumableSlots || 2}
               onConsumableSelect={handleConsumableSelect}
             />
           </div>
 
-          {/* Blessings and PipEffects - same row */}
+          {/* Blessings selector */}
           <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr 1fr', 
-            gap: '20px',
             marginBottom: '20px'
           }}>
             <BlessingSelector
@@ -450,43 +502,39 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
               selectedBlessings={config.selectedBlessings}
               onBlessingSelect={handleBlessingSelect}
             />
-
-            <PipEffectsSelector
-              diceSet={getCurrentDiceArray()}
-              onDiceSetChange={(newDiceSet) => {
-                // Extract pip effects from the modified dice set (filter out "none" values)
-                const pipEffects: Record<number, Record<number, PipEffectType>> = {};
-                newDiceSet.forEach((die, dieIndex) => {
-                  if (die.pipEffects) {
-                    const dieEffects: Record<number, PipEffectType> = {};
-                    Object.entries(die.pipEffects).forEach(([sideValueStr, effectType]) => {
-                      const sideValue = parseInt(sideValueStr, 10);
-                      // Only include if it's not "none"
-                      if (effectType !== 'none') {
-                        dieEffects[sideValue] = effectType as PipEffectType;
-                      }
-                    });
-                    if (Object.keys(dieEffects).length > 0) {
-                      pipEffects[dieIndex] = dieEffects;
-                    }
-                  }
-                });
-                setConfig(prev => ({ ...prev, selectedPipEffects: pipEffects }));
-              }}
-            />
           </div>
-          </>
-        )}
 
-      {/* Start button at the bottom - only for extras mode (newGame handles its own completion) */}
-      {mode === 'extras' && (
-        <StartGameButton onClick={() => onConfigComplete({
-          diceSetIndex: config.diceSetIndex,
-          selectedCharms: config.selectedCharms,
-          selectedConsumables: config.selectedConsumables,
-          selectedBlessings: config.selectedBlessings,
-          difficulty: config.difficulty
-        })} />
+          {/* Start Game Button */}
+          <div style={{
+            marginTop: '20px',
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <div title={isDifficultyLocked ? 'This difficulty is locked. Complete the previous difficulty to unlock it.' : undefined}>
+              <ActionButton
+                onClick={() => {
+                  if (startGameHandler && config.customDiceSetConfig) {
+                    // Call startGameHandler to ensure dice set config is finalized
+                    startGameHandler();
+                    // Call onConfigComplete with the selections
+                    onConfigComplete({
+                      customDiceSetConfig: config.customDiceSetConfig,
+                      selectedCharms: config.selectedCharms,
+                      selectedConsumables: config.selectedConsumables,
+                      selectedBlessings: config.selectedBlessings,
+                      difficulty: config.difficulty
+                    });
+                  }
+                }}
+                variant="success"
+                size="large"
+                disabled={isDifficultyLocked || !config.customDiceSetConfig || !startGameHandler}
+              >
+                Start Game
+              </ActionButton>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

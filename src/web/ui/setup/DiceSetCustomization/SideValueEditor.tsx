@@ -3,7 +3,7 @@ import { Die } from '../../../../game/types';
 import { DiceFace } from '../../game/board/dice/DiceFace';
 import { PipEffectIcon } from '../../collection/PipEffectIcon';
 import { PIP_EFFECTS } from '../../../../game/data/pipEffects';
-import { CreditCostDisplay } from './CreditCostDisplay';
+import { CreditIndicator } from '../../components/CreditIndicator';
 
 interface SideValueEditorProps {
   die: Die;
@@ -34,7 +34,7 @@ export const SideValueEditor: React.FC<SideValueEditorProps> = ({
         marginBottom: '8px',
         color: '#2c3e50'
       }}>
-        Side Values
+        Values & Effects
       </div>
       <div style={{
         display: 'flex',
@@ -78,67 +78,64 @@ export const SideValueEditor: React.FC<SideValueEditorProps> = ({
                 width: '100%',
                 justifyContent: 'center'
               }}>
-                {/* Only show arrows if the value has been modified from original */}
-                {isModified && (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0',
-                    padding: '0',
-                    margin: '0'
-                  }}>
-                    <div
-                      onClick={() => creditsRemaining >= costPerChange && value < 20 && onValueChange(dieIndex, sideIndex, 1)}
-                      style={{
-                        width: '12px',
-                        height: '8px',
-                        border: '1px solid #dee2e6',
-                        borderRadius: '2px 2px 0 0',
-                        backgroundColor: creditsRemaining >= costPerChange && value < 20 ? '#fff' : '#e9ecef',
-                        cursor: creditsRemaining >= costPerChange && value < 20 ? 'pointer' : 'not-allowed',
-                        fontSize: '8px',
-                        padding: '0',
-                        margin: '0',
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        lineHeight: '0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        userSelect: 'none'
-                      }}
-                      title={`Increase (+${costPerChange} credits)`}
-                    >
-                      ▲
-                    </div>
-                    <div
-                      onClick={() => creditsRemaining >= costPerChange && value > 1 && onValueChange(dieIndex, sideIndex, -1)}
-                      style={{
-                        width: '12px',
-                        height: '8px',
-                        border: '1px solid #dee2e6',
-                        borderRadius: '0 0 2px 2px',
-                        backgroundColor: creditsRemaining >= costPerChange && value > 1 ? '#fff' : '#e9ecef',
-                        cursor: creditsRemaining >= costPerChange && value > 1 ? 'pointer' : 'not-allowed',
-                        fontSize: '8px',
-                        padding: '0',
-                        margin: '0',
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        lineHeight: '0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        userSelect: 'none'
-                      }}
-                      title={`Decrease (-${costPerChange} credits)`}
-                    >
-                      ▼
-                    </div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0',
+                  padding: '0',
+                  margin: '0'
+                }}>
+                  <div
+                    onClick={() => creditsRemaining >= costPerChange && value < 20 && onValueChange(dieIndex, sideIndex, 1)}
+                    style={{
+                      width: '12px',
+                      height: '8px',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '2px 2px 0 0',
+                      backgroundColor: creditsRemaining >= costPerChange && value < 20 ? '#fff' : '#e9ecef',
+                      cursor: creditsRemaining >= costPerChange && value < 20 ? 'pointer' : 'not-allowed',
+                      fontSize: '8px',
+                      padding: '0',
+                      margin: '0',
+                      boxSizing: 'border-box',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      lineHeight: '0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      userSelect: 'none'
+                    }}
+                    title={`Increase (+${costPerChange} credits)`}
+                  >
+                    ▲
                   </div>
-                )}
+                  <div
+                    onClick={() => creditsRemaining >= costPerChange && value > 1 && onValueChange(dieIndex, sideIndex, -1)}
+                    style={{
+                      width: '12px',
+                      height: '8px',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '0 0 2px 2px',
+                      backgroundColor: creditsRemaining >= costPerChange && value > 1 ? '#fff' : '#e9ecef',
+                      cursor: creditsRemaining >= costPerChange && value > 1 ? 'pointer' : 'not-allowed',
+                      fontSize: '8px',
+                      padding: '0',
+                      margin: '0',
+                      boxSizing: 'border-box',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      lineHeight: '0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      userSelect: 'none'
+                    }}
+                    title={`Decrease (-${costPerChange} credits)`}
+                  >
+                    ▼
+                  </div>
+                </div>
                 <div
                   onClick={() => onPipEffectClick(dieIndex, value)}
                   style={{
@@ -164,10 +161,8 @@ export const SideValueEditor: React.FC<SideValueEditorProps> = ({
                   + Effect
                 </div>
               </div>
-              {/* Credit bars - only show if value has been modified */}
-              {isModified && (
-                <CreditCostDisplay cost={costPerChange} canAfford={creditsRemaining >= costPerChange} />
-              )}
+              {/* Credit bars */}
+              <CreditIndicator cost={costPerChange} canAfford={creditsRemaining >= costPerChange} size="medium" />
               {/* Pip Effect for this side */}
               {pipEffect && pipEffect !== 'none' && (
                 <div style={{

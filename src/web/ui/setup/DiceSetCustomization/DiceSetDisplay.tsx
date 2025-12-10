@@ -3,7 +3,7 @@ import { Die } from '../../../../game/types';
 import { PipEffectType } from '../../../../game/data/pipEffects';
 import { DiceFace } from '../../game/board/dice/DiceFace';
 import { PipEffectIcon } from '../../collection/PipEffectIcon';
-import { CreditCostDisplay } from './CreditCostDisplay';
+import { CreditIndicator } from '../../components/CreditIndicator';
 
 interface DiceSetDisplayProps {
   diceSet: Die[];
@@ -13,7 +13,9 @@ interface DiceSetDisplayProps {
   onAddDie: () => void;
   canAddDie: boolean;
   addDieCost: number;
-  creditTransactions: Array<{ dieIndex?: number; type: string; cost: number }>;
+  creditTransactions: Array<{ dieIndex?: number; sideIndex?: number; type: string; cost: number }>;
+  creditsRemaining: number;
+  originalSideValues: Record<string, number[]>;
 }
 
 export const DiceSetDisplay: React.FC<DiceSetDisplayProps> = ({
@@ -24,7 +26,9 @@ export const DiceSetDisplay: React.FC<DiceSetDisplayProps> = ({
   onAddDie,
   canAddDie,
   addDieCost,
-  creditTransactions
+  creditTransactions,
+  creditsRemaining,
+  originalSideValues
 }) => {
   return (
     <div style={{ marginBottom: '12px' }}>
@@ -32,16 +36,25 @@ export const DiceSetDisplay: React.FC<DiceSetDisplayProps> = ({
         display: 'flex',
         gap: '16px',
         flexWrap: 'wrap',
-        alignItems: 'flex-start'
+        alignItems: 'flex-start',
+        justifyContent: 'space-between'
       }}>
+        <div style={{
+          display: 'flex',
+          gap: '16px',
+          flexWrap: 'wrap',
+          alignItems: 'flex-start'
+        }}>
         {diceSet.map((die, index) => {
           const currentValue = rotatingValues[die.id] || die.allowedValues[0] || 1;
           const isSelected = selectedDieIndex === index;
 
-          // Count side value changes for this die
-          const sideValueChangeCount = creditTransactions.filter(
-            t => t.dieIndex === index && t.type === 'changeSideValue' && t.cost > 0
-          ).length;
+          // Count side value changes for this die - check if any side value differs from original
+          const originalValues = originalSideValues[die.id] || [];
+          const sideValueChangeCount = die.allowedValues.filter((value, sideIndex) => {
+            const originalValue = originalValues[sideIndex];
+            return originalValue !== undefined && value !== originalValue;
+          }).length;
 
           // Get all unique pip effects for this die
           const pipEffects = die.pipEffects ? Object.values(die.pipEffects).filter((effect): effect is PipEffectType => effect !== 'none') : [];
@@ -150,7 +163,8 @@ export const DiceSetDisplay: React.FC<DiceSetDisplayProps> = ({
           >
             +
           </button>
-          <CreditCostDisplay cost={addDieCost} canAfford={canAddDie} />
+          <CreditIndicator cost={addDieCost} canAfford={canAddDie} size="medium" />
+        </div>
         </div>
       </div>
     </div>

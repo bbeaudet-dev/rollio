@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Die, DiceMaterialType } from '../../../game/types';
 import { DifficultyLevel, getStartingCredits } from '../../../game/logic/difficulty';
 import { MATERIALS } from '../../../game/data/materials';
@@ -14,22 +14,36 @@ import { MaterialSelector } from './DiceSetCustomization/MaterialSelector';
 import { SideValueEditor } from './DiceSetCustomization/SideValueEditor';
 import { PipEffectSelector } from './DiceSetCustomization/PipEffectSelector';
 import { ConfigOptions } from './DiceSetCustomization/ConfigOptions';
+import { useUnlocks } from '../../contexts/UnlockContext';
 
 interface DiceSetCustomizationProps {
   difficulty: DifficultyLevel;
+  infiniteCredits?: boolean; // For Debug mode
   onComplete: (diceSet: Die[], creditsRemaining: number, customizationOptions?: {
     baseLevelRerolls?: number;
     baseLevelBanks?: number;
     charmSlots?: number;
     consumableSlots?: number;
   }) => void;
+  onStartGameReady?: (startGame: () => void, isLocked: boolean) => void;
+  onDiceSetChange?: (diceSet: Die[], creditsRemaining: number, customizationOptions?: {
+    baseLevelRerolls?: number;
+    baseLevelBanks?: number;
+    charmSlots?: number;
+    consumableSlots?: number;
+  }) => void; // Optional callback for when dice set changes (for Debug mode)
 }
 
 export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
   difficulty,
-  onComplete
+  infiniteCredits = false,
+  onComplete,
+  onStartGameReady,
+  onDiceSetChange
 }) => {
-  const startingCredits = getStartingCredits(difficulty);
+  const { unlockedItems } = useUnlocks();
+  const isLocked = difficulty !== 'plastic' && !unlockedItems.has(`difficulty:${difficulty}`);
+  const startingCredits = infiniteCredits ? 999999 : getStartingCredits(difficulty);
   
   // Create default 5 dice
   const createDefaultDice = (): Die[] => {
@@ -62,10 +76,15 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
   const [creditTransactions, setCreditTransactions] = useState<CreditTransaction[]>([]);
   
   // Track customization options - use defaults from BASIC_DICE_SET
-  const [baseLevelRerolls, setBaseLevelRerolls] = useState(BASIC_DICE_SET.baseLevelRerolls);
-  const [baseLevelBanks, setBaseLevelBanks] = useState(BASIC_DICE_SET.baseLevelBanks);
-  const [charmSlots, setCharmSlots] = useState(BASIC_DICE_SET.charmSlots);
-  const [consumableSlots, setConsumableSlots] = useState(BASIC_DICE_SET.consumableSlots);
+  const baseRerolls = BASIC_DICE_SET.baseLevelRerolls;
+  const baseBanks = BASIC_DICE_SET.baseLevelBanks;
+  const baseCharmSlots = BASIC_DICE_SET.charmSlots;
+  const baseConsumableSlots = BASIC_DICE_SET.consumableSlots;
+  
+  const [baseLevelRerolls, setBaseLevelRerolls] = useState(baseRerolls);
+  const [baseLevelBanks, setBaseLevelBanks] = useState(baseBanks);
+  const [charmSlots, setCharmSlots] = useState(baseCharmSlots);
+  const [consumableSlots, setConsumableSlots] = useState(baseConsumableSlots);
 
   // Initialize rotating values
   useEffect(() => {
@@ -179,13 +198,24 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
 
 
   // Change material
-  const handleChangeMaterial = (dieIndex: number, newMaterial: DiceMaterialType) => {
+  const handleChangeMaterial = async (dieIndex: number, newMaterial: DiceMaterialType) => {
     const die = diceSet[dieIndex];
     if (!die || die.material === newMaterial) return;
 
     const oldMaterial = die.material;
     const wasPlastic = oldMaterial === 'plastic';
     const willBePlastic = newMaterial === 'plastic';
+    
+    // Unlock the material when it's used (if not plastic)
+    if (!willBePlastic) {
+      try {
+        const { progressApi } = await import('../../services/api');
+        await progressApi.unlockItem('material', newMaterial);
+        window.dispatchEvent(new CustomEvent('unlock:refresh'));
+      } catch (error) {
+        console.debug('Failed to unlock material:', error);
+      }
+    }
 
     // If changing from non-plastic to plastic, refund
     if (!wasPlastic && willBePlastic) {
@@ -207,6 +237,18 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
     else if (wasPlastic && !willBePlastic) {
       const newMaterialCost = getMaterialCost(newMaterial, diceSet);
       if (creditsRemaining < newMaterialCost) return;
+      
+      // Unlock the material when it's used
+      (async () => {
+        try {
+          const { progressApi } = await import('../../services/api');
+          await progressApi.unlockItem('material', newMaterial);
+          window.dispatchEvent(new CustomEvent('unlock:refresh'));
+        } catch (error) {
+          console.debug('Failed to unlock material:', error);
+        }
+      })();
+      
       addTransaction({
         type: 'changeMaterial',
         dieIndex,
@@ -234,6 +276,18 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
       const tempDiceSet = diceSet.map((d, i) => i === dieIndex ? { ...d, material: 'plastic' as DiceMaterialType } : d);
       const newMaterialCost = getMaterialCost(newMaterial, tempDiceSet);
       if (creditsRemaining + (oldMaterialTransaction?.cost || 0) < newMaterialCost) return;
+      
+      // Unlock the material when it's used
+      (async () => {
+        try {
+          const { progressApi } = await import('../../services/api');
+          await progressApi.unlockItem('material', newMaterial);
+          window.dispatchEvent(new CustomEvent('unlock:refresh'));
+        } catch (error) {
+          console.debug('Failed to unlock material:', error);
+        }
+      })();
+      
       addTransaction({
         type: 'changeMaterial',
         dieIndex,
@@ -371,6 +425,21 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
     if (isAdding) {
       if (creditsRemaining < COST_ADD_PIP_EFFECT) return;
       
+      // Unlock the pip effect when it's used
+      (async () => {
+        try {
+          const { progressApi } = await import('../../services/api');
+          const { PIP_EFFECTS } = await import('../../../game/data/pipEffects');
+          const pipEffect = PIP_EFFECTS.find(e => e.type === effect);
+          if (pipEffect) {
+            await progressApi.unlockItem('pip_effect', pipEffect.id);
+            window.dispatchEvent(new CustomEvent('unlock:refresh'));
+          }
+        } catch (error) {
+          console.debug('Failed to unlock pip effect:', error);
+        }
+      })();
+      
       addTransaction({
         type: 'addPipEffect',
         dieIndex,
@@ -457,6 +526,80 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
 
   const selectedDie = selectedDieIndex !== null ? diceSet[selectedDieIndex] : null;
 
+  // Use refs to store latest values to avoid dependency issues
+  const onCompleteRef = useRef(onComplete);
+  const onStartGameReadyRef = useRef(onStartGameReady);
+  const diceSetRef = useRef(diceSet);
+  const creditsRemainingRef = useRef(creditsRemaining);
+  const baseLevelRerollsRef = useRef(baseLevelRerolls);
+  const baseLevelBanksRef = useRef(baseLevelBanks);
+  const charmSlotsRef = useRef(charmSlots);
+  const consumableSlotsRef = useRef(consumableSlots);
+  const isLockedRef = useRef(isLocked);
+
+  // Update refs when values change
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+    onStartGameReadyRef.current = onStartGameReady;
+    diceSetRef.current = diceSet;
+    creditsRemainingRef.current = creditsRemaining;
+    baseLevelRerollsRef.current = baseLevelRerolls;
+    baseLevelBanksRef.current = baseLevelBanks;
+    charmSlotsRef.current = charmSlots;
+    consumableSlotsRef.current = consumableSlots;
+    isLockedRef.current = isLocked;
+  }, [onComplete, onStartGameReady, diceSet, creditsRemaining, baseLevelRerolls, baseLevelBanks, charmSlots, consumableSlots, isLocked]);
+
+  // Expose startGame function to parent via callback - stable reference
+  const startGame = React.useCallback(() => {
+    if (!isLockedRef.current) {
+      onCompleteRef.current(
+        diceSetRef.current, 
+        creditsRemainingRef.current, 
+        {
+          baseLevelRerolls: baseLevelRerollsRef.current,
+          baseLevelBanks: baseLevelBanksRef.current,
+          charmSlots: charmSlotsRef.current,
+          consumableSlots: consumableSlotsRef.current
+        }
+      );
+    }
+  }, []); // Empty deps - uses refs instead
+
+  // Notify parent when startGame is ready - only on mount and when isLocked changes
+  const prevIsLockedRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    // Only notify if isLocked actually changed or this is the first render
+    if (onStartGameReadyRef.current && prevIsLockedRef.current !== isLocked) {
+      onStartGameReadyRef.current(startGame, isLocked);
+      prevIsLockedRef.current = isLocked;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLocked]); // Only depend on isLocked - startGame is stable 
+
+  // Notify parent when dice set changes (for Debug mode to update config)
+  const onDiceSetChangeRef = useRef(onDiceSetChange);
+  useEffect(() => {
+    onDiceSetChangeRef.current = onDiceSetChange;
+  }, [onDiceSetChange]);
+
+  // Call onDiceSetChange whenever relevant values change
+  useEffect(() => {
+    if (onDiceSetChangeRef.current) {
+      onDiceSetChangeRef.current(
+        diceSetRef.current,
+        creditsRemainingRef.current,
+        {
+          baseLevelRerolls: baseLevelRerollsRef.current,
+          baseLevelBanks: baseLevelBanksRef.current,
+          charmSlots: charmSlotsRef.current,
+          consumableSlots: consumableSlotsRef.current
+        }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diceSet, creditsRemaining, baseLevelRerolls, baseLevelBanks, charmSlots, consumableSlots]);
+
   return (
     <div style={{
       backgroundColor: '#fff',
@@ -467,17 +610,6 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
       maxWidth: '900px',
       margin: '0 auto'
     }}>
-
-      {/* Header */}
-      <h2 style={{
-        fontSize: '20px',
-        fontWeight: 'bold',
-        color: '#2c3e50',
-        marginBottom: '16px',
-        marginTop: '0'
-      }}>
-        2. Customize your dice set
-      </h2>
 
       <CreditsBar
         creditsRemaining={creditsRemaining}
@@ -494,6 +626,8 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
         canAddDie={creditsRemaining >= getAddDieCost(diceSet.length)}
         addDieCost={getAddDieCost(diceSet.length)}
         creditTransactions={creditTransactions}
+        creditsRemaining={creditsRemaining}
+        originalSideValues={originalSideValues}
       />
 
       {/* Selected Die Detail View */}
@@ -536,11 +670,18 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
         </div>
       )}
 
-      <ConfigOptions
-        options={[
-          {
-            label: 'Rerolls',
-            value: baseLevelRerolls,
+      <div style={{ marginBottom: '12px' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: '12px',
+          alignItems: 'center'
+        }}>
+          <ConfigOptions
+            options={[
+            {
+              label: 'Rerolls',
+              value: baseLevelRerolls,
             onIncrement: () => {
               if (creditsRemaining >= COST_ADD_BASE_REROLL) {
                 setBaseLevelRerolls(baseLevelRerolls + 1);
@@ -548,13 +689,13 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
               }
             },
             onDecrement: () => {
-              if (baseLevelRerolls > 0) {
+              if (baseLevelRerolls > baseRerolls) {
                 setBaseLevelRerolls(baseLevelRerolls - 1);
                 addTransaction({ type: 'addBaseReroll', cost: -COST_ADD_BASE_REROLL });
               }
             },
             canIncrement: creditsRemaining >= COST_ADD_BASE_REROLL,
-            canDecrement: baseLevelRerolls > 0,
+            canDecrement: baseLevelRerolls > baseRerolls,
             cost: COST_ADD_BASE_REROLL
           },
           {
@@ -567,13 +708,13 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
               }
             },
             onDecrement: () => {
-              if (baseLevelBanks > 0) {
+              if (baseLevelBanks > baseBanks) {
                 setBaseLevelBanks(baseLevelBanks - 1);
                 addTransaction({ type: 'addBaseBank', cost: -COST_ADD_BASE_BANK });
               }
             },
             canIncrement: creditsRemaining >= COST_ADD_BASE_BANK,
-            canDecrement: baseLevelBanks > 0,
+            canDecrement: baseLevelBanks > baseBanks,
             cost: COST_ADD_BASE_BANK
           },
           {
@@ -586,13 +727,13 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
               }
             },
             onDecrement: () => {
-              if (charmSlots > 1) {
+              if (charmSlots > baseCharmSlots) {
                 setCharmSlots(charmSlots - 1);
                 addTransaction({ type: 'addCharmSlot', cost: -COST_ADD_CHARM_SLOT });
               }
             },
             canIncrement: creditsRemaining >= COST_ADD_CHARM_SLOT,
-            canDecrement: charmSlots > 1,
+            canDecrement: charmSlots > baseCharmSlots,
             cost: COST_ADD_CHARM_SLOT,
             minValue: 1
           },
@@ -606,24 +747,32 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
               }
             },
             onDecrement: () => {
-              if (consumableSlots > 1) {
+              if (consumableSlots > baseConsumableSlots) {
                 setConsumableSlots(consumableSlots - 1);
                 addTransaction({ type: 'addConsumableSlot', cost: -COST_ADD_CONSUMABLE_SLOT });
               }
             },
             canIncrement: creditsRemaining >= COST_ADD_CONSUMABLE_SLOT,
-            canDecrement: consumableSlots > 1,
+            canDecrement: consumableSlots > baseConsumableSlots,
             cost: COST_ADD_CONSUMABLE_SLOT,
             minValue: 1
+          },
+          {
+            label: 'Start with',
+            value: creditsRemaining,
+            displayOnly: true,
+            displayValue: <span style={{ fontSize: '18px', color: '#28a745' }}>${creditsRemaining}</span>
           }
         ]}
         creditsRemaining={creditsRemaining}
       />
+        </div>
+      </div>
 
-      {/* Complete Button, Reset Button, and Randomize Button */}
+      {/* Reset Button and Randomize Button */}
       <div style={{
         display: 'flex',
-        justifyContent: 'flex-end',
+        justifyContent: 'flex-start',
         gap: '12px',
         alignItems: 'center'
       }}>
@@ -639,28 +788,7 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
           variant="secondary"
           size="medium"
         >
-          Randomize Dice Set
-        </ActionButton>
-        <ActionButton
-          onClick={() => onComplete(diceSet, creditsRemaining, {
-            baseLevelRerolls,
-            baseLevelBanks,
-            charmSlots,
-            consumableSlots
-          })}
-          variant="success"
-          size="medium"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          <span>Start Game</span>
-          <span style={{ fontSize: '11px', opacity: 0.9, fontWeight: 'normal' }}>
-            {creditsRemaining} credits → ${creditsRemaining}
-          </span>
+          Randomize
         </ActionButton>
       </div>
     </div>

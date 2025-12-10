@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MainMenuReturnButton, CharmCard, ConsumableCard, BlessingCard } from '../components';
 import { DifficultyDiceDisplay } from '../components/DifficultyDiceDisplay';
 import { MATERIALS } from '../../../game/data/materials';
 import { CHARMS } from '../../../game/data/charms';
 import { CONSUMABLES } from '../../../game/data/consumables';
 import { ALL_BLESSINGS } from '../../../game/data/blessings';
-import { STATIC_DICE_SETS } from '../../../game/data/diceSets';
 import { PIP_EFFECTS } from '../../../game/data/pipEffects';
 import { DIFFICULTY_CONFIGS } from '../../../game/logic/difficulty';
 import { DiceFace } from '../game/board/dice/DiceFace';
+import { useAuth } from '../../contexts/AuthContext';
+import { progressApi } from '../../services/api';
+import { LockIcon } from '../components/LockIcon';
 
 // Simple hover tooltip component
 const HoverTooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => {
@@ -47,6 +49,42 @@ const HoverTooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ t
 };
 
 export const CollectionPage: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const [unlockedItems, setUnlockedItems] = useState<Set<string>>(new Set());
+
+  // Fetch unlock status when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      Promise.all([
+        progressApi.getUnlocks('charm'),
+        progressApi.getUnlocks('consumable'),
+        progressApi.getUnlocks('blessing'),
+        progressApi.getUnlocks('pip_effect'),
+        progressApi.getUnlocks('material')
+      ]).then(([charmsRes, consumablesRes, blessingsRes, pipEffectsRes, materialsRes]) => {
+        const unlocked = new Set<string>();
+        if (charmsRes.success && (charmsRes as any).unlocks) {
+          ((charmsRes as any).unlocks as Array<{ unlockId: string }>).forEach(u => unlocked.add(`charm:${u.unlockId}`));
+        }
+        if (consumablesRes.success && (consumablesRes as any).unlocks) {
+          ((consumablesRes as any).unlocks as Array<{ unlockId: string }>).forEach(u => unlocked.add(`consumable:${u.unlockId}`));
+        }
+        if (blessingsRes.success && (blessingsRes as any).unlocks) {
+          ((blessingsRes as any).unlocks as Array<{ unlockId: string }>).forEach(u => unlocked.add(`blessing:${u.unlockId}`));
+        }
+        if (pipEffectsRes.success && (pipEffectsRes as any).unlocks) {
+          ((pipEffectsRes as any).unlocks as Array<{ unlockId: string }>).forEach(u => unlocked.add(`pip_effect:${u.unlockId}`));
+        }
+        if (materialsRes.success && (materialsRes as any).unlocks) {
+          ((materialsRes as any).unlocks as Array<{ unlockId: string }>).forEach(u => unlocked.add(`material:${u.unlockId}`));
+        }
+        setUnlockedItems(unlocked);
+      }).catch(error => {
+        console.debug('Failed to fetch unlock status:', error);
+      });
+    }
+  }, [isAuthenticated]);
+
   const containerStyle: React.CSSProperties = {
     fontFamily: 'Arial, sans-serif',
     maxWidth: '1400px',
@@ -131,6 +169,7 @@ export const CollectionPage: React.FC = () => {
             <CharmCard
               key={charm.id}
               charm={{ ...charm, active: false }}
+              isLocked={isAuthenticated && !unlockedItems.has(`charm:${charm.id}`)}
             />
           ))}
         </div>
@@ -152,6 +191,8 @@ export const CollectionPage: React.FC = () => {
             <ConsumableCard
               key={consumable.id}
               consumable={consumable}
+              isLocked={isAuthenticated && !unlockedItems.has(`consumable:${consumable.id}`)}
+              isInShop={false}
             />
           ))}
         </div>
@@ -190,6 +231,8 @@ export const CollectionPage: React.FC = () => {
                   <BlessingCard
                     key={blessing.id}
                     blessing={blessing}
+                    isLocked={isAuthenticated && !unlockedItems.has(`blessing:${blessing.id}`)}
+                    isInShop={false}
                   />
                 ))}
               </div>
@@ -209,29 +252,55 @@ export const CollectionPage: React.FC = () => {
           gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
           gap: '10px'
         }}>
-          {MATERIALS.map((material) => (
-            <div key={material.id} style={{
-              padding: '10px',
-              backgroundColor: 'white',
-              borderRadius: '6px',
-              border: '1px solid #dee2e6',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <DiceFace value={3} size={50} material={material.id} />
-              <div>
-                <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>
-                  {material.name}
+          {MATERIALS.map((material) => {
+            const isPlastic = material.id === 'plastic';
+            const isLocked = isAuthenticated && !isPlastic && !unlockedItems.has(`material:${material.id}`);
+            return (
+              <div key={material.id} style={{
+                padding: '10px',
+                backgroundColor: 'white',
+                borderRadius: '6px',
+                border: '1px solid #dee2e6',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  filter: isLocked ? 'grayscale(100%) brightness(0.5)' : 'none'
+                }}>
+                  <DiceFace value={3} size={50} material={material.id} />
                 </div>
-                <div style={{ fontSize: '11px', color: '#6c757d' }}>
-                  {material.description}
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>
+                    {material.name}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#6c757d' }}>
+                    {material.description}
+                  </div>
                 </div>
+                {isLocked && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1
+                  }}>
+                    <LockIcon size={30} color="white" strokeWidth={2} />
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -243,93 +312,84 @@ export const CollectionPage: React.FC = () => {
         </p>
         <div style={grid3ColStyle}>
           <div style={{
-            padding: '20px',
+            padding: '10px',
             backgroundColor: 'white',
-            borderRadius: '8px',
-            border: '2px solid #dee2e6',
-            textAlign: 'center'
+            borderRadius: '6px',
+            border: '1px solid #dee2e6',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80px' }}>
-              <DiceFace 
-                value={3} 
-                size={80} 
-                material="plastic"
-                pipEffect="none"
-              />
-            </div>
-            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>
-              Normal
-            </div>
-            <div style={{ fontSize: '14px', color: '#6c757d' }}>
-              Standard die face with no special effects
+            <DiceFace 
+              value={3} 
+              size={50} 
+              material="plastic"
+              pipEffect="none"
+            />
+            <div>
+              <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>
+                Normal
+              </div>
+              <div style={{ fontSize: '11px', color: '#6c757d' }}>
+                Standard die face with no special effects
+              </div>
             </div>
           </div>
-          {PIP_EFFECTS.map((effect) => (
-            <div key={effect.id} style={{
-              padding: '20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              border: '2px solid #dee2e6',
-              textAlign: 'center'
-            }}>
-              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80px' }}>
-                <DiceFace 
-                  value={3} 
-                  size={80} 
-                  material="plastic"
-                  pipEffect={effect.type}
-                />
-              </div>
-              <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>
-                {effect.name}
-              </div>
-              <div style={{ fontSize: '14px', color: '#6c757d' }}>
-                {effect.description}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Dice Sets */}
-      <div style={sectionStyle}>
-        <h2 style={headerStyle}>Dice Sets ({STATIC_DICE_SETS.length})</h2>
-        <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
-          Before starting each run, you'll choose a DICE SET, which each have pros and cons based on play style, strategy, and gameplay variation.
-        </p>
-        <div style={grid2ColStyle}>
-          {STATIC_DICE_SETS.map((set) => (
-            <div key={set.name} style={{
-              padding: '20px',
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              border: '2px solid #dee2e6'
-            }}>
-              <div style={{ marginBottom: '15px' }}>
-                <h3 style={{ margin: 0, fontSize: '18px', color: '#2c3e50', marginBottom: '8px' }}>{set.name}</h3>
-                <div style={{ fontSize: '13px', color: '#6c757d' }}>
-                  {set.dice.length} dice | ${set.startingMoney} | 
-                  {set.charmSlots} charm slots | {set.consumableSlots} consumable slots
-                </div>
-              </div>
-              <div style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: '8px',
+          {PIP_EFFECTS.map((effect) => {
+            const isLocked = isAuthenticated && !unlockedItems.has(`pip_effect:${effect.id}`);
+            return (
+              <div key={effect.id} style={{
+                padding: '10px',
+                backgroundColor: 'white',
+                borderRadius: '6px',
+                border: '1px solid #dee2e6',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'flex-start'
+                gap: '8px',
+                position: 'relative',
+                overflow: 'hidden'
               }}>
-                {set.dice.map((die, idx) => (
+                <div style={{
+                  filter: isLocked ? 'grayscale(100%) brightness(0.5)' : 'none'
+                }}>
                   <DiceFace 
-                    key={`${set.name}-${die.id}-${idx}`}
                     value={3} 
-                    size={45} 
-                    material={die.material} 
+                    size={50} 
+                    material="plastic"
+                    pipEffect={effect.type}
                   />
-                ))}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>
+                    {effect.name}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#6c757d' }}>
+                    {effect.description}
+                  </div>
+                </div>
+                {isLocked && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1
+                  }}>
+                    <LockIcon size={30} color="white" strokeWidth={2} />
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -339,39 +399,67 @@ export const CollectionPage: React.FC = () => {
         <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
           In addition to a selected dice set, each run of Rollio has a DIFFICULTY.         </p>
         <div style={grid2ColStyle}>
-          {Object.values(DIFFICULTY_CONFIGS).map((difficulty) => (
-            <HoverTooltip key={difficulty.id} text={difficulty.description}>
-              <div style={{
-                padding: '20px',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                border: '2px solid #dee2e6',
-                textAlign: 'center',
-                cursor: 'help',
-                transition: 'all 0.2s',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '12px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#007bff';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#dee2e6';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}>
-                <DifficultyDiceDisplay difficulty={difficulty.id as any} size={60} />
-                <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '4px' }}>
-                  {difficulty.name}
+          {Object.values(DIFFICULTY_CONFIGS).map((difficulty) => {
+            const isPlastic = difficulty.id === 'plastic';
+            const isLocked = isAuthenticated && !isPlastic && !unlockedItems.has(`difficulty:${difficulty.id}`);
+            return (
+              <HoverTooltip key={difficulty.id} text={difficulty.description}>
+                <div style={{
+                  padding: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  border: '2px solid #dee2e6',
+                  textAlign: 'center',
+                  cursor: 'help',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#007bff';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#dee2e6';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}>
+                  <div style={{
+                    filter: isLocked ? 'grayscale(100%) brightness(0.5)' : 'none'
+                  }}>
+                    <DifficultyDiceDisplay difficulty={difficulty.id as any} size={60} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '4px' }}>
+                      {difficulty.name}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {difficulty.description}
+                    </div>
+                  </div>
+                  {isLocked && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 1
+                    }}>
+                      <LockIcon size={30} color="white" strokeWidth={2} />
+                    </div>
+                  )}
                 </div>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  {difficulty.description}
-                </div>
-              </div>
-            </HoverTooltip>
-          ))}
+              </HoverTooltip>
+            );
+          })}
         </div>
       </div>
      

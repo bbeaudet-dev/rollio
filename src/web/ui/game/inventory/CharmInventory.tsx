@@ -2,10 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CharmInventoryProps } from '../../../types/inventory';
 import { CharmCard } from '../../components/CharmCard';
 import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
+import { useUnlocks } from '../../../contexts/UnlockContext';
 import { CHARM_PRICES } from '../../../../game/data/charms';
 
 export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm, maxSlots }) => {
   const { highlightedCharmIds } = useScoringHighlights();
+  const { unlockedItems } = useUnlocks();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -29,8 +31,8 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
   const emptySlots = Math.max(0, slotsToShow - charms.length);
 
   return (
-    <div ref={containerRef}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 8px' }}>
+    <div ref={containerRef} style={{ paddingLeft: '12px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
         {charms.map((charm, index) => {
             const rarity = charm.rarity || 'common';
             const sellValue = CHARM_PRICES[rarity]?.sell || 2;
@@ -43,7 +45,6 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
                 <CharmCard
                   charm={charm}
                   highlighted={highlightedCharmIds.includes(charm.id) || isSelected}
-                  isInShop={false}
                   showSellButton={isSelected}
                   onSell={() => {
                     if (onSellCharm) {
@@ -51,6 +52,7 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
                       setSelectedIndex(null);
                     }
                   }}
+                  isInActiveGame={true}
                 />
                 {isSelected && onSellCharm && (
                   <div style={{
@@ -109,9 +111,7 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
               fontStyle: 'italic',
               boxSizing: 'border-box'
             }}
-          >
-            Empty
-          </div>
+          ></div>
         ))}
       </div>
     </div>

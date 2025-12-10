@@ -71,6 +71,28 @@ export class WebGameManager {
       const endReason = data.reason as 'win' | 'lost' | 'quit';
       await this.saveGameStats(data.gameState, endReason);
     });
+    
+    // Listen for item generation events and unlock items immediately
+    if (typeof window !== 'undefined') {
+      window.addEventListener('itemGenerated', (event: Event) => {
+        const customEvent = event as CustomEvent<{ type: 'consumable' | 'charm'; id: string }>;
+        this.handleItemGenerated(customEvent);
+      });
+    }
+  }
+  
+  /**
+   * Handle item generation events - unlock items immediately when they're generated
+   */
+  private async handleItemGenerated(event: CustomEvent<{ type: 'consumable' | 'charm'; id: string }>): Promise<void> {
+    const { type, id } = event.detail;
+    try {
+      const { progressApi } = await import('./api');
+      await progressApi.unlockItem(type, id);
+      window.dispatchEvent(new CustomEvent('unlock:refresh'));
+    } catch (error) {
+      console.debug(`Failed to unlock generated ${type}:`, error);
+    }
   }
   
   /**
@@ -170,7 +192,13 @@ export class WebGameManager {
       canRoll = !isProcessing && (this.gameAPI.canRoll(gameState) || justFlopped);
     }
     
-    const canSelectDice = this.gameAPI.canSelectDice(gameState) && breakdownState !== 'animating';
+    // After scoring (breakdownState is 'complete'), disable dice selection until next roll
+    // Only allow selection when we're in diceSelection mode (after rolling, before scoring)
+    // Also disable if we're in bankOrRoll state (after scoring, waiting to roll/bank)
+    const canSelectDice = this.gameAPI.canSelectDice(gameState) && 
+                          breakdownState !== 'animating' && 
+                          breakdownState !== 'complete' &&
+                          pendingAction.type === 'diceSelection';
     const canReroll = this.gameAPI.canReroll(gameState);
     
     const isWaitingForReroll = !!(roundState?.isActive && pendingAction.type === 'reroll' && 
@@ -221,6 +249,19 @@ export class WebGameManager {
     selectedBlessings?: number[]
   ): Promise<WebGameState> {
     resetLevelColors();
+    
+    // Mark any in_progress games as 'quit' when starting a new game
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        const { gameApi } = await import('./api');
+        // Call a new endpoint to mark in_progress games as quit
+        await gameApi.markInProgressGamesAsQuit();
+      }
+    } catch (error) {
+      console.error('Error marking in_progress games as quit:', error);
+      // Don't block game initialization if this fails
+    }
     
     // Pass selections to GameAPI 
     const result = await this.gameAPI.initializeGame(
@@ -429,6 +470,7 @@ export class WebGameManager {
       if (!result.success) {
         return state;
       }
+      
       const roundState = result.gameState.currentWorld?.currentLevel.currentRound || null;
       const diceToReroll = roundState?.diceHand.length || 0;
       this.gameInterface.askForBankOrRoll(diceToReroll);
@@ -761,6 +803,31 @@ export class WebGameManager {
     const gameState = result.gameState;
     const roundState = result.roundState !== undefined ? result.roundState : state.roundState;
     
+    // Track unlocks for pip effects when pip effect consumables are used
+    const consumable = state.gameState.consumables[index];
+    if (consumable && result.success) {
+      const pipEffectMap: Record<string, string> = {
+        'emptyAsAPocket': 'blank',
+        'moneyPip': 'money',
+        'stallion': 'wild',
+        'practice': 'upgradeCombo',
+        'phantom': 'twoFaced',
+        'accumulation': 'createConsumable'
+      };
+      
+      const pipEffectId = pipEffectMap[consumable.id];
+      if (pipEffectId) {
+        // Unlock the pip effect
+        const { progressApi } = await import('./api');
+        try {
+          await progressApi.unlockItem('pip_effect', pipEffectId);
+          window.dispatchEvent(new CustomEvent('unlock:refresh'));
+        } catch (error) {
+          console.debug('Failed to unlock pip effect:', error);
+        }
+      }
+    }
+    
     // Keep selected dice after using consumable
     const newState = this.createWebGameState(gameState, roundState, state.selectedDice, state.previewScoring, state.justBanked, state.justFlopped, state.isProcessing);
     
@@ -789,6 +856,16 @@ export class WebGameManager {
     
     if (result.success) {
       playPurchaseSound();
+      // Unlock the item in the user's collection (if authenticated)
+      try {
+        const { progressApi } = await import('./api');
+        await progressApi.unlockItem('charm', charm.id);
+        // Trigger unlock refresh event
+        window.dispatchEvent(new CustomEvent('unlock:refresh'));
+      } catch (error) {
+        // Silently fail if not authenticated or API error
+        console.debug('Failed to unlock charm:', error);
+      }
       // Mark the purchased item as null instead of regenerating the shop
       const newShopState = {
         ...state.shopState,
@@ -822,6 +899,16 @@ export class WebGameManager {
     
     if (result.success) {
       playPurchaseSound();
+      // Unlock the item in the user's collection (if authenticated)
+      try {
+        const { progressApi } = await import('./api');
+        await progressApi.unlockItem('consumable', consumable.id);
+        // Trigger unlock refresh event
+        window.dispatchEvent(new CustomEvent('unlock:refresh'));
+      } catch (error) {
+        // Silently fail if not authenticated or API error
+        console.debug('Failed to unlock consumable:', error);
+      }
       // Mark the purchased item as null instead of regenerating the shop
       const newShopState = {
         ...state.shopState,
@@ -855,6 +942,16 @@ export class WebGameManager {
     
     if (result.success) {
       playPurchaseSound();
+      // Unlock the item in the user's collection (if authenticated)
+      try {
+        const { progressApi } = await import('./api');
+        await progressApi.unlockItem('blessing', blessing.id);
+        // Trigger unlock refresh event
+        window.dispatchEvent(new CustomEvent('unlock:refresh'));
+      } catch (error) {
+        // Silently fail if not authenticated or API error
+        console.debug('Failed to unlock blessing:', error);
+      }
       // Mark the purchased item as null instead of regenerating the shop
       const newShopState = {
         ...state.shopState,

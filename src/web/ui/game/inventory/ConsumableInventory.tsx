@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ConsumableInventoryProps } from '../../../types/inventory';
 import { ConsumableCard } from '../../components/ConsumableCard';
+import { useUnlocks } from '../../../contexts/UnlockContext';
 import { WHIMS, WISHES } from '../../../../game/data/consumables';
 
 const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
@@ -14,6 +15,7 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
   onSellConsumable,
   maxSlots
 }) => {
+  const { unlockedItems } = useUnlocks();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +60,7 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
                     setSelectedIndex(null);
                   }}
                   highlighted={isSelected}
+                  isInActiveGame={true}
                 />
                 {isSelected && (
                   <div style={{
@@ -138,9 +141,7 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
               fontStyle: 'italic',
               boxSizing: 'border-box'
             }}
-          >
-            Empty
-          </div>
+          ></div>
         ))}
       </div>
     </div>

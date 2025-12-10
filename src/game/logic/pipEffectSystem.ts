@@ -60,9 +60,10 @@ export function applyPipEffect(
       break;
 
     case 'createConsumable':
-      // Create consumable pip effect: creates a random consumable, no score change
+      // Create consumable pip effect: 1 in 3 chance to create a random consumable, no score change
       const maxSlots = context.gameState.consumableSlots ?? 2;
-      if (context.gameState.consumables.length < maxSlots) {
+      // 1 in 3 chance (33.33%)
+      if (Math.random() < 1/3 && context.gameState.consumables.length < maxSlots) {
         const availableConsumables = CONSUMABLES.filter((c: any) => 
           !context.gameState.consumables.some((owned: any) => owned.id === c.id)
         );
@@ -70,6 +71,12 @@ export function applyPipEffect(
           const randomIdx = Math.floor(Math.random() * availableConsumables.length);
           const newConsumable = { ...availableConsumables[randomIdx] };
           context.gameState.consumables.push(newConsumable);
+          // Dispatch event to unlock the generated consumable
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('itemGenerated', { 
+              detail: { type: 'consumable', id: newConsumable.id } 
+            }));
+          }
         }
       }
       break;

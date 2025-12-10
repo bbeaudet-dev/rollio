@@ -7,6 +7,7 @@ import { runMigrations } from './migrations/runMigrations';
 import authRoutes from './routes/auth';
 import gameRoutes from './routes/game';
 import statsRoutes from './routes/stats';
+import progressRoutes from './routes/progress';
 
 dotenv.config();
 
@@ -83,11 +84,12 @@ app.get('/', (req, res) => {
   res.json({
     message: 'Rollio Backend API',
     status: 'running',
-    endpoints: {
+      endpoints: {
       health: '/health',
       auth: '/api/auth',
       game: '/api/game',
-      stats: '/api/stats'
+      stats: '/api/stats',
+      progress: '/api/progress'
     }
   });
 });
@@ -96,6 +98,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/progress', progressRoutes);
 
 // Room management
 interface Room {

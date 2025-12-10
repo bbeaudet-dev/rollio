@@ -288,15 +288,15 @@ export function calculateScoringBreakdown(
   
   scoringElements = charmValues;
 
-  // Step 6: Apply hot dice base multiplier (0.1x per hot dice counter)
+  // Step 6: Apply hot dice base multiplier (1.15^x cumulative)
   const hotDiceCounter = roundState.hotDiceCounter || 0;
   if (hotDiceCounter > 0) {
-    const hotDiceMultiplier = 1 + (hotDiceCounter * 0.1);
+    const hotDiceMultiplier = Math.pow(1.15, hotDiceCounter);
     scoringElements = multiplyMultiplier(scoringElements, hotDiceMultiplier);
     breakdown.addStep(
       'hotDiceMultiplier',
       scoringElements,
-      `Hot Dice (${hotDiceCounter}): ×${hotDiceMultiplier.toFixed(1)} multiplier`
+      `Hot Dice (${hotDiceCounter}): ×${hotDiceMultiplier.toFixed(3)} multiplier`
     );
   }
 

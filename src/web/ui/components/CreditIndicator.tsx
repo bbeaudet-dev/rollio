@@ -1,20 +1,24 @@
 import React from 'react';
 
-interface CreditCostDisplayProps {
+interface CreditIndicatorProps {
   cost: number;
   canAfford: boolean;
-  size?: 'small' | 'medium';
+  size?: 'small' | 'medium' | 'large';
+  maxDots?: number; // When to switch from dots to number + indicator
 }
 
-export const CreditCostDisplay: React.FC<CreditCostDisplayProps> = ({
+export const CreditIndicator: React.FC<CreditIndicatorProps> = ({
   cost,
   canAfford,
-  size = 'small'
+  size = 'medium',
+  maxDots = 5
 }) => {
-  const dotSize = size === 'small' ? '5px' : '7px';
-  const gap = size === 'small' ? '3px' : '4px';
-  const height = size === 'small' ? '8px' : '10px';
-  const fontSize = size === 'small' ? '10px' : '12px';
+  const dotSize = size === 'small' ? '5px' : size === 'medium' ? '7px' : '9px';
+  const gap = size === 'small' ? '3px' : size === 'medium' ? '4px' : '5px';
+  const height = size === 'small' ? '8px' : size === 'medium' ? '10px' : '12px';
+  const fontSize = size === 'small' ? '10px' : size === 'medium' ? '12px' : '14px';
+
+  const showDots = cost <= maxDots;
 
   return (
     <div style={{
@@ -27,20 +31,8 @@ export const CreditCostDisplay: React.FC<CreditCostDisplayProps> = ({
       color: canAfford ? '#28a745' : '#adb5bd',
       fontWeight: 'bold'
     }}>
-      {cost > 5 ? (
-        <>
-          <span>{cost}</span>
-          <div
-            style={{
-              width: dotSize,
-              height: dotSize,
-              backgroundColor: canAfford ? '#28a745' : '#adb5bd',
-              borderRadius: '2px',
-              flexShrink: 0
-            }}
-          />
-        </>
-      ) : (
+      {showDots ? (
+        // Show individual dots
         Array.from({ length: cost }, (_, i) => (
           <div
             key={i}
@@ -53,6 +45,20 @@ export const CreditCostDisplay: React.FC<CreditCostDisplayProps> = ({
             }}
           />
         ))
+      ) : (
+        // Show number + indicator
+        <>
+          <span>{cost}</span>
+          <div
+            style={{
+              width: dotSize,
+              height: dotSize,
+              backgroundColor: canAfford ? '#28a745' : '#adb5bd',
+              borderRadius: '2px',
+              flexShrink: 0
+            }}
+          />
+        </>
       )}
     </div>
   );

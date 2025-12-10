@@ -732,6 +732,12 @@ export class GeneratorCharm extends BaseCharm {
         const idx = Math.floor(Math.random() * CONSUMABLES.length);
         const newConsumable = { ...CONSUMABLES[idx] };
         context.gameState.consumables.push(newConsumable);
+        // Dispatch event to unlock the generated consumable
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('itemGenerated', { 
+            detail: { type: 'consumable', id: newConsumable.id } 
+          }));
+        }
       }
     }
     return {};

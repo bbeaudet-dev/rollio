@@ -108,8 +108,11 @@ router.get('/history', requireAuth, async (req: Request, res: Response) => {
     const charmRegistry = CharmRegistry.getInstance();
 
     const games = result.rows.map(row => {
-      // Extract dice set and level lost on from game state
+      // Extract dice set, charms, consumables, blessings, and level lost on from game state
       let diceSet: any[] = [];
+      let charms: any[] = [];
+      let consumables: any[] = [];
+      let blessings: any[] = [];
       let levelLostOn = row.levels_completed + 1; // Fallback
       
       if (row.game_state) {
@@ -118,7 +121,12 @@ router.get('/history', requireAuth, async (req: Request, res: Response) => {
             ? row.game_state 
             : JSON.stringify(row.game_state);
           const deserializedState = deserializeGameState(gameStateData, charmRegistry);
-          diceSet = deserializedState.config.diceSetConfig.dice || [];
+          // Use actual diceSet from gameState (includes all modifications, pip effects, etc.)
+          diceSet = deserializedState.diceSet || [];
+          // Extract charms, consumables, and blessings
+          charms = deserializedState.charms || [];
+          consumables = deserializedState.consumables || [];
+          blessings = deserializedState.blessings || [];
           // Get the level they lost/won on from currentWorld.currentLevel
           levelLostOn = deserializedState.currentWorld?.currentLevel?.levelNumber || row.levels_completed + 1;
         } catch (error) {
@@ -138,6 +146,9 @@ router.get('/history', requireAuth, async (req: Request, res: Response) => {
         highBank: row.high_bank,
         levelLostOn, // Extracted from gameState
         diceSet, // Include extracted dice set
+        charms, // Include extracted charms
+        consumables, // Include extracted consumables
+        blessings, // Include extracted blessings
         completedAt: row.completed_at,
       };
     });

@@ -221,22 +221,44 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
     const pathData: Array<{ from: NodePosition; to: NodePosition; offset: number; key: string }> = [];
     
     // First pass: collect all paths and calculate offsets
-    gameMap.connections.forEach((connectedNodeIds, fromNodeId) => {
-      const fromPos = getNodePosition(fromNodeId);
-      if (!fromPos) return;
-      
-      connectedNodeIds.forEach(toNodeId => {
-        const toPos = getNodePosition(toNodeId);
-        if (!toPos) return;
+    // Handle both Map and plain object (after JSON deserialization)
+    if (gameMap.connections instanceof Map) {
+      gameMap.connections.forEach((connectedNodeIds, fromNodeId) => {
+        const fromPos = getNodePosition(fromNodeId);
+        if (!fromPos) return;
         
-        const connectionKey = `${Math.min(fromNodeId, toNodeId)}-${Math.max(fromNodeId, toNodeId)}`;
-        if (renderedConnections.has(connectionKey)) return;
-        renderedConnections.add(connectionKey);
-        
-        const { offset } = calculateCurvedPath(fromPos, toPos, pathData, connectionKey);
-        pathData.push({ from: fromPos, to: toPos, offset, key: connectionKey });
+        connectedNodeIds.forEach(toNodeId => {
+          const toPos = getNodePosition(toNodeId);
+          if (!toPos) return;
+          
+          const connectionKey = `${Math.min(fromNodeId, toNodeId)}-${Math.max(fromNodeId, toNodeId)}`;
+          if (renderedConnections.has(connectionKey)) return;
+          renderedConnections.add(connectionKey);
+          
+          const { offset } = calculateCurvedPath(fromPos, toPos, pathData, connectionKey);
+          pathData.push({ from: fromPos, to: toPos, offset, key: connectionKey });
+        });
       });
-    });
+    } else {
+      // Plain object case (after JSON deserialization)
+      Object.entries(gameMap.connections as any).forEach(([fromNodeIdStr, connectedNodeIds]) => {
+        const fromNodeId = Number(fromNodeIdStr);
+        const fromPos = getNodePosition(fromNodeId);
+        if (!fromPos) return;
+        
+        (connectedNodeIds as number[]).forEach(toNodeId => {
+          const toPos = getNodePosition(toNodeId);
+          if (!toPos) return;
+          
+          const connectionKey = `${Math.min(fromNodeId, toNodeId)}-${Math.max(fromNodeId, toNodeId)}`;
+          if (renderedConnections.has(connectionKey)) return;
+          renderedConnections.add(connectionKey);
+          
+          const { offset } = calculateCurvedPath(fromPos, toPos, pathData, connectionKey);
+          pathData.push({ from: fromPos, to: toPos, offset, key: connectionKey });
+        });
+      });
+    }
     
     // Second pass: render paths
     pathData.forEach(({ from: fromPos, to: toPos, offset, key: connectionKey }) => {

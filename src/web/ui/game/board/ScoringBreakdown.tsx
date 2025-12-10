@@ -210,6 +210,12 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
 
     // Start with step 0 (base combinations)
     const baseStep = breakdown.steps[0];
+    if (!baseStep || !baseStep.input) {
+      setIsComplete(true);
+      hasStartedRef.current = true;
+      hasCompletedRef.current = true;
+      return;
+    }
     setCurrentElements(baseStep.input);
     previousElementsRef.current = baseStep.input;
     setCurrentStepIndex(0);

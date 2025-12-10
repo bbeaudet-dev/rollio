@@ -3,6 +3,7 @@ import { Charm, Consumable, Blessing } from '../../../../game/types';
 import { CharmCard } from '../../components/CharmCard';
 import { ConsumableCard } from '../../components/ConsumableCard';
 import { BlessingCard } from '../../components/BlessingCard';
+import { useUnlocks } from '../../../contexts/UnlockContext';
 
 interface ShopItemProps {
   item: Charm | Consumable | Blessing;
@@ -27,7 +28,9 @@ export const ShopItem: React.FC<ShopItemProps> = ({
   isSelected = false,
   onSelect
 }) => {
+  const { unlockedItems } = useUnlocks();
   const itemRef = useRef<HTMLDivElement>(null);
+  const isLocked = !unlockedItems.has(`${itemType}:${item.id}`);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,7 +59,8 @@ export const ShopItem: React.FC<ShopItemProps> = ({
         showBuyButton={isSelected}
         onBuy={() => handlePurchase({} as React.MouseEvent)}
         highlighted={isSelected}
-        isInShop={true}
+        isInActiveGame={true}
+        isLocked={isLocked}
       />
         {isSelected && (
           <div style={{
@@ -106,6 +110,8 @@ export const ShopItem: React.FC<ShopItemProps> = ({
           showBuyButton={isSelected}
           onBuy={() => handlePurchase({} as React.MouseEvent)}
           highlighted={isSelected}
+          isInActiveGame={true}
+          isLocked={isLocked}
         />
         {isSelected && (
           <div style={{
@@ -155,6 +161,8 @@ export const ShopItem: React.FC<ShopItemProps> = ({
         showBuyButton={isSelected}
         onBuy={() => handlePurchase({} as React.MouseEvent)}
         highlighted={isSelected}
+        isInActiveGame={true}
+        isLocked={isLocked}
       />
       {isSelected && (
         <div style={{
