@@ -4,7 +4,7 @@ import { verifyToken } from '../auth/authUtils';
 import { serializeGameState, deserializeGameState } from '../utils/gameStateSerialization';
 import { CharmRegistry } from '../../game/logic/charmSystem';
 import { registerCharms } from '../../game/logic/charms/index';
-import { saveGameCompletion } from '../utils/gameStats';
+import { saveGameCompletion, upsertCurrentGame, markInProgressGamesAsQuit } from '../utils/gameStats';
 
 const router = Router();
 
@@ -71,11 +71,6 @@ router.post('/save', requireAuth, async (req: Request, res: Response) => {
          WHERE user_id = $2 AND is_active = true`,
         [serializedState, userId]
       );
-
-      return res.json({
-        success: true,
-        message: 'Game saved successfully'
-      });
     } else {
       // Create new save
       const result = await query(
@@ -84,18 +79,69 @@ router.post('/save', requireAuth, async (req: Request, res: Response) => {
          RETURNING id, created_at, updated_at`,
         [userId, serializedState]
       );
-
-      return res.json({
-        success: true,
-        message: 'Game saved successfully',
-        saveId: result.rows[0].id
-      });
     }
+    
+    // Also upsert current game to completed_games for recent games display
+    // Import deserializeGameState to get GameState object
+    const { deserializeGameState } = await import('../utils/gameStateSerialization');
+    registerCharms();
+    const charmRegistry = CharmRegistry.getInstance();
+    const deserializedState = deserializeGameState(serializedState, charmRegistry);
+    await upsertCurrentGame(userId, deserializedState);
+
+    return res.json({
+      success: true,
+      message: 'Game saved successfully'
+    });
   } catch (error) {
     console.error('Save game error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to save game'
+    });
+  }
+});
+
+/**
+ * Mark in_progress games as quit
+ * POST /api/game/mark-quit
+ */
+router.post('/mark-quit', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    await markInProgressGamesAsQuit(userId);
+    
+    return res.json({
+      success: true,
+      message: 'In-progress games marked as quit'
+    });
+  } catch (error) {
+    console.error('Mark quit error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to mark games as quit'
+    });
+  }
+});
+
+/**
+ * Mark in_progress games as quit
+ * POST /api/game/mark-quit
+ */
+router.post('/mark-quit', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    await markInProgressGamesAsQuit(userId);
+    
+    return res.json({
+      success: true,
+      message: 'In-progress games marked as quit'
+    });
+  } catch (error) {
+    console.error('Mark quit error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to mark games as quit'
     });
   }
 });

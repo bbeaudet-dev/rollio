@@ -220,6 +220,16 @@ export const gameApi = {
   },
 
   /**
+   * Mark in_progress games as quit
+   * Called when starting a new game
+   */
+  async markInProgressGamesAsQuit(): Promise<ApiResponse> {
+    return apiRequest('/api/game/mark-quit', {
+      method: 'POST',
+    });
+  },
+
+  /**
    * Load saved game
    * Returns success: false with no error for 404s (expected when no save exists)
    */
@@ -354,6 +364,46 @@ export const statsApi = {
    */
   async getLeaderboard(): Promise<ApiResponse> {
     return apiRequest('/api/stats/leaderboard');
+  },
+};
+
+/**
+ * Progress API functions
+ */
+export const progressApi = {
+  /**
+   * Record a difficulty completion
+   */
+  async completeDifficulty(difficulty: string): Promise<ApiResponse> {
+    return apiRequest('/api/progress/complete-difficulty', {
+      method: 'POST',
+      body: JSON.stringify({ difficulty }),
+    });
+  },
+
+  /**
+   * Record an item unlock
+   */
+  async unlockItem(unlockType: 'charm' | 'consumable' | 'blessing' | 'pip_effect' | 'material' | 'difficulty', unlockId: string): Promise<ApiResponse> {
+    return apiRequest('/api/progress/unlock-item', {
+      method: 'POST',
+      body: JSON.stringify({ unlockType, unlockId }),
+    });
+  },
+
+  /**
+   * Get all difficulty completions for the current user
+   */
+  async getCompletions(): Promise<ApiResponse> {
+    return apiRequest('/api/progress/completions');
+  },
+
+  /**
+   * Get all unlocked items for the current user
+   */
+  async getUnlocks(unlockType?: 'charm' | 'consumable' | 'blessing' | 'pip_effect' | 'material' | 'difficulty'): Promise<ApiResponse> {
+    const query = unlockType ? `?unlockType=${unlockType}` : '';
+    return apiRequest(`/api/progress/unlocks${query}`);
   },
 };
 

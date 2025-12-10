@@ -31,11 +31,17 @@ export const SinglePlayerGame: React.FC = () => {
     difficulty: string;
   }) => {
     if (config.customDiceSetConfig) {
-      // New game mode with custom dice set
+      // New game mode or Debug mode with custom dice set
       setShowConfigSelector(false);
-      game.gameActions.startNewGame(config.customDiceSetConfig, config.difficulty);
+      game.gameActions.startNewGame(
+        config.customDiceSetConfig, 
+        config.difficulty,
+        config.selectedCharms,
+        config.selectedConsumables,
+        config.selectedBlessings
+      );
     } else if (config.diceSetIndex !== undefined) {
-      // Extras mode with dice set index
+      // Legacy extras mode with dice set index
       setSelectedDiceSetIndex(config.diceSetIndex);
       setShowConfigSelector(false);
       game.gameActions.startNewGame(config.diceSetIndex, config.difficulty, config.selectedCharms, config.selectedConsumables, config.selectedBlessings);

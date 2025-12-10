@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
 import { Blessing } from '../../../../game/types';
 import { BlessingCard } from '../../components/BlessingCard';
+import { useUnlocks } from '../../../contexts/UnlockContext';
 
 interface BlessingInventoryProps {
   blessings: Blessing[];
 }
 
 export const BlessingInventory: React.FC<BlessingInventoryProps> = ({ blessings }) => {
+  const { unlockedItems } = useUnlocks();
   // Group blessings by base ID (everything before "Tier")
   const groupedBlessings = useMemo(() => {
     const groups: Record<string, Blessing[]> = {};
@@ -39,7 +41,7 @@ export const BlessingInventory: React.FC<BlessingInventoryProps> = ({ blessings 
   const overlapOffset = Math.round(cardSize * 0.5); // 50% offset = 50% visible (more stacked)
 
   return (
-    <div>
+    <div style={{ paddingRight: '12px' }}>
       {blessings.length === 0 ? (
         <p style={{ 
           fontSize: '10px', 
@@ -68,7 +70,10 @@ export const BlessingInventory: React.FC<BlessingInventoryProps> = ({ blessings 
                     zIndex: index
                   }}
                 >
-                  <BlessingCard blessing={blessing} />
+                  <BlessingCard 
+                    blessing={blessing}
+                    isInActiveGame={true}
+                  />
                 </div>
               ))}
             </div>

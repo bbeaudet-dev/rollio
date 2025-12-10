@@ -76,117 +76,74 @@ export const HowToPlayPage: React.FC = () => {
         fontStyle: 'italic'
       }}>
         Welcome to Rollio, the dice-rolling roguelike!
-        The rules take some inspiration from poker, Farkle, and Balatro, so if you're familiar with any of those, you'll pick up Rollio in no time!
       </div>
 
-      {/* Rolling and Scoring */}
       <div style={sectionStyle}>
-        <h2 style={headerStyle}>Rolling and Combinations</h2>
+        <h2 style={headerStyle}>Rolling and Scoring</h2>
         <p style={textStyle}>
-          You start by rolling all of your dice. Your goal is to combine the dice values in different ways (like the different *hands* in Poker, e.g. Two Pair, Full House, Straight) in order to score points. 
-        </p>
-        <p style={textStyle}>
-          Valid combinations include:
+          You start by rolling all of your dice. Your goal is to score points by combining the dice in different patterns (like hands in Poker, e.g. Two Pair, Full House, Straight). Combinations include:
         </p>
         <ul style={listStyle}>
-          <li><strong>Singles:</strong> Individual dice with values 1 or 5</li>
+          <li><strong>Singles:</strong> 1s and 5s are special and can be played individually</li>
           <li><strong>Pairs:</strong> Set(s) of two dice with the same value</li>
-          <li><strong>N of a Kind:</strong> Three or more dice with the same value (3-3-3, 6-6-6-6-6</li>
+          <li><strong>N of a Kind:</strong> Three or more dice with the same value (e.g. 3-3-3, 6-6-6-6-6)</li>
           <li><strong>Straights:</strong> Four or more dice with consecutive values (e.g., 1-2-3-4)</li>
           <li><strong>Pyramids:</strong> Dice forming a consecutive "layered" pattern (e.g. 3-3-3-2-2-1))</li>
+          <li><strong>N-Tuplets:</strong> Two or more tuplets of three or more (e.g. two triplets, four triplets, three quintuplets, six quadruplets)</li>
         </ul>
         <p style={textStyle}>
-          After selecting dice and scoring these combinations, the selected dice are removed from your hand. You can then choose to roll the remaining dice again or play it safe and end the round.
-        </p>
-        <p style={textStyle}>
-          If you manage to score 
+          After scoring one or more combinations, the included dice are temporarily removed from your hand. You then have a chance to roll again with the remaining dice, and the process repeats. 
         </p>
       </div>
 
-      {/* Flopping and Hot Dice */}
       <div style={sectionStyle}>
-        <h2 style={headerStyle}>Flopping and Rerolls</h2>
+        <h2 style={headerStyle}>Flopping & Banking</h2>
         <p style={textStyle}>
-          Each time you score dice, the points are added to a running <strong>round total</strong> - but they're not safe yet! Continuing to roll the remaining dice risks losing these points - that is, until you decide to stop rolling and <strong>Bank</strong> them. A core element of Rollio is the risk/reward balance of deciding when to play it safe and when to risk it all.
+          The game is made up of <strong>Levels</strong> with progressively higher thresholds for how many points you need to score. Some levels have additional effects that make them more challenging and require different strategies.
         </p>
         <p style={textStyle}>
-           <strong>flop</strong> occurs when you roll dice and there are no valid scoring combinations available. When you flop, you lose all unbanked points for that round and the round ends.
+          Each time you score dice after rolling, the points are added to a running <strong>Round</strong> total - but they're not safe yet! If you choose to roll again and are unable to form any combinations, you forfeit this Round total - this is called a <strong>Flop</strong>.
         </p>
         <p style={textStyle}>
-          <strong>Hot Dice:</strong> If you score all your dice in a single roll, you get "Hot Dice" and can roll all your dice again without using a reroll!
-        </p>
-        <p style={textStyle}>
-          Each level gives you a certain number of <strong>rerolls</strong>. After scoring dice, you can choose to reroll some or all of the remaining dice. You can also skip the reroll if you want to bank your points instead.
-        </p>
-        <p style={textStyle}>
-          <strong>Progressive Flop Penalty:</strong> Each flop in a level incurs an increasing penalty that reduces your banked points. The first flop has no penalty, but subsequent flops become increasingly costly!
+          To safeguard your points, you can choose to <strong>Bank</strong> them instead of continuing to roll - points only count towards the Level score once they are banked. You will have a limited number of Banks per Level.
         </p>
       </div>
 
-      {/* Worlds, Levels, Rounds, Rolls */}
       <div style={sectionStyle}>
-        <h2 style={headerStyle}>Worlds, Levels, Rounds, and Rolls</h2>
+        <h2 style={headerStyle}>Hot Dice & Rerolls</h2>
         <p style={textStyle}>
-          The game is organized into a hierarchy:
+          All dice are returned to your hand after either banking or flopping. If you manage to score all of the dice in your hand, either in a single roll or over multiple rolls without flopping or banking, you get "Hot Dice", and all of your dice return to your hand. Whereas banking and flopping end the round, Hot Dice continues a round. 
         </p>
-        <ul style={listStyle}>
-          <li><strong>Worlds:</strong> Every 5 levels forms a world. Each world has unique effects that apply to all levels within it. After completing a world, you'll choose your next world from a map.</li>
-          <li><strong>Levels:</strong> Each level has a point threshold you must reach by banking points. Complete 25 levels to win the game!</li>
-          <li><strong>Rounds:</strong> Within each level, you play multiple rounds. Each round starts with rolling all your dice.</li>
-          <li><strong>Rolls:</strong> Within each round, you can roll your dice multiple times (using rerolls) to build up your round score before banking.</li>
-        </ul>
         <p style={textStyle}>
-          <strong>Minibosses and Bosses:</strong> The 2nd and 4th levels of each world feature minibosses with special effects. The 5th level of each world is a main boss with even more challenging effects!
+          You also have a limited number of <strong>Rerolls</strong> per Level. Whereas you typically have to score at least one combination in between rolls, rerolls allow you to roll one or more dice without having to score or remove any dice. These come in handy to prevent flops!
         </p>
       </div>
 
-      {/* Shop, Charms, Consumables, Blessings */}
       <div style={sectionStyle}>
-        <h2 style={headerStyle}>Shop, Charms, Consumables, and Blessings</h2>
+        <h2 style={headerStyle}>The Shop & Dice Modification</h2>
         <p style={textStyle}>
           After completing each level, you'll visit the <strong>Shop</strong> where you can purchase items to help you on your journey:
         </p>
         <ul style={listStyle}>
-          <li><strong>Charms:</strong> Permanent items that provide ongoing bonuses and abilities. They stay in your inventory and affect gameplay as long as you hold them. Charms have different rarities (common, uncommon, rare, legendary) and can be sold if you need money.</li>
-          <li><strong>Consumables:</strong> One-time-use items (Whims and Wishes) that provide immediate effects like money, dice manipulation, or special actions. Once used, they're removed from your inventory.</li>
-          <li><strong>Blessings:</strong> Permanent upgrades with 3 tiers of effects. Each tier must be purchased separately, and blessings cannot be sold. They provide persistent bonuses throughout your run.</li>
+          <li><strong>Charms:</strong> Items that provide ongoing bonuses and abilities as long as they stay in your inventory</li>
+          <li><strong>Consumables:</strong> One-time-use items that provide immediate effects</li>
+          <li><strong>Blessings:</strong> Permanent upgrades with 3 tiers of effects, purchased separately</li>
         </ul>
         <p style={textStyle}>
-          You can also use consumables and sell charms/consumables directly from your inventory during gameplay.
-        </p>
-      </div>
-
-      {/* Materials and Pip Effects */}
-      <div style={sectionStyle}>
-        <h2 style={headerStyle}>Materials and Pip Effects</h2>
-        <p style={textStyle}>
-          Each die in your set has a <strong>Material</strong> that provides special effects. Plastic is the default material with no special effect, but other materials like Crystal, Flower, Golden, and more provide powerful abilities that are essential for success.
-        </p>
-        <p style={textStyle}>
-          <strong>Pip Effects</strong> can be applied to individual sides of your dice. When that side is face-up after a roll, the pip effect activates. These effects can modify dice values, provide bonuses, or trigger special abilities.
-        </p>
-        <p style={textStyle}>
-          You can view and manage your dice set, materials, and pip effects in the Collection page.
-        </p>
-      </div>
-
-      {/* Winning the Game and Difficulty Levels */}
-      <div style={sectionStyle}>
-        <h2 style={headerStyle}>Winning the Game and Difficulty Levels</h2>
-        <p style={textStyle}>
-          <strong>Win Condition:</strong> Complete all 25 levels (5 worlds × 5 levels) to win the game!
-        </p>
-        <p style={textStyle}>
-          <strong>Difficulty Levels:</strong> When starting a new game, you'll choose a difficulty level. Each difficulty has unique effects and modifiers that make the game more challenging:
+          In addition to purchasing these bonuses, there are a few ways to modify the dice in your set:
         </p>
         <ul style={listStyle}>
-          <li><strong>Plastic/Copper:</strong> Beginner difficulties with basic effects</li>
-          <li><strong>Silver/Gold/Rose Gold:</strong> Intermediate difficulties with moderate challenges</li>
-          <li><strong>Platinum/Sapphire/Emerald/Ruby:</strong> Advanced difficulties with significant restrictions and modifiers</li>
-          <li><strong>Diamond/Quantum:</strong> Expert difficulties with extreme challenges and unique mechanics</li>
+          <li><strong>Materials:</strong> Each die has a single material. Plastic is the default, with other materials providing special bonuses.</li>
+          <li><strong>Pip Effects:</strong> Each side of each die can have a pip effect, which provides a special effect if that particular side is rolled and scored.</li>
+          <li><strong>Side Values:</strong>The values of each side of each die can also be changed incrementally.</li>
         </ul>
+      </div>
+
+      {/* Winning the Game */}
+      <div style={sectionStyle}>
+        <h2 style={headerStyle}>Winning the Game</h2>
         <p style={textStyle}>
-          Higher difficulties provide greater rewards but also impose cumulative effects from all lower difficulties. Choose wisely!
+          <strong>Win Condition:</strong> Complete 25 levels to win the game!
         </p>
       </div>
 

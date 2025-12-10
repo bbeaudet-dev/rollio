@@ -7,6 +7,105 @@ import { GameState } from '../../game/types';
 import { serializeGameState } from './gameStateSerialization';
 
 /**
+ * Upsert current game to completed_games with 'in_progress' status
+ * Called during auto-save to show current game in recent games
+ */
+export async function upsertCurrentGame(
+  userId: string,
+  gameState: GameState
+): Promise<void> {
+  try {
+    const diceSetName = gameState.config.diceSetConfig.name || 'Unknown';
+    const difficulty = gameState.config.difficulty;
+    
+    const currentLevel = gameState.currentWorld?.currentLevel;
+    const finalScore = currentLevel?.pointsBanked || 0;
+    const levelsCompleted = currentLevel?.levelNumber ? currentLevel.levelNumber - 1 : 0;
+    
+    let totalRounds = 0;
+    if (currentLevel?.currentRound) {
+      totalRounds = currentLevel.currentRound.roundNumber || 1;
+    }
+    
+    const highSingleRoll = gameState.history.highScoreSingleRoll || 0;
+    const highBank = gameState.history.highScoreBank || 0;
+    
+    // Check if there's already an in_progress game for this user
+    const existing = await query(
+      `SELECT id FROM completed_games 
+       WHERE user_id = $1 AND end_reason = 'in_progress'
+       ORDER BY completed_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+    
+    if (existing.rows.length > 0) {
+      // Update existing in_progress game
+      await query(
+        `UPDATE completed_games 
+         SET dice_set_name = $1, difficulty = $2, final_score = $3,
+             levels_completed = $4, total_rounds = $5,
+             high_single_roll = $6, high_bank = $7,
+             game_state = $8, completed_at = NOW()
+         WHERE id = $9`,
+        [
+          diceSetName,
+          difficulty,
+          finalScore,
+          levelsCompleted,
+          totalRounds,
+          highSingleRoll,
+          highBank,
+          serializeGameState(gameState),
+          existing.rows[0].id
+        ]
+      );
+    } else {
+      // Insert new in_progress game
+      await query(
+        `INSERT INTO completed_games 
+         (user_id, dice_set_name, difficulty, end_reason, final_score, 
+          levels_completed, total_rounds, high_single_roll, high_bank, 
+          game_state, started_at, completed_at)
+         VALUES ($1, $2, $3, 'in_progress', $4, $5, $6, $7, $8, $9, NOW(), NOW())`,
+        [
+          userId,
+          diceSetName,
+          difficulty,
+          finalScore,
+          levelsCompleted,
+          totalRounds,
+          highSingleRoll,
+          highBank,
+          serializeGameState(gameState)
+        ]
+      );
+    }
+  } catch (error) {
+    console.error('Error upserting current game:', error);
+    // Don't throw - we don't want to break the game flow if stats fail
+  }
+}
+
+/**
+ * Mark any in_progress games as 'quit' for a user
+ * Called when starting a new game
+ */
+export async function markInProgressGamesAsQuit(userId: string): Promise<void> {
+  try {
+    await query(
+      `UPDATE completed_games 
+       SET end_reason = 'quit', completed_at = NOW()
+       WHERE user_id = $1 AND end_reason = 'in_progress'`,
+      [userId]
+    );
+  } catch (error) {
+    console.error('Error marking in_progress games as quit:', error);
+    // Don't throw - we don't want to break the game flow if stats fail
+  }
+}
+
+/**
  * Save game completion statistics
  * Called when a game ends (win, loss, or quit)
  */
@@ -66,6 +165,37 @@ export async function saveGameCompletion(
     
     // Save combination usage
     await saveCombinationUsage(userId, gameState);
+    
+    // Record difficulty completion if game was won
+    if (endReason === 'win') {
+      try {
+        await query(
+          `INSERT INTO difficulty_completions (user_id, difficulty, completed_at)
+           VALUES ($1, $2, NOW())
+           ON CONFLICT (user_id, difficulty) DO NOTHING`,
+          [userId, difficulty]
+        );
+        
+        // Also unlock the NEXT difficulty (not the current one)
+        try {
+          const DIFFICULTY_ORDER = ['plastic', 'copper', 'silver', 'gold', 'roseGold', 'platinum', 'sapphire', 'emerald', 'ruby', 'diamond', 'quantum'];
+          const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
+          if (currentIndex >= 0 && currentIndex < DIFFICULTY_ORDER.length - 1) {
+            const nextDifficulty = DIFFICULTY_ORDER[currentIndex + 1];
+            await query(
+              `INSERT INTO unlocked_items (user_id, unlock_type, unlock_id, unlocked_at)
+               VALUES ($1, 'difficulty', $2, NOW())
+               ON CONFLICT (user_id, unlock_type, unlock_id) DO NOTHING`,
+              [userId, nextDifficulty]
+            );
+          }
+        } catch (error) {
+          console.error('Error unlocking difficulty:', error);
+        }
+      } catch (error) {
+        console.error('Error recording difficulty completion:', error);
+      }
+    }
     
   } catch (error) {
     console.error('Error saving game completion:', error);

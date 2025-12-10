@@ -11,11 +11,13 @@ export const MainMenu: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hasSavedGame, setHasSavedGame] = useState(false);
+  const [gameInfo, setGameInfo] = useState<{ worldNumber: number; levelNumber: number } | null>(null);
 
   // Check for saved game in the background (non-blocking)
   useEffect(() => {
     if (!isAuthenticated) {
       setHasSavedGame(false);
+      setGameInfo(null);
       return;
     }
 
@@ -23,8 +25,23 @@ export const MainMenu: React.FC = () => {
     gameApi.loadGame().then(result => {
       const hasGame = result.success && !!(result as any).gameState;
       setHasSavedGame(hasGame);
+      
+      if (hasGame) {
+        const gameState = (result as any).gameState;
+        const currentWorld = gameState.currentWorld;
+        if (currentWorld) {
+          const worldNumber = currentWorld.worldNumber;
+          const levelNumber = currentWorld.currentLevel?.levelNumber;
+          setGameInfo({ worldNumber, levelNumber });
+        } else {
+          setGameInfo(null);
+        }
+      } else {
+        setGameInfo(null);
+      }
     }).catch(() => {
       setHasSavedGame(false);
+      setGameInfo(null);
     });
   }, [isAuthenticated]);
   return (
@@ -84,9 +101,18 @@ export const MainMenu: React.FC = () => {
             onClick={() => navigate('/game?load=true')}
             disabled={!isAuthenticated || !hasSavedGame}
             size="large"
-            style={{ flex: 1, padding: '20px 32px', minHeight: '60px', fontSize: '17px' }}
+            style={{ flex: 1, padding: '20px 32px', minHeight: '60px', fontSize: '17px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
           >
-            Continue Game
+            <span>Continue Game</span>
+            {hasSavedGame && gameInfo && (
+              <span style={{
+                fontSize: '12px',
+                opacity: 0.8,
+                fontWeight: 'normal'
+              }}>
+                World {gameInfo.worldNumber} - Level {gameInfo.levelNumber}
+              </span>
+            )}
           </ActionButton>
         </div>
         

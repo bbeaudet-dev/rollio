@@ -6,6 +6,7 @@ import { ShopItemList } from './ShopItemList';
 import { useShopActions } from '../../../contexts/ShopActionsContext';
 import { NextLevelPreview } from './NextLevelPreview';
 import { DifficultyLevel } from '../../../../game/logic/difficulty';
+import { ViewDiceSet } from '../board/ViewDiceSet';
 
 interface ShopDisplayProps {
   shopState: ShopState;
@@ -67,6 +68,11 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
           )
         `
       }} />
+      
+      {/* Dice Set Viewer - Bottom Right */}
+      {gameState?.diceSet && gameState.diceSet.length > 0 && (
+        <ViewDiceSet diceSet={gameState.diceSet} />
+      )}
       
       {/* Content container */}
       <div style={{

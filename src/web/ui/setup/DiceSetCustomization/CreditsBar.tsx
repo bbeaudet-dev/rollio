@@ -20,24 +20,26 @@ export const CreditsBar: React.FC<CreditsBarProps> = ({
 
   return (
     <div style={{ marginBottom: '20px' }}>
+      {/* Credits text and indicators on the same row */}
       <div style={{
         display: 'flex',
-        justifyContent: 'space-between',
+        gap: '12px',
         alignItems: 'center',
-        marginBottom: '12px'
+        flexWrap: 'wrap'
       }}>
-        <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#2c3e50' }}>
-          Credits: <span style={{ color: getCreditColor(), fontSize: '24px' }}>{creditsRemaining}</span> <span style={{ fontSize: '20px' }}>/</span> <span style={{ fontSize: '24px' }}>{startingCredits}</span>
+        {/* Credits text */}
+        <span style={{  fontWeight: 'bold' }}>
+          <span style={{ fontSize: '24px', color: getCreditColor(), fontWeight: 'bold' }}>{creditsRemaining}</span>
+          <span style={{ fontSize: '20px', color: '#2c3e50' }}> / </span>
+          <span style={{ fontSize: '24px', color: '#2c3e50', fontWeight: 'bold' }}>{startingCredits}</span>
         </span>
-      </div>
-      {/* 30 Individual Bars - Order: Green (available) on left -> Gray (used) in middle -> Red (unavailable) on right */}
-      <div style={{
-        display: 'flex',
-        gap: '4px',
-        flexWrap: 'wrap',
-        justifyContent: 'flex-start',
-        alignItems: 'center'
-      }}>
+        {/* Individual Bars - Order: Green (available) on left -> Gray (used) in middle -> Red (unavailable) on right */}
+        <div style={{
+          display: 'flex',
+          gap: '4px',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
         {Array.from({ length: 30 }, (_, index) => {
           // Order: Green (available) on left -> Gray (used) in middle -> Red (unavailable) on right
           // Green: index < creditsRemaining (available, not used)
@@ -80,6 +82,7 @@ export const CreditsBar: React.FC<CreditsBarProps> = ({
             />
           );
         })}
+        </div>
       </div>
     </div>
   );

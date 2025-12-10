@@ -277,7 +277,9 @@ export const Game: React.FC<GameProps> = ({
             onDeselect={rollActions.handleDeselectAllDice}
             onRollOrScore={() => {
               // Rolling & Scoring Button (middle)
-              if (board.selectedDice.length > 0 && board.previewScoring?.isValid) {
+              // Only score if we're in diceSelection mode (canSelectDice is true) and have valid selection
+              // After scoring (breakdownState is 'complete'), always roll, don't score again
+              if (board.canSelectDice && board.selectedDice.length > 0 && board.previewScoring?.isValid) {
                 rollActions.scoreSelectedDice();
               } else {
                 rollActions.handleRollDice();

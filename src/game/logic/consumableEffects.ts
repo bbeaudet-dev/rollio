@@ -247,6 +247,14 @@ export function applyConsumableEffect(
       // Create consumable objects with uses property
       const consumablesToAdd = selected.slice(0, toAdd).map(c => ({ ...c, uses: 1 }));
       newGameState.consumables = [...newGameState.consumables, ...consumablesToAdd];
+      // Dispatch events to unlock each generated consumable
+      if (typeof window !== 'undefined') {
+        consumablesToAdd.forEach(consumable => {
+          window.dispatchEvent(new CustomEvent('itemGenerated', { 
+            detail: { type: 'consumable', id: consumable.id } 
+          }));
+        });
+      }
       break;
     }
 
@@ -388,6 +396,12 @@ export function applyConsumableEffect(
       const newCharm = { ...available[randomIdx], active: true };
       newGameState.charms = [...newGameState.charms, newCharm];
       charmManager.addCharm(newCharm);
+      // Dispatch event to unlock the generated charm
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('itemGenerated', { 
+          detail: { type: 'charm', id: newCharm.id } 
+        }));
+      }
       break;
     }
 
@@ -418,7 +432,15 @@ export function applyConsumableEffect(
       }
       const newCharms = selected.map(c => ({ ...c, active: true }));
       newGameState.charms = [...newGameState.charms, ...newCharms];
-      newCharms.forEach(charm => charmManager.addCharm(charm));
+      newCharms.forEach(charm => {
+        charmManager.addCharm(charm);
+        // Dispatch event to unlock each generated charm
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('itemGenerated', { 
+            detail: { type: 'charm', id: charm.id } 
+          }));
+        }
+      });
       break;
     }
 
@@ -803,7 +825,36 @@ export function applyDieSelectionConsumable(
       }
     }
 
-    // Modify rolled values: chisel increases, potteryWheel decreases
+    // Modify both diceSet (allowed values) and diceHand (rolled values)
+    // First, find the corresponding dice in diceSet by matching IDs
+    const diceToModify: Array<{ diceSetIndex: number; die: any }> = [];
+    for (const dieIndex of selectedIndices) {
+      const diceHandDie = newRoundState.diceHand[dieIndex];
+      if (!diceHandDie) continue;
+      
+      const diceSetIndex = newGameState.diceSet.findIndex(d => d.id === diceHandDie.id);
+      if (diceSetIndex !== -1) {
+        diceToModify.push({ diceSetIndex, die: newGameState.diceSet[diceSetIndex] });
+      }
+    }
+
+    // Modify diceSet - update allowed values
+    newGameState.diceSet = newGameState.diceSet.map((die, i) => {
+      const toModify = diceToModify.find(d => d.diceSetIndex === i);
+      if (toModify) {
+        const newAllowedValues = die.allowedValues.map(val => {
+          if (consumableId === 'chisel') {
+            return Math.min(6, val + 1) as any;
+          } else {
+            return Math.max(1, val - 1) as any;
+          }
+        });
+        return { ...die, allowedValues: newAllowedValues };
+      }
+      return die;
+    });
+
+    // Modify diceHand - update rolled values
     newRoundState.diceHand = newRoundState.diceHand.map((die, i) => {
       if (selectedIndices.includes(i)) {
         const currentValue = die.rolledValue ?? 1;

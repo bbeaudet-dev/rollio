@@ -359,10 +359,8 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
         position: 'relative',
         margin: '0 auto',
         overflow: 'visible',
-        filter: isGem 
-          ? `drop-shadow(0 0 ${size * 0.15}px ${getGlowColor()}) drop-shadow(0 0 ${size * 0.3}px ${getGlowColor()})`
-          : isDiamond
-          ? `drop-shadow(0 0 ${size * 0.2}px ${getGlowColor()}) drop-shadow(0 0 ${size * 0.4}px ${getGlowColor()}) drop-shadow(0 0 ${size * 0.6}px rgba(0, 188, 212, 0.5))`
+        filter: (isGem || isDiamond || isQuantum) 
+          ? `drop-shadow(0 0 ${size * 0.1}px ${getGlowColor()})`
           : 'none'
       }}
     >
@@ -420,19 +418,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                 <stop offset="75%" stopColor="#ffd700" stopOpacity="1" />
                 <stop offset="100%" stopColor="#daa520" stopOpacity="1" />
               </linearGradient>
-              <linearGradient id="goldFlash" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="25%" stopColor="rgba(255,215,0,0.6)" />
-                <stop offset="75%" stopColor="rgba(255,215,0,0.6)" />
-                <stop offset="100%" stopColor="transparent" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="translate"
-                  values="0,0; 120,0; 0,0"
-                  dur="2s"
-                  repeatCount="indefinite"
-                />
-              </linearGradient>
             </>
           )}
           {difficulty === 'roseGold' && (
@@ -443,19 +428,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                 <stop offset="50%" stopColor="#ffb6c1" stopOpacity="1" />
                 <stop offset="75%" stopColor="#ffc0cb" stopOpacity="1" />
                 <stop offset="100%" stopColor="#ffd1dc" stopOpacity="1" />
-              </linearGradient>
-              <linearGradient id="roseGoldFlash" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="25%" stopColor="rgba(255,182,193,0.6)" />
-                <stop offset="75%" stopColor="rgba(255,192,203,0.6)" />
-                <stop offset="100%" stopColor="transparent" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="translate"
-                  values="0,0; 120,0; 0,0"
-                  dur="2s"
-                  repeatCount="indefinite"
-                />
               </linearGradient>
             </>
           )}
@@ -468,19 +440,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                 <stop offset="60%" stopColor="#ffffff" stopOpacity="1" />
                 <stop offset="80%" stopColor="#f5f5f5" stopOpacity="1" />
                 <stop offset="100%" stopColor="#d0d0d0" stopOpacity="1" />
-              </linearGradient>
-              <linearGradient id="platinumFlash" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="20%" stopColor="rgba(255,255,255,0.7)" />
-                <stop offset="80%" stopColor="rgba(255,255,255,0.7)" />
-                <stop offset="100%" stopColor="transparent" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="translate"
-                  values="0,0; 150,0; 0,0"
-                  dur="1.8s"
-                  repeatCount="indefinite"
-                />
               </linearGradient>
             </>
           )}
@@ -509,82 +468,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                   </>
                 )}
               </linearGradient>
-              {/* Rotating light effect for gems */}
-              <radialGradient id={`gemLight-${difficulty}`} cx="50%" cy="50%">
-                {difficulty === 'sapphire' && (
-                  <>
-                    <stop offset="0%" stopColor="rgba(100,149,237,0.8)" />
-                    <stop offset="40%" stopColor="rgba(65,105,225,0.4)" />
-                    <stop offset="100%" stopColor="transparent" />
-                  </>
-                )}
-                {difficulty === 'emerald' && (
-                  <>
-                    <stop offset="0%" stopColor="rgba(0,255,127,0.8)" />
-                    <stop offset="40%" stopColor="rgba(0,168,107,0.4)" />
-                    <stop offset="100%" stopColor="transparent" />
-                  </>
-                )}
-                {difficulty === 'ruby' && (
-                  <>
-                    <stop offset="0%" stopColor="rgba(255,20,147,0.8)" />
-                    <stop offset="40%" stopColor="rgba(220,20,60,0.4)" />
-                    <stop offset="100%" stopColor="transparent" />
-                  </>
-                )}
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="rotate"
-                  values="0 50 50;360 50 50"
-                  dur="8s"
-                  repeatCount="indefinite"
-                />
-              </radialGradient>
-              {/* Traveling light along edges */}
-              <linearGradient id={`gemTravel-${difficulty}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="40%" stopColor={getGlowColor()} />
-                <stop offset="60%" stopColor={getGlowColor()} />
-                <stop offset="100%" stopColor="transparent" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="translate"
-                  values="0,0; 200,0; 0,0"
-                  dur="3s"
-                  repeatCount="indefinite"
-                />
-              </linearGradient>
-              {/* Prismatic light effect */}
-              <linearGradient id={`gemPrism-${difficulty}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                {difficulty === 'sapphire' && (
-                  <>
-                    <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-                    <stop offset="50%" stopColor="rgba(100,149,237,0.2)" />
-                    <stop offset="100%" stopColor="rgba(65,105,225,0.3)" />
-                  </>
-                )}
-                {difficulty === 'emerald' && (
-                  <>
-                    <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-                    <stop offset="50%" stopColor="rgba(0,255,127,0.2)" />
-                    <stop offset="100%" stopColor="rgba(0,168,107,0.3)" />
-                  </>
-                )}
-                {difficulty === 'ruby' && (
-                  <>
-                    <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-                    <stop offset="50%" stopColor="rgba(255,20,147,0.2)" />
-                    <stop offset="100%" stopColor="rgba(220,20,60,0.3)" />
-                  </>
-                )}
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="rotate"
-                  values="0 50 50;360 50 50"
-                  dur="6s"
-                  repeatCount="indefinite"
-                />
-              </linearGradient>
             </>
           )}
           {isDiamond && (
@@ -595,52 +478,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                 <stop offset="50%" stopColor="#b9f2ff" stopOpacity="0.6" />
                 <stop offset="75%" stopColor="#00acc1" stopOpacity="0.5" />
                 <stop offset="100%" stopColor="#008ba3" stopOpacity="0.7" />
-              </linearGradient>
-              <radialGradient id="diamondShine" cx="50%" cy="50%">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.9)" />
-                <stop offset="30%" stopColor="rgba(185,242,255,0.6)" />
-                <stop offset="60%" stopColor="rgba(0,188,212,0.3)" />
-                <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="translate"
-                  values="20,20; 80,20; 80,80; 20,80; 20,20"
-                  dur="5s"
-                  repeatCount="indefinite"
-                />
-              </radialGradient>
-              <linearGradient id="diamondTravel" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="30%" stopColor="rgba(255,255,255,0.9)" />
-                <stop offset="70%" stopColor="rgba(185,242,255,0.8)" />
-                <stop offset="100%" stopColor="transparent" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="translate"
-                  values="0,0; 200,0; 0,0"
-                  dur="2s"
-                  repeatCount="indefinite"
-                />
-              </linearGradient>
-              <radialGradient id="diamondPulse" cx="50%" cy="50%">
-                <stop offset="0%" stopColor="rgba(0,188,212,0.5)" />
-                <stop offset="50%" stopColor="rgba(185,242,255,0.3)" />
-                <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-                <animate attributeName="r" values="30%;70%;30%" dur="2.5s" repeatCount="indefinite" />
-              </radialGradient>
-              {/* Rotating prismatic effect */}
-              <linearGradient id="diamondPrism" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.4)" />
-                <stop offset="33%" stopColor="rgba(185,242,255,0.3)" />
-                <stop offset="66%" stopColor="rgba(0,188,212,0.2)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0.4)" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="rotate"
-                  values="0 50 50;360 50 50"
-                  dur="4s"
-                  repeatCount="indefinite"
-                />
               </linearGradient>
             </>
           )}
@@ -654,58 +491,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                 <stop offset="60%" stopColor="#8a2be2" stopOpacity="0.7" />
                 <stop offset="80%" stopColor="#ff8c00" stopOpacity="0.8" />
                 <stop offset="100%" stopColor="#ff1493" stopOpacity="0.8" />
-              </linearGradient>
-              {/* Rotating radial shine */}
-              <radialGradient id="quantumShine" cx="50%" cy="50%">
-                <stop offset="0%" stopColor="rgba(255,255,255,1.0)" />
-                <stop offset="20%" stopColor="rgba(255,140,0,0.8)" />
-                <stop offset="40%" stopColor="rgba(255,20,147,0.6)" />
-                <stop offset="60%" stopColor="rgba(138,43,226,0.4)" />
-                <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="rotate"
-                  values="0 50 50;360 50 50"
-                  dur="3s"
-                  repeatCount="indefinite"
-                />
-              </radialGradient>
-              {/* Traveling colors along edges */}
-              <linearGradient id="quantumTravel" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="25%" stopColor="rgba(255,140,0,0.9)" />
-                <stop offset="50%" stopColor="rgba(255,20,147,0.8)" />
-                <stop offset="75%" stopColor="rgba(138,43,226,0.9)" />
-                <stop offset="100%" stopColor="transparent" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="translate"
-                  values="0,0; 200,0; 0,0"
-                  dur="2s"
-                  repeatCount="indefinite"
-                />
-              </linearGradient>
-              {/* Pulsing glow */}
-              <radialGradient id="quantumPulse" cx="50%" cy="50%">
-                <stop offset="0%" stopColor="rgba(138,43,226,0.6)" />
-                <stop offset="50%" stopColor="rgba(255,20,147,0.3)" />
-                <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-                <animate attributeName="r" values="40%;80%;40%" dur="2s" repeatCount="indefinite" />
-              </radialGradient>
-              {/* Rotating prismatic effect */}
-              <linearGradient id="quantumPrism" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.5)" />
-                <stop offset="25%" stopColor="rgba(255,140,0,0.4)" />
-                <stop offset="50%" stopColor="rgba(255,20,147,0.3)" />
-                <stop offset="75%" stopColor="rgba(138,43,226,0.4)" />
-                <stop offset="100%" stopColor="rgba(0,100,200,0.5)" />
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="rotate"
-                  values="0 50 50;360 50 50"
-                  dur="3s"
-                  repeatCount="indefinite"
-                />
               </linearGradient>
             </>
           )}
@@ -849,41 +634,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                   facetColor = '#ccc';
                 }
                 
-                // For gems, add animated color cycling
-                if (isGem) {
-                  const baseColor = difficulty === 'sapphire' 
-                    ? { r: 15, g: 82, b: 186 }
-                    : difficulty === 'emerald'
-                    ? { r: 0, g: 168, b: 107 }
-                    : { r: 220, g: 20, b: 60 };
-                  
-                  const rotatedIdx = (reverseIdx + 1) % numFacets;
-                  const cycleOffset = rotatedIdx * (360 / numFacets); // Distribute facets across color cycle
-                  
-                  return (
-                    <polygon
-                      key={facetIdx}
-                      points={facetPoints}
-                      fill={facetColor}
-                      opacity={0.85}
-                    >
-                      {/* Animate color cycling for shimmer effect */}
-                      <animate
-                        attributeName="fill"
-                        values={
-                          difficulty === 'sapphire'
-                            ? `rgba(${baseColor.r + rotatedIdx * 20}, ${baseColor.g + rotatedIdx * 15}, ${baseColor.b + rotatedIdx * 10}, 0.8);rgba(${baseColor.r + rotatedIdx * 20 + 30}, ${baseColor.g + rotatedIdx * 15 + 25}, ${baseColor.b + rotatedIdx * 10 + 20}, 0.9);rgba(${baseColor.r + rotatedIdx * 20}, ${baseColor.g + rotatedIdx * 15}, ${baseColor.b + rotatedIdx * 10}, 0.8)`
-                            : difficulty === 'emerald'
-                            ? `rgba(${baseColor.r + rotatedIdx * 10}, ${baseColor.g + rotatedIdx * 20}, ${baseColor.b + rotatedIdx * 15}, 0.8);rgba(${baseColor.r + rotatedIdx * 10 + 20}, ${baseColor.g + rotatedIdx * 20 + 30}, ${baseColor.b + rotatedIdx * 15 + 25}, 0.9);rgba(${baseColor.r + rotatedIdx * 10}, ${baseColor.g + rotatedIdx * 20}, ${baseColor.b + rotatedIdx * 15}, 0.8)`
-                            : `rgba(${baseColor.r - rotatedIdx * 15}, ${baseColor.g + rotatedIdx * 10}, ${baseColor.b + rotatedIdx * 20}, 0.8);rgba(${baseColor.r - rotatedIdx * 15 + 25}, ${baseColor.g + rotatedIdx * 10 + 20}, ${baseColor.b + rotatedIdx * 20 + 30}, 0.9);rgba(${baseColor.r - rotatedIdx * 15}, ${baseColor.g + rotatedIdx * 10}, ${baseColor.b + rotatedIdx * 20}, 0.8)`
-                        }
-                        dur={`${2 + facetIdx * 0.3}s`}
-                        repeatCount="indefinite"
-                      />
-                    </polygon>
-                  );
-                }
-                
                 return (
                   <polygon
                     key={facetIdx}
@@ -908,137 +658,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                   }
                   opacity={1}
                 />
-              )}
-              {/* Moving flash lines and shine effects for metals */}
-              {difficulty === 'copper' && (
-                <>
-                  <polygon
-                    points={hullPath}
-                    fill="url(#copperFlash)"
-                    opacity={0.6}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#copperShine)"
-                    opacity={0.4}
-                  />
-                </>
-              )}
-              {difficulty === 'silver' && (
-                <>
-                  <polygon
-                    points={hullPath}
-                    fill="url(#silverFlash)"
-                    opacity={0.6}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#silverShine)"
-                    opacity={0.5}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#silverReflect)"
-                    opacity={0.4}
-                  />
-                </>
-              )}
-              {difficulty === 'gold' && (
-                <>
-                  <polygon
-                    points={hullPath}
-                    fill="url(#goldFlash)"
-                    opacity={0.7}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#goldShine)"
-                    opacity={0.5}
-                  />
-                </>
-              )}
-              {difficulty === 'roseGold' && (
-                <>
-                  <polygon
-                    points={hullPath}
-                    fill="url(#roseGoldFlash)"
-                    opacity={0.6}
-                  />
-                </>
-              )}
-              {difficulty === 'platinum' && (
-                <>
-                  <polygon
-                    points={hullPath}
-                    fill="url(#platinumFlash)"
-                    opacity={0.8}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#platinumShine)"
-                    opacity={0.6}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#platinumReflect)"
-                    opacity={0.5}
-                  />
-                </>
-              )}
-              {/* Gem light effects - reduced opacity so facets show through */}
-              {isGem && hullPath && (
-                <>
-                  <polygon
-                    points={hullPath}
-                    fill={`url(#gemLight-${difficulty})`}
-                    opacity={0.2}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill={`url(#gemPrism-${difficulty})`}
-                    opacity={0.15}
-                  />
-                </>
-              )}
-              {/* Diamond-specific shine layers - reduced opacity so facets show through */}
-              {isDiamond && hullPath && (
-                <>
-                  <polygon
-                    points={hullPath}
-                    fill="url(#diamondShine)"
-                    opacity={0.3}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#diamondPulse)"
-                    opacity={0.2}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#diamondPrism)"
-                    opacity={0.2}
-                  />
-                </>
-              )}
-              {/* Quantum-specific shine layers */}
-              {isQuantum && hullPath && (
-                <>
-                  <polygon
-                    points={hullPath}
-                    fill="url(#quantumShine)"
-                    opacity={0.4}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#quantumPulse)"
-                    opacity={0.3}
-                  />
-                  <polygon
-                    points={hullPath}
-                    fill="url(#quantumPrism)"
-                    opacity={0.25}
-                  />
-                </>
               )}
             </>
           )}
@@ -1067,22 +686,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                   strokeLinejoin="round"
                   opacity={difficulty === 'plastic' ? 1 : 0.9}
                 />
-                {/* Traveling color effect for gems, diamond, and quantum */}
-                {(isGem || isDiamond || isQuantum) && (
-                  <line
-                    x1={start.x}
-                    y1={start.y}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke={isDiamond ? 'url(#diamondTravel)' : isQuantum ? 'url(#quantumTravel)' : `url(#gemTravel-${difficulty})`}
-                    strokeWidth={isThick ? thickWidth * 0.6 : thinWidth * 0.6}
-                    strokeLinecap="round"
-                    opacity={0.8}
-                    style={{
-                      filter: `blur(${isThick ? 1 : 0.5}px)`
-                    }}
-                  />
-                )}
               </g>
             );
           })}

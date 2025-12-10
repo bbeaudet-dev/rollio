@@ -169,7 +169,16 @@ export function getAvailableWorldChoices(gameMap: GameMap): number[] {
     return [];
   }
   
-  const currentNodeConnections = gameMap.connections.get(gameMap.currentNode);
+  // Handle both Map and plain object (after JSON deserialization)
+  let currentNodeConnections: number[] | undefined;
+  if (gameMap.connections instanceof Map) {
+    currentNodeConnections = gameMap.connections.get(gameMap.currentNode);
+  } else {
+    // Plain object case (after JSON deserialization)
+    // Keys might be strings, so convert to string for lookup
+    const currentNodeKey = String(gameMap.currentNode);
+    currentNodeConnections = (gameMap.connections as any)[currentNodeKey];
+  }
   return currentNodeConnections || [];
 }
 

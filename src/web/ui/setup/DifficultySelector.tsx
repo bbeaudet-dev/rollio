@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DIFFICULTY_CONFIGS, DifficultyLevel } from '../../../game/logic/difficulty';
 import { DifficultyDiceDisplay } from '../components/DifficultyDiceDisplay';
+import { useAuth } from '../../contexts/AuthContext';
+import { progressApi } from '../../services/api';
+import { useUnlocks } from '../../contexts/UnlockContext';
+import { LockIcon } from '../components/LockIcon';
+import { ArrowSelector } from '../components/ArrowSelector';
 
 interface DifficultySelectorProps {
   difficulty: DifficultyLevel;
@@ -22,18 +27,39 @@ const DIFFICULTY_ORDER: DifficultyLevel[] = [
 ];
 
 export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficulty, onChange }) => {
+  const { isAuthenticated } = useAuth();
+  const { unlockedItems } = useUnlocks();
+  const [completedDifficulties, setCompletedDifficulties] = useState<Set<string>>(new Set());
   const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
   const config = DIFFICULTY_CONFIGS[difficulty];
+  const isLocked = difficulty !== 'plastic' && !unlockedItems.has(`difficulty:${difficulty}`);
+
+  // Fetch completion status when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      progressApi.getCompletions().then(response => {
+        if (response.success && (response as any).completions) {
+          const completions = (response as any).completions as Array<{ difficulty: string }>;
+          const completed = new Set<string>(completions.map(c => c.difficulty));
+          setCompletedDifficulties(completed);
+        }
+      }).catch(error => {
+        console.debug('Failed to fetch difficulty completions:', error);
+      });
+    }
+  }, [isAuthenticated]);
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
-      onChange(DIFFICULTY_ORDER[currentIndex - 1]);
+      const prevDiff = DIFFICULTY_ORDER[currentIndex - 1];
+      onChange(prevDiff);
     }
   };
 
   const handleNext = () => {
     if (currentIndex < DIFFICULTY_ORDER.length - 1) {
-      onChange(DIFFICULTY_ORDER[currentIndex + 1]);
+      const nextDiff = DIFFICULTY_ORDER[currentIndex + 1];
+      onChange(nextDiff);
     }
   };
 
@@ -50,193 +76,198 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
       maxWidth: '900px',
       margin: '0 auto'
     }}>
-      {/* Header */}
-      <h2 style={{
-        fontSize: '20px',
-        fontWeight: 'bold',
-        color: '#2c3e50',
-        marginBottom: '0',
-        marginTop: '0'
-      }}>
-        1. Select a difficulty
-      </h2>
       
-      {/* Main selector row */}
+      {/* Main selector row with description */}
       <div style={{ 
         display: 'flex', 
-        alignItems: 'center', 
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        gap: '15px'
+        gap: '40px',
+        flexWrap: 'nowrap',
       }}>
-        {/* Previous arrow */}
-        <button
-          onClick={handlePrevious}
-          disabled={currentIndex === 0}
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '2px solid #dee2e6',
-            borderRadius: '8px',
-            backgroundColor: currentIndex === 0 ? '#f8f9fa' : '#fff',
-            color: currentIndex === 0 ? '#adb5bd' : '#2c3e50',
-            fontSize: '20px',
-            cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s ease',
-            opacity: currentIndex === 0 ? 0.5 : 1
-          }}
-          onMouseEnter={(e) => {
-            if (currentIndex > 0) {
-              e.currentTarget.style.backgroundColor = '#e9ecef';
-              e.currentTarget.style.borderColor = '#adb5bd';
-              e.currentTarget.style.transform = 'scale(1.1)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (currentIndex > 0) {
-              e.currentTarget.style.backgroundColor = '#fff';
-              e.currentTarget.style.borderColor = '#dee2e6';
-              e.currentTarget.style.transform = 'scale(1)';
-            }
-          }}
-        >
-          ‹
-        </button>
-
-        {/* D20 Display */}
+        {/* Selector (arrows + dice + dots) */}
         <div style={{ 
           display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
+          flexDirection: 'column',
+          alignItems: 'center',
           gap: '8px',
-          minWidth: '120px'
+          flexShrink: 0,
+          width: '200px',
+          minWidth: '200px'
         }}>
-          <DifficultyDiceDisplay difficulty={difficulty} size={70} />
           <div style={{ 
-            fontSize: '14px', 
-            fontWeight: '600', 
-            color: '#2c3e50',
-            textAlign: 'center'
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: '25px'
           }}>
-            {config.name}
+            {/* Previous arrow */}
+            <ArrowSelector
+              direction="left"
+              onClick={handlePrevious}
+              disabled={currentIndex === 0}
+              size={40}
+            />
+
+            {/* D20 Display */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              gap: '8px',
+              minWidth: '140px',
+              position: 'relative'
+            }}>
+              <div style={{ 
+                position: 'relative',
+                width: '70px',
+                height: '70px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <DifficultyDiceDisplay difficulty={difficulty} size={70} />
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                fontWeight: '600', 
+                color: isLocked ? '#adb5bd' : '#2c3e50',
+                textAlign: 'center',
+                maxWidth: '180px',
+                wordWrap: 'break-word',
+                lineHeight: '1.2'
+              }}>
+                {config.name}
+                {isLocked && ' (Locked)'}
+              </div>
+            </div>
+
+            {/* Next arrow */}
+            <ArrowSelector
+              direction="right"
+              onClick={handleNext}
+              disabled={currentIndex === DIFFICULTY_ORDER.length - 1}
+              size={40}
+            />
+          </div>
+
+          {/* Dot indicators with completion status */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '8px',
+            paddingTop: '5px'
+          }}>
+            {DIFFICULTY_ORDER.map((diff, index) => {
+              const isCompleted = completedDifficulties.has(diff);
+              const isCurrent = index === currentIndex;
+              const isDiffLocked = diff !== 'plastic' && !unlockedItems.has(`difficulty:${diff}`);
+              
+              // Show lock icon for locked difficulties
+              if (isDiffLocked) {
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: isCurrent ? '16px' : '12px',
+                      height: isCurrent ? '16px' : '12px',
+                      cursor: 'not-allowed',
+                      transition: 'all 0.2s ease',
+                      opacity: isCurrent ? 1 : 0.6
+                    }}
+                    title={`Locked: ${DIFFICULTY_CONFIGS[diff].name} - Complete previous difficulty to unlock`}
+                  >
+                    <LockIcon 
+                      size={isCurrent ? 16 : 12} 
+                      color={isCurrent ? '#007bff' : '#6c757d'} 
+                      strokeWidth={isCurrent ? 2.5 : 2} 
+                    />
+                  </div>
+                );
+              }
+              
+              // Show dot for unlocked/completed difficulties
+              return (
+                <div
+                  key={index}
+                  onClick={() => {
+                    onChange(diff);
+                  }}
+                  style={{
+                    position: 'relative',
+                    width: isCurrent ? '12px' : '8px',
+                    height: isCurrent ? '12px' : '8px',
+                    borderRadius: '50%',
+                    backgroundColor: isCurrent ? '#007bff' : (isCompleted ? '#28a745' : '#dee2e6'),
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: isCurrent ? '2px solid #0056b3' : (isCompleted ? '2px solid #1e7e34' : '2px solid transparent')
+                  }}
+                  onMouseEnter={(e) => {
+                    if (index !== currentIndex) {
+                      e.currentTarget.style.backgroundColor = isCompleted ? '#218838' : '#adb5bd';
+                      e.currentTarget.style.transform = 'scale(1.2)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (index !== currentIndex) {
+                      e.currentTarget.style.backgroundColor = isCompleted ? '#28a745' : '#dee2e6';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }
+                  }}
+                  title={isCompleted ? `Completed: ${DIFFICULTY_CONFIGS[diff].name}` : DIFFICULTY_CONFIGS[diff].name}
+                />
+              );
+            })}
           </div>
         </div>
 
-        {/* Next arrow */}
-        <button
-          onClick={handleNext}
-          disabled={currentIndex === DIFFICULTY_ORDER.length - 1}
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '2px solid #dee2e6',
-            borderRadius: '8px',
-            backgroundColor: currentIndex === DIFFICULTY_ORDER.length - 1 ? '#f8f9fa' : '#fff',
-            color: currentIndex === DIFFICULTY_ORDER.length - 1 ? '#adb5bd' : '#2c3e50',
-            fontSize: '20px',
-            cursor: currentIndex === DIFFICULTY_ORDER.length - 1 ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s ease',
-            opacity: currentIndex === DIFFICULTY_ORDER.length - 1 ? 0.5 : 1
-          }}
-          onMouseEnter={(e) => {
-            if (currentIndex < DIFFICULTY_ORDER.length - 1) {
-              e.currentTarget.style.backgroundColor = '#e9ecef';
-              e.currentTarget.style.borderColor = '#adb5bd';
-              e.currentTarget.style.transform = 'scale(1.1)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (currentIndex < DIFFICULTY_ORDER.length - 1) {
-              e.currentTarget.style.backgroundColor = '#fff';
-              e.currentTarget.style.borderColor = '#dee2e6';
-              e.currentTarget.style.transform = 'scale(1)';
-            }
-          }}
-        >
-          ›
-        </button>
-      </div>
-
-      {/* Dot indicators */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: '8px',
-        paddingTop: '5px'
-      }}>
-        {DIFFICULTY_ORDER.map((_, index) => (
-          <div
-            key={index}
-            onClick={() => onChange(DIFFICULTY_ORDER[index])}
-            style={{
-              width: index === currentIndex ? '12px' : '8px',
-              height: index === currentIndex ? '12px' : '8px',
-              borderRadius: '50%',
-              backgroundColor: index === currentIndex ? '#007bff' : '#dee2e6',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              border: index === currentIndex ? '2px solid #0056b3' : '2px solid transparent'
-            }}
-            onMouseEnter={(e) => {
-              if (index !== currentIndex) {
-                e.currentTarget.style.backgroundColor = '#adb5bd';
-                e.currentTarget.style.transform = 'scale(1.2)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (index !== currentIndex) {
-                e.currentTarget.style.backgroundColor = '#dee2e6';
-                e.currentTarget.style.transform = 'scale(1)';
-              }
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Description and Effects of previous difficulties - combined component */}
-      <div style={{
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        border: '1px solid #e9ecef',
-        overflow: 'hidden'
-      }}>
+        {/* Description and Effects of previous difficulties - combined component */}
         <div style={{
-          padding: '12px',
-          fontSize: '14px',
-          color: '#495057',
-          textAlign: 'center',
-          fontWeight: 'normal',
-          lineHeight: '1.5',
-          ...(difficulty !== 'plastic' && {
-            borderBottom: '1px solid #e9ecef'
-          })
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px',
+          border: '1px solid #e9ecef',
+          overflow: 'hidden',
+          width: '400px',
+          marginLeft: '50px',
+          flexShrink: 0
         }}>
-          {config.description}
-        </div>
-        {difficulty !== 'plastic' && (
           <div style={{
-            padding: '10px',
-            backgroundColor: '#e7f3ff',
-            fontSize: '13px',
-            color: '#0066cc',
+            padding: '12px',
+            fontSize: '14px',
+            color: '#495057',
             textAlign: 'center',
             fontWeight: 'normal',
-            lineHeight: '1.5'
+            lineHeight: '1.5',
+            ...(difficulty !== 'plastic' && {
+              borderBottom: '1px solid #e9ecef'
+            })
           }}>
-            + Effects of all previous Difficulties
-            <div style={{ marginTop: '2px', fontSize: '9px', opacity: 0.8 }}>
-              {DIFFICULTY_ORDER.slice(0, currentIndex).map((d, idx) => 
-                DIFFICULTY_CONFIGS[d].name
-              ).join(', ')}
-            </div>
+            {config.description}
           </div>
-        )}
+          {difficulty !== 'plastic' && (
+            <div style={{
+              padding: '10px',
+              backgroundColor: '#e7f3ff',
+              fontSize: '13px',
+              color: '#0066cc',
+              textAlign: 'center',
+              fontWeight: 'normal',
+              lineHeight: '1.5'
+            }}>
+              + Effects of all previous Difficulties
+              <div style={{ marginTop: '2px', fontSize: '9px', opacity: 0.8 }}>
+                {DIFFICULTY_ORDER.slice(0, currentIndex).map((d, idx) => 
+                  DIFFICULTY_CONFIGS[d].name
+                ).join(', ')}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

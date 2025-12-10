@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Consumable } from '../../../game/types';
 import { WHIMS, WISHES } from '../../../game/data/consumables';
+import { LockIcon } from './LockIcon';
 import { getConsumableColor } from '../../utils/colors';
 import { getRarityColor } from '../../utils/rarityColors';
 import { ActionButton } from './ActionButton';
@@ -62,6 +63,8 @@ interface ConsumableCardProps {
   showUseButton?: boolean;
   onUse?: () => void;
   highlighted?: boolean;
+  isLocked?: boolean;
+  isInActiveGame?: boolean; // true if in shop or inventory during active game
 }
 
 export const ConsumableCard: React.FC<ConsumableCardProps> = ({
@@ -76,10 +79,15 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
   onBuy,
   showUseButton = false,
   onUse,
-  highlighted = false
+  highlighted = false,
+  isLocked = false,
+  isInActiveGame = false
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
+  
+  // Show tooltip on hover OR if clicked
+  const showTooltip = isHovered || isClicked;
   
   const isWish = WISHES.some(w => w.id === consumable.id);
   const isWhim = WHIMS.some(w => w.id === consumable.id);
@@ -111,27 +119,55 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
   const cardSize = 96; // 120 * 0.8 = 96
   
   const handleClick = (e: React.MouseEvent) => {
-    // On mobile/touch devices, toggle tooltip on click
-    // On desktop, only show tooltip on hover
-    if (!onClick && !showBuyButton && !showUseButton) {
-      e.preventDefault();
-      setIsClicked(!isClicked);
-    } else if (onClick) {
+    // If there's an onClick handler, call it
+    if (onClick) {
       onClick();
+      return;
     }
+    
+    // If we're in active game (shop or inventory), let the parent handle ALL clicks
+    // The parent needs to handle selection, so don't interfere
+    if (isInActiveGame) {
+      return;
+    }
+    
+    // Otherwise, toggle clicked state for tooltip (collection page only)
+    e.preventDefault();
+    e.stopPropagation();
+    setIsClicked(!isClicked);
   };
-
-  const showTooltip = isHovered || isClicked;
+  
+  // Close clicked state when clicking anywhere
+  React.useEffect(() => {
+    if (!isClicked) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const cardElement = target.closest('[data-card-id]');
+      if (cardElement?.getAttribute('data-card-id') !== consumable.id) {
+        setIsClicked(false);
+      }
+    };
+    
+    const timeout = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isClicked, consumable.id]);
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div 
+      style={{ position: 'relative', display: 'inline-block' }} 
+      data-card-id={consumable.id}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div
         onClick={handleClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => {
-          setIsHovered(false);
-          setIsClicked(false);
-        }}
         style={{
           width: `${cardSize}px`,
           height: `${cardSize}px`,
@@ -174,8 +210,27 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
           backgroundImage: imagePath ? `url(${imagePath})` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          zIndex: 0
+          zIndex: 0,
+          filter: isLocked && !isInActiveGame ? 'grayscale(100%) brightness(0.5)' : 'none'
         }} />
+        
+        {/* Lock overlay - only show in collection page, not in shop/inventory */}
+        {isLocked && !isInActiveGame && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1
+          }}>
+            <LockIcon size={32} color="white" strokeWidth={2} />
+          </div>
+        )}
       </div>
       
       {/* Tooltip on hover/click */}
@@ -199,11 +254,12 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
           whiteSpace: 'normal',
           wordWrap: 'break-word'
         }}>
-          <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '6px' }}>
-            {consumable.name}
-          </div>
-          <div style={{ marginBottom: '6px', fontSize: '11px', color: '#aaa' }}>
-            Sell Value: ${sellValue}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+            <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{consumable.name}</span>
+            {/* Show lock icon in tooltip when locked (only in active game - shop/inventory) */}
+            {isLocked && isInActiveGame && (
+              <LockIcon size={14} color="white" strokeWidth={2} />
+            )}
           </div>
           <div style={{ fontSize: '11px', lineHeight: '1.4', color: '#ddd' }}>
             {consumable.description}

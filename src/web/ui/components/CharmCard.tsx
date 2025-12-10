@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Charm } from '../../../game/types';
 import { CHARM_PRICES } from '../../../game/data/charms';
+import { LockIcon } from './LockIcon';
 import { RarityDot, getRarityColor } from '../../utils/rarityColors';
 import { getItemTypeColor } from '../../utils/colors';
 
@@ -119,7 +120,8 @@ interface CharmCardProps {
   showSellButton?: boolean;
   onSell?: () => void;
   highlighted?: boolean;
-  isInShop?: boolean; // true if in shop, false if in inventory
+  isInActiveGame?: boolean; // true if in shop or inventory during active game
+  isLocked?: boolean; // true if item is locked (not unlocked in collection)
 }
 
 export const CharmCard: React.FC<CharmCardProps> = ({
@@ -135,10 +137,14 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   showSellButton = false,
   onSell,
   highlighted = false,
-  isInShop = false
+  isInActiveGame = false,
+  isLocked = false
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
+  
+  // Show tooltip on hover OR if clicked
+  const showTooltip = isHovered || isClicked;
   
   const rarity = charm.rarity || 'common';
   const sellValue = CHARM_PRICES[rarity]?.sell || 2;
@@ -176,27 +182,55 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   const cardSize = 108; // 120 * 0.9 = 108
   
   const handleClick = (e: React.MouseEvent) => {
-    // On mobile/touch devices, toggle tooltip on click
-    // On desktop, only show tooltip on hover
-    if (!onClick && !showBuyButton && !showSellButton) {
-      e.preventDefault();
-      setIsClicked(!isClicked);
-    } else if (onClick) {
+    // If there's an onClick handler, call it
+    if (onClick) {
       onClick();
+      return;
     }
+    
+    // If we're in active game (shop or inventory), let the parent handle ALL clicks
+    // The parent needs to handle selection, so don't interfere
+    if (isInActiveGame) {
+      return;
+    }
+    
+    // Otherwise, toggle clicked state for tooltip (collection page only)
+    e.preventDefault();
+    e.stopPropagation();
+    setIsClicked(!isClicked);
   };
-
-  const showTooltip = isHovered || isClicked;
+  
+  // Close clicked state when clicking anywhere
+  React.useEffect(() => {
+    if (!isClicked) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const cardElement = target.closest('[data-card-id]');
+      if (cardElement?.getAttribute('data-card-id') !== charm.id) {
+        setIsClicked(false);
+      }
+    };
+    
+    const timeout = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isClicked, charm.id]);
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div 
+      style={{ position: 'relative', display: 'inline-block' }} 
+      data-card-id={charm.id}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div
         onClick={handleClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => {
-          setIsHovered(false);
-          setIsClicked(false);
-        }}
         style={{
           width: `${cardSize}px`,
           height: `${cardSize}px`,
@@ -239,8 +273,27 @@ export const CharmCard: React.FC<CharmCardProps> = ({
           backgroundImage: imagePath ? `url(${imagePath})` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          zIndex: 0
+          zIndex: 0,
+          filter: isLocked && !isInActiveGame ? 'grayscale(100%) brightness(0.5)' : 'none'
         }} />
+        
+        {/* Lock overlay - only show in collection page, not in shop/inventory */}
+        {isLocked && !isInActiveGame && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1
+          }}>
+            <LockIcon size={32} color="white" strokeWidth={2} />
+          </div>
+        )}
       </div>
       
       {/* Tooltip on hover/click */}
@@ -264,21 +317,20 @@ export const CharmCard: React.FC<CharmCardProps> = ({
           whiteSpace: 'normal',
           wordWrap: 'break-word'
         }}>
-          <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '8px' }}>
-            {charm.name}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+            <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{charm.name}</span>
+            {/* Show lock icon in tooltip when locked (only in active game - shop/inventory) */}
+            {isLocked && isInActiveGame && (
+              <LockIcon size={14} color="white" strokeWidth={2} />
+            )}
           </div>
           <div style={{ fontSize: '12px', lineHeight: '1.4', color: '#ddd', marginBottom: '8px' }}>
             {charm.description}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <RarityDot rarity={rarity} />
             <span style={{ textTransform: 'capitalize', color: '#ccc' }}>{rarity}</span>
           </div>
-          {showPrice && (
-            <div style={{ marginBottom: '6px', fontSize: '11px', color: '#aaa' }}>
-              {isInShop ? `Buy: $${price || 0}` : `Sell: $${sellValue}`}
-            </div>
-          )}
         </div>
       )}
       

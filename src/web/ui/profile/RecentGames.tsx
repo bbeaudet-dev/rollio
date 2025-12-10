@@ -1,6 +1,9 @@
 import React from 'react';
 import { DiceFace } from '../game/board/dice/DiceFace';
 import { Die } from '../../../game/types';
+import { CharmCard } from '../components/CharmCard';
+import { ConsumableCard } from '../components/ConsumableCard';
+import { BlessingCard } from '../components/BlessingCard';
 
 export interface GameHistory {
   id: string;
@@ -14,6 +17,9 @@ export interface GameHistory {
   highBank: number;
   levelLostOn: number;
   diceSet?: Die[];
+  charms?: any[];
+  consumables?: any[];
+  blessings?: any[];
   completedAt: string;
 }
 
@@ -31,7 +37,19 @@ const GameHistoryCard: React.FC<{ game: GameHistory }> = ({ game }) => {
     switch (reason) {
       case 'win': return '#28a745';
       case 'lost': return '#dc3545';
+      case 'quit': return '#6c757d';
+      case 'in_progress': return '#007bff';
       default: return '#6c757d';
+    }
+  };
+  
+  const getEndReasonText = (reason: string, levelLostOn: number) => {
+    switch (reason) {
+      case 'win': return `🏆 Won (Level ${levelLostOn})`;
+      case 'lost': return `💀 Lost (Level ${levelLostOn})`;
+      case 'quit': return '🚪 Quit';
+      case 'in_progress': return '⏳ In Progress';
+      default: return '🚪 Quit';
     }
   };
 
@@ -68,7 +86,7 @@ const GameHistoryCard: React.FC<{ game: GameHistory }> = ({ game }) => {
           fontWeight: 'bold',
           color: getEndReasonColor(game.endReason)
         }}>
-          {game.endReason === 'win' ? `🏆 Won (Level ${game.levelLostOn})` : game.endReason === 'lost' ? `💀 Lost (Level ${game.levelLostOn})` : '🚪 Quit'}
+          {getEndReasonText(game.endReason, game.levelLostOn)}
         </div>
       </div>
       
@@ -84,16 +102,113 @@ const GameHistoryCard: React.FC<{ game: GameHistory }> = ({ game }) => {
           borderRadius: '6px',
           border: '1px solid #dee2e6'
         }}>
-          {diceSet.map((die, idx) => (
-            <DiceFace
-              key={`${game.id}-${die.id}-${idx}`}
-              value={die.allowedValues?.[0] || 3}
-              size={35}
-              material={die.material}
-            />
-          ))}
+          {diceSet.map((die, idx) => {
+            // Get pip effect for display (check first allowed value, or use a default)
+            const firstValue = die.allowedValues?.[0] || 3;
+            const pipEffect = die.pipEffects?.[firstValue];
+            
+            return (
+              <DiceFace
+                key={`${game.id}-${die.id}-${idx}`}
+                value={firstValue}
+                size={35}
+                material={die.material}
+                pipEffect={pipEffect}
+              />
+            );
+          })}
         </div>
       )}
+
+      {/* Charms, Consumables, and Blessings Display */}
+      {(game.charms && game.charms.length > 0) || 
+       (game.consumables && game.consumables.length > 0) || 
+       (game.blessings && game.blessings.length > 0) ? (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '12px',
+          marginBottom: '12px'
+        }}>
+          {/* Charms */}
+          {game.charms && game.charms.length > 0 && (
+            <div>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: '#6c757d',
+                marginBottom: '6px'
+              }}>
+                Charms ({game.charms.length})
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px'
+              }}>
+                {game.charms.map((charm, idx) => (
+                  <CharmCard
+                    key={`${game.id}-charm-${idx}`}
+                    charm={charm}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Consumables */}
+          {game.consumables && game.consumables.length > 0 && (
+            <div>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: '#6c757d',
+                marginBottom: '6px'
+              }}>
+                Consumables ({game.consumables.length})
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px'
+              }}>
+                {game.consumables.map((consumable, idx) => (
+                  <ConsumableCard
+                    key={`${game.id}-consumable-${idx}`}
+                    consumable={consumable}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Blessings */}
+          {game.blessings && game.blessings.length > 0 && (
+            <div>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: '#6c757d',
+                marginBottom: '6px'
+              }}>
+                Blessings ({game.blessings.length})
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px'
+              }}>
+                {game.blessings.map((blessing, idx) => (
+                  <BlessingCard
+                    key={`${game.id}-blessing-${idx}`}
+                    blessing={blessing}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
       
     </div>
   );

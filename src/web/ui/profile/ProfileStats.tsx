@@ -115,7 +115,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({ stats, user, onPictu
             {user?.username || 'User'}
           </h2>
 
-          {/* Games Played, Wins, Losses - Smaller cards */}
+          {/* Games Played, Wins */}
           <div style={{
             display: 'flex',
             gap: '12px',
@@ -123,7 +123,6 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({ stats, user, onPictu
           }}>
             <StatCard label="Games Played" value={stats.gamesPlayed} small />
             <StatCard label="Wins" value={stats.wins} color="#28a745" small />
-            <StatCard label="Losses" value={stats.losses} color="#dc3545" small />
           </div>
         </div>
       </div>
