@@ -7,6 +7,7 @@
 export const ITEM_COLORS = {
   whim: '#fff9e6',      // Yellow for whims (common consumables)
   wish: '#e3f2fd',      // Blue for wishes (rare consumables)
+  combinationUpgrade: '#f0e6ff',  // Purple/lavender for combination upgrades
   charm: '#d1fae5',     // Green pastel for charms
   blessing: '#fce7f3',  // Pink/magenta for blessings
 } as const;
@@ -115,18 +116,25 @@ export const DIFFICULTY_COLORS = {
 } as const;
 
 /**
- * Get the background color for a consumable based on whether it's a whim or wish
+ * Get the background color for a consumable based on whether it's a whim, wish, or combination upgrade
  */
-export function getConsumableColor(consumableId: string, whims: Array<{ id: string }>, wishes: Array<{ id: string }>): string {
+export function getConsumableColor(
+  consumableId: string, 
+  whims: Array<{ id: string }>, 
+  wishes: Array<{ id: string }>,
+  combinationUpgrades?: Array<{ id: string }>
+): string {
   const isWish = wishes.some(w => w.id === consumableId);
   const isWhim = whims.some(w => w.id === consumableId);
+  const isCombinationUpgrade = combinationUpgrades?.some(cu => cu.id === consumableId);
   
   if (isWish) return ITEM_COLORS.wish;
   if (isWhim) return ITEM_COLORS.whim;
+  if (isCombinationUpgrade) return ITEM_COLORS.combinationUpgrade;
   
   // Should not happen if all consumables are properly categorized
   // But throw error instead of defaulting to avoid silent bugs
-  throw new Error(`Consumable ${consumableId} is not found in either whims or wishes`);
+  throw new Error(`Consumable ${consumableId} is not found in whims, wishes, or combination upgrades`);
 }
 
 /**

@@ -61,14 +61,12 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
       <button
         onClick={handleToggle}
         style={{
-          position: 'absolute',
-          bottom: '15px',
-          right: '15px',
+          position: 'relative',
           width: '40px',
           height: '40px',
-          border: '2px solid rgba(255, 255, 255, 0.5)',
+          border: '2px solid rgba(0, 0, 0, 0.3)',
           borderRadius: '6px',
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -78,11 +76,11 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
           padding: '3px'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 1)';
           e.currentTarget.style.transform = 'scale(1.1)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
           e.currentTarget.style.transform = 'scale(1)';
         }}
       >
@@ -105,28 +103,29 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
 
   // Show column of all dice
   return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: '15px',
-        right: '15px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        gap: '4px',
-        maxHeight: 'calc(100% - 30px)',
-        overflowY: 'auto',
-        overflowX: 'visible',
-        zIndex: 25,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        padding: '8px',
-        borderRadius: '8px',
-        border: '2px solid rgba(255, 255, 255, 0.3)',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-        width: typeof containerWidth === 'number' ? `${containerWidth}px` : containerWidth,
-        transition: 'width 0.2s ease'
-      }}
-    >
+    <div style={{ position: 'relative' }}>
+      {/* Expanded view positioned absolutely relative to inventory */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50px',
+          right: '0px',
+          width: typeof containerWidth === 'number' ? `${containerWidth}px` : containerWidth,
+          maxHeight: '400px',
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          border: '2px solid rgba(255, 255, 255, 0.5)',
+          borderRadius: '8px',
+          padding: '12px',
+          zIndex: 30,
+          overflowY: 'auto',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '4px',
+          transition: 'width 0.2s ease'
+        }}
+      >
       {/* Dice column */}
       {diceSet.map((die) => {
         const isAnyExpanded = !!expandedDieId;
@@ -225,6 +224,7 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
       >
         Close
       </button>
+      </div>
     </div>
   );
 };

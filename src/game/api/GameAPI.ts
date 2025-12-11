@@ -29,7 +29,7 @@ import { getAvailableWorldChoices, getWorldIdForNode } from '../logic/mapGenerat
 import { tallyLevel as tallyLevelFunction, calculateLevelRewards, LevelRewards } from '../logic/tallying';
 import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, sellCharm as sellCharmLogic, sellConsumable as sellConsumableLogic } from '../logic/shop';
 import { validateRerollSelection } from '../logic/rerollLogic';
-import { applyConsumableEffect, updateLastConsumableUsed } from '../logic/consumableEffects';
+import { applyConsumableEffect, updateLastConsumableUsed, determineConsumableInputs } from '../logic/consumableEffects';
 import { calculateScoringBreakdown } from '../logic/scoring';
 import { calculateFinalScore } from '../logic/scoringElements';
 import { RollState } from '../types';
@@ -826,7 +826,7 @@ export class GameAPI {
     gameState: GameState, 
     index: number, 
     selectedDiceIndices?: number[]
-  ): Promise<{ success: boolean; gameState: GameState; roundState?: RoundState; requiresInput?: any; shouldRemove: boolean }> {
+  ): Promise<{ success: boolean; gameState: GameState; roundState?: RoundState; requiresInput?: any; shouldRemove: boolean; unlockInfo?: { type: 'pip_effect' | 'material'; id: string } }> {
     const roundState = gameState.currentWorld!.currentLevel.currentRound || null;
     const consumable = gameState.consumables[index];
     
@@ -839,40 +839,12 @@ export class GameAPI {
       };
     }
 
-    // Determine what input the consumable needs based on selected dice
-    let dieSelectionInput: number | [number, number] | undefined;
-    let dieSideSelectionInput: { dieIndex: number; sideValue: number } | undefined;
-
-    if (selectedDiceIndices && selectedDiceIndices.length > 0) {
-      const diceHand = roundState?.diceHand || [];
-      
-      // Check if this consumable needs die selection (chisel, potteryWheel, midasTouch)
-      if (consumable.id === 'chisel' || consumable.id === 'potteryWheel' || consumable.id === 'midasTouch') {
-        if (consumable.id === 'midasTouch' && selectedDiceIndices.length >= 2) {
-          dieSelectionInput = [selectedDiceIndices[0], selectedDiceIndices[1]] as [number, number];
-        } else if (selectedDiceIndices.length >= 1) {
-          // For chisel/potteryWheel, can select 1 or 2 dice
-          dieSelectionInput = selectedDiceIndices.length === 1 
-            ? selectedDiceIndices[0] 
-            : [selectedDiceIndices[0], selectedDiceIndices[1]] as [number, number];
-        }
-      }
-      
-      // Check if this consumable needs die side selection (pip effect consumables)
-      // dieIndex here is from diceHand (the board), not diceSet
-      if (consumable.id === 'emptyAsAPocket' || consumable.id === 'moneyPip' || 
-          consumable.id === 'stallion' || consumable.id === 'practice' || 
-          consumable.id === 'phantom' || consumable.id === 'accumulation') {
-        if (selectedDiceIndices.length >= 1) {
-          const dieIndex = selectedDiceIndices[0];
-          const die = diceHand[dieIndex];
-          if (die && die.rolledValue !== undefined) {
-            // dieIndex is from diceHand, pass it through - the function will find the corresponding diceSet die
-            dieSideSelectionInput = { dieIndex, sideValue: die.rolledValue };
-          }
-        }
-      }
-    }
+    // Determine inputs from selected dice indices
+    const { dieSelectionInput, dieSideSelectionInput } = determineConsumableInputs(
+      consumable,
+      selectedDiceIndices,
+      roundState
+    );
 
     const result = applyConsumableEffect(
       index,
@@ -908,7 +880,8 @@ export class GameAPI {
       gameState: finalGameState,
       roundState: result.roundState || roundState || undefined,
       requiresInput: result.requiresInput,
-      shouldRemove: result.shouldRemove
+      shouldRemove: result.shouldRemove,
+      unlockInfo: result.unlockInfo
     };
   }
 

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Consumable } from '../../../game/types';
-import { WHIMS, WISHES } from '../../../game/data/consumables';
+import { WHIMS, WISHES, COMBINATION_UPGRADES } from '../../../game/data/consumables';
 import { LockIcon } from './LockIcon';
 import { getConsumableColor } from '../../utils/colors';
 import { getRarityColor } from '../../utils/rarityColors';
-import { ActionButton } from './ActionButton';
+import { CONSUMABLE_PRICES } from '../../../game/logic/shop';
+import { CONSUMABLE_CARD_SIZE } from './cardSizes';
 
 /**
  * Convert consumable ID to image filename
@@ -13,6 +14,7 @@ import { ActionButton } from './ActionButton';
 function getConsumableImagePath(consumableId: string): string | null {
   // Map of consumable IDs to their image filenames
   const imageMap: Record<string, string> = {
+    'alchemist': 'Alchemist.png',
     'chisel': 'Chisel.png',
     'distortion': 'Distortion_3.png',
     'echo': 'Echo.png',
@@ -33,8 +35,15 @@ function getConsumableImagePath(consumableId: string): string | null {
     'moneyPip': 'Midas_Touch_3.png',
     'stallion': 'Stallion.png',
     'practice': 'Practice.png',
-    'phantom': 'Phantom.png',
+    'phantom': 'Phantom_3.png',
     'accumulation': 'Accumulation.png',
+    // Combination upgrades
+    'upgradeSingleN': 'Upgrade_Singles.png',
+    'upgradeNPairs': 'Upgrade_Pairs.png',
+    'upgradeNOfAKind': 'Upgrade_N_Of_A_Kind.png',
+    'upgradeStraightOfN': 'Upgrade_Straights.png',
+    'upgradePyramidOfN': 'Upgrade_Pyramids.png',
+    'upgradeNTuplets': 'Upgrade_N_Tuplets.png',
   };
 
   const filename = imageMap[consumableId];
@@ -44,11 +53,6 @@ function getConsumableImagePath(consumableId: string): string | null {
 
   return `/assets/images/consumables/${filename}`;
 }
-
-const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
-  wish: { buy: 8, sell: 4 },
-  whim: { buy: 4, sell: 2 },
-};
 
 interface ConsumableCardProps {
   consumable: Consumable;
@@ -91,9 +95,10 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
   
   const isWish = WISHES.some(w => w.id === consumable.id);
   const isWhim = WHIMS.some(w => w.id === consumable.id);
-  const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+  const isCombinationUpgrade = COMBINATION_UPGRADES.some(cu => cu.id === consumable.id);
+  const category = isWish ? 'wish' : (isWhim ? 'whim' : (isCombinationUpgrade ? 'combinationUpgrade' : 'whim'));
   const sellValue = CONSUMABLE_PRICES[category]?.sell || 2;
-  const backgroundColor = getConsumableColor(consumable.id, WHIMS, WISHES);
+  const backgroundColor = getConsumableColor(consumable.id, WHIMS, WISHES, COMBINATION_UPGRADES);
   const imagePath = getConsumableImagePath(consumable.id);
   
   // Wishes are rarer than whims - use rarity colors
@@ -116,7 +121,7 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
   const glowStyle = getGlowStyle();
   
   // Square aspect ratio (1:1) 
-  const cardSize = 96; // 120 * 0.8 = 96
+  const cardSize = CONSUMABLE_CARD_SIZE;
   
   const handleClick = (e: React.MouseEvent) => {
     // If there's an onClick handler, call it
@@ -183,8 +188,9 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
           display: 'flex',
           flexDirection: 'column',
           boxSizing: 'border-box',
-          transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
-          transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+          transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+          // No scale transform when in active game - causes issues with buttons when selected
+          transform: isInActiveGame ? 'scale(1)' : (isHovered ? 'scale(1.05)' : 'scale(1)'),
           ...(highlighted 
             ? {
                 boxShadow: '0 0 15px 5px rgba(255, 193, 7, 0.6), 0 4px 8px rgba(0,0,0,0.3)',

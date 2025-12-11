@@ -4,6 +4,7 @@ import { CHARM_PRICES } from '../../../game/data/charms';
 import { LockIcon } from './LockIcon';
 import { RarityDot, getRarityColor } from '../../utils/rarityColors';
 import { getItemTypeColor } from '../../utils/colors';
+import { CHARM_CARD_SIZE } from './cardSizes';
 
 /**
  * Convert charm ID to image filename
@@ -179,7 +180,7 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   const glowStyle = getGlowStyle();
   
   // Square aspect ratio (1:1)
-  const cardSize = 108; // 120 * 0.9 = 108
+  const cardSize = CHARM_CARD_SIZE;
   
   const handleClick = (e: React.MouseEvent) => {
     // If there's an onClick handler, call it

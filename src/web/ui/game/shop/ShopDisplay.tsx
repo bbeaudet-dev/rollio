@@ -6,7 +6,6 @@ import { ShopItemList } from './ShopItemList';
 import { useShopActions } from '../../../contexts/ShopActionsContext';
 import { NextLevelPreview } from './NextLevelPreview';
 import { DifficultyLevel } from '../../../../game/logic/difficulty';
-import { ViewDiceSet } from '../board/ViewDiceSet';
 
 interface ShopDisplayProps {
   shopState: ShopState;
@@ -69,11 +68,6 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
         `
       }} />
       
-      {/* Dice Set Viewer - Bottom Right */}
-      {gameState?.diceSet && gameState.diceSet.length > 0 && (
-        <ViewDiceSet diceSet={gameState.diceSet} />
-      )}
-      
       {/* Content container */}
       <div style={{
         position: 'relative',
@@ -90,11 +84,8 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
         overflow: 'visible', // No scrollbar - everything should be visible
         boxSizing: 'border-box'
       }}>
-        {/* Money and Refresh at top */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
-          <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-            Money: <span style={{ color: '#2d5a2d' }}>${playerMoney}</span>
-          </div>
+        {/* Refresh at top */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
           <ActionButton
             onClick={refreshShop}
             variant="secondary"

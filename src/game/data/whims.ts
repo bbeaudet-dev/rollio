@@ -95,6 +95,12 @@ export const WHIMS: Whim[] = [
     name: 'Accumulation',
     description: 'Turn one selected side to a Create Consumable pip effect',
     uses: 1
+  },
+  {
+    id: 'alchemist',
+    name: 'Alchemist',
+    description: 'Change a selected die to a random material',
+    uses: 1
   }
 ];
 

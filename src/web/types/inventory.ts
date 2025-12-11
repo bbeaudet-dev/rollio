@@ -11,4 +11,5 @@ export interface ConsumableInventoryProps {
   onConsumableUse: (index: number) => void;
   onSellConsumable?: (index: number) => void;
   maxSlots?: number;
+  selectedDiceCount?: number;
 } 

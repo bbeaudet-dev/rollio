@@ -1,14 +1,11 @@
 import { CHARMS, CHARM_PRICES } from '../data/charms';
-import { CONSUMABLES, WHIMS, WISHES } from '../data/consumables';
+import { CONSUMABLES, WHIMS, WISHES, COMBINATION_UPGRADES } from '../data/consumables';
 import { MATERIALS } from '../data/materials';
 import { getNextDieSize, getPreviousDieSize } from '../utils/dieSizeUtils';
 import { GameState, RoundState, DiceMaterialType } from '../types';
 import { PipEffectType } from '../data/pipEffects';
-
-const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
-  wish: { buy: 8, sell: 4 },
-  whim: { buy: 4, sell: 2 },
-};
+import { upgradeCombinations } from '../utils/combinationTracking';
+import { CONSUMABLE_PRICES } from './shop';
 
 /**
  * Update last consumable used tracking and Echo consumable description
@@ -20,11 +17,116 @@ export function updateLastConsumableUsed(gameState: GameState, consumable: any):
     (gameState as any).lastConsumableUsed = { ...consumable };
     
     // Update Echo consumable description
-    const echoIndex = gameState.consumables.findIndex((c: any) => c.id === 'echo');
-    if (echoIndex >= 0) {
+    updateEchoDescription(gameState);
+  }
+}
+
+/**
+ * Determine what dice selection requirements a consumable has
+ * Returns the min/max dice count required for the consumable
+ */
+export function getDiceSelectionRequirement(consumableId: string): { requires: boolean; min: number; max: number } {
+  // Consumables that require exactly 1 die
+  if (['alchemist', 'emptyAsAPocket', 'moneyPip', 'stallion', 'practice', 'phantom', 'accumulation'].includes(consumableId)) {
+    return { requires: true, min: 1, max: 1 };
+  }
+  // Consumables that require exactly 2 dice
+  if (['midasTouch'].includes(consumableId)) {
+    return { requires: true, min: 2, max: 2 };
+  }
+  // Consumables that require 1 or 2 dice
+  if (['chisel', 'potteryWheel'].includes(consumableId)) {
+    return { requires: true, min: 1, max: 2 };
+  }
+  // No dice selection required
+  return { requires: false, min: 0, max: 0 };
+}
+
+/**
+ * Determine consumable inputs from selected dice indices
+ * Converts selectedDiceIndices (from UI) into the proper format for applyConsumableEffect
+ * This handles validation and formatting for all consumable types that require dice selection
+ */
+export function determineConsumableInputs(
+  consumable: any,
+  selectedDiceIndices: number[] | undefined,
+  roundState: RoundState | null
+): {
+  dieSelectionInput?: number | [number, number];
+  dieSideSelectionInput?: { dieIndex: number; sideValue: number };
+} {
+  const result: {
+    dieSelectionInput?: number | [number, number];
+    dieSideSelectionInput?: { dieIndex: number; sideValue: number };
+  } = {};
+
+  if (!selectedDiceIndices || selectedDiceIndices.length === 0) {
+    return result;
+  }
+
+  const diceHand = roundState?.diceHand || [];
+
+  // Check if this consumable needs die selection (chisel, potteryWheel, midasTouch, alchemist)
+  if (consumable.id === 'chisel' || consumable.id === 'potteryWheel' || consumable.id === 'midasTouch' || consumable.id === 'alchemist') {
+    if (consumable.id === 'midasTouch') {
+      // MidasTouch requires exactly 2 dice selected
+      if (selectedDiceIndices.length === 2) {
+        result.dieSelectionInput = [selectedDiceIndices[0], selectedDiceIndices[1]] as [number, number];
+      }
+      // If not exactly 2 dice, dieSelectionInput remains undefined and will fail
+    } else if (consumable.id === 'alchemist') {
+      // Alchemist requires exactly 1 die selected
+      if (selectedDiceIndices.length === 1) {
+        result.dieSelectionInput = selectedDiceIndices[0];
+      }
+      // If not exactly 1 die, dieSelectionInput remains undefined and will fail
+    } else if (selectedDiceIndices.length >= 1 && selectedDiceIndices.length <= 2) {
+      // For chisel/potteryWheel, can select 1 or 2 dice (but not more)
+      result.dieSelectionInput = selectedDiceIndices.length === 1 
+        ? selectedDiceIndices[0] 
+        : [selectedDiceIndices[0], selectedDiceIndices[1]] as [number, number];
+    }
+    // If more than 2 dice selected for chisel/potteryWheel, dieSelectionInput remains undefined and will fail
+  }
+
+  // Check if this consumable needs die side selection (pip effect consumables)
+  // dieIndex here is from diceHand (the board), not diceSet
+  // Pip effect consumables require exactly 1 die selected
+  if (consumable.id === 'emptyAsAPocket' || consumable.id === 'moneyPip' || 
+      consumable.id === 'stallion' || consumable.id === 'practice' || 
+      consumable.id === 'phantom' || consumable.id === 'accumulation') {
+    if (selectedDiceIndices.length === 1) {
+      const dieIndex = selectedDiceIndices[0];
+      const die = diceHand[dieIndex];
+      if (die && die.rolledValue !== undefined) {
+        // dieIndex is from diceHand, pass it through - the function will find the corresponding diceSet die
+        result.dieSideSelectionInput = { dieIndex, sideValue: die.rolledValue };
+      }
+    }
+    // If not exactly 1 die, dieSideSelectionInput remains undefined and will fail
+  }
+
+  return result;
+}
+
+/**
+ * Update Echo consumable description based on last consumable used
+ * Pure function that modifies gameState in place
+ */
+export function updateEchoDescription(gameState: GameState): void {
+  const echoIndex = gameState.consumables.findIndex((c: any) => c.id === 'echo');
+  if (echoIndex >= 0) {
+    const lastConsumable = (gameState as any).lastConsumableUsed;
+    if (lastConsumable) {
       gameState.consumables[echoIndex] = {
         ...gameState.consumables[echoIndex],
-        description: `Create the last consumable used: ${consumable.name || 'Unknown'}`
+        description: `Create the last consumable used: ${lastConsumable.name || 'Unknown'}`
+      };
+    } else {
+      // Reset to default description if no last consumable
+      gameState.consumables[echoIndex] = {
+        ...gameState.consumables[echoIndex],
+        description: 'Create the last consumable used'
       };
     }
   }
@@ -35,11 +137,16 @@ export interface ConsumableEffectResult {
   shouldRemove: boolean;
   requiresInput?: {
     type: 'dieSelection' | 'dieSideSelection' | 'twoDieSelection';
-    consumableId: 'chisel' | 'potteryWheel' | 'midasTouch' | 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation';
+    consumableId: 'chisel' | 'potteryWheel' | 'midasTouch' | 'alchemist' | 'emptyAsAPocket' | 'moneyPip' | 'stallion' | 'practice' | 'phantom' | 'accumulation';
     diceSet: any[];
   };
   gameState: GameState;
   roundState?: RoundState;
+  // Unlock information for items that should be unlocked after use
+  unlockInfo?: {
+    type: 'pip_effect' | 'material';
+    id: string;
+  };
 }
 
 /**
@@ -47,7 +154,7 @@ export interface ConsumableEffectResult {
  * This is called from applyConsumableEffect when input is provided
  */
 function applyConsumableWithDieSelection(
-  consumableId: 'chisel' | 'potteryWheel' | 'midasTouch',
+  consumableId: 'chisel' | 'potteryWheel' | 'midasTouch' | 'alchemist',
   selectedDieIndex: number | [number, number],
   gameState: GameState,
   roundState: RoundState | null
@@ -99,16 +206,22 @@ export function applyConsumableEffect(
   let shouldRemove = true;
   
   // Handle consumables that require input - if input is provided, process it
-  if (dieSelectionInput !== undefined && (consumable.id === 'chisel' || consumable.id === 'potteryWheel' || consumable.id === 'midasTouch')) {
+  if (dieSelectionInput !== undefined && (consumable.id === 'chisel' || consumable.id === 'potteryWheel' || consumable.id === 'midasTouch' || consumable.id === 'alchemist')) {
     const result = applyDieSelectionConsumable(
-      consumable.id as 'chisel' | 'potteryWheel' | 'midasTouch',
+        consumable.id as 'chisel' | 'potteryWheel' | 'midasTouch' | 'alchemist',
       dieSelectionInput,
       newGameState,
       newRoundState || null
     );
-    // Update last consumable used and return
+    // Update last consumable used and add unlock info
     if (result.success && result.shouldRemove) {
       updateLastConsumableUsed(result.gameState, consumable);
+      // Add unlock info for alchemist (material unlock)
+      if (consumable.id === 'alchemist' && (result.gameState as any).__unlockMaterial) {
+        const materialId = (result.gameState as any).__unlockMaterial;
+        delete (result.gameState as any).__unlockMaterial; // Clean up temporary flag
+        result.unlockInfo = { type: 'material', id: materialId };
+      }
     }
     return result;
   }
@@ -125,14 +238,34 @@ export function applyConsumableEffect(
       newGameState,
       newRoundState || null
     );
-    // Update last consumable used and return
+    // Update last consumable used and add unlock info
     if (result.success && result.shouldRemove) {
       updateLastConsumableUsed(result.gameState, consumable);
+      // Add unlock info for pip effects
+      const pipEffectMap: Record<string, string> = {
+        'emptyAsAPocket': 'blank',
+        'moneyPip': 'money',
+        'stallion': 'wild',
+        'practice': 'upgradeCombo',
+        'phantom': 'twoFaced',
+        'accumulation': 'createConsumable'
+      };
+      const pipEffectId = pipEffectMap[consumable.id];
+      if (pipEffectId) {
+        result.unlockInfo = { type: 'pip_effect', id: pipEffectId };
+      }
     }
     return result;
   }
 
   switch (consumable.id) {
+    case 'alchemist':
+      // Alchemist works with selected dice on the board - no special handling needed
+      // If no dice are selected, it will fail when dieSelectionInput is undefined
+      shouldRemove = false;
+      wasSuccessfullyUsed = false;
+      break;
+
     case 'liquidation':
       newGameState.money = (newGameState.money || 0) * 2;
       break;
@@ -147,45 +280,6 @@ export function applyConsumableEffect(
         material: 'plastic' as DiceMaterialType
       };
       newGameState.diceSet = [...newGameState.diceSet, newDie];
-      break;
-    }
-
-    case 'materialEnchanter': { // Legacy/placeholder - not in current consumable data
-      // Find all plastic dice
-      const plasticDice = newGameState.diceSet
-        .map((die: any, idx: number) => ({ die, idx }))
-        .filter(({ die }: { die: any }) => die.material === 'plastic');
-      
-      if (plasticDice.length === 0) {
-        shouldRemove = false;
-        wasSuccessfullyUsed = false;
-        break;
-      }
-      
-      // Check for Weighted Dice charm
-      let baseProbability = 0.5; // 50% chance
-      if (charmManager && typeof charmManager.hasCharm === 'function' && charmManager.hasCharm('weightedDice')) {
-        baseProbability = Math.min(baseProbability * 2, 1.0); // 100% chance with Weighted Dice
-      }
-      
-      // Check if enchantment succeeds
-      if (Math.random() >= baseProbability) {
-        shouldRemove = false;
-        wasSuccessfullyUsed = false;
-        break;
-      }
-      
-      // Pick a random plastic die
-      const chosen = plasticDice[Math.floor(Math.random() * plasticDice.length)];
-      // Pick a random non-plastic material
-      const nonPlasticMaterials = MATERIALS.filter((m: any) => m.id !== 'plastic');
-      const newMaterial = nonPlasticMaterials[Math.floor(Math.random() * nonPlasticMaterials.length)];
-      
-      newGameState.diceSet = newGameState.diceSet.map((die, i) => 
-        i === chosen.idx 
-          ? { ...die, material: newMaterial.id as DiceMaterialType, abbreviation: newMaterial.abbreviation }
-          : die
-      );
       break;
     }
 
@@ -284,7 +378,8 @@ export function applyConsumableEffect(
       for (const consumable of newGameState.consumables) {
         const isWish = WISHES.some(w => w.id === consumable.id);
         const isWhim = WHIMS.some(w => w.id === consumable.id);
-        const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+        const isCombinationUpgrade = COMBINATION_UPGRADES.some(cu => cu.id === consumable.id);
+        const category = isWish ? 'wish' : (isWhim ? 'whim' : (isCombinationUpgrade ? 'combinationUpgrade' : 'whim'));
         const priceInfo = CONSUMABLE_PRICES[category] || CONSUMABLE_PRICES.whim;
         totalValue += priceInfo.sell;
       }
@@ -308,10 +403,36 @@ export function applyConsumableEffect(
     }
 
     case 'grabBag': {
-      // TODO: Implement combination upgrade system
-      // For now, this is a placeholder - combination upgrades need infrastructure
-      // Combination upgrades likely modify combination point values
-      shouldRemove = false; // Don't remove until implemented
+      // Create 2 random combination upgrades
+      const maxConsumables = newGameState.consumableSlots || 2;
+      const availableSlots = maxConsumables - (newGameState.consumables.length - 1);
+      if (availableSlots < 2) {
+        shouldRemove = false;
+        wasSuccessfullyUsed = false;
+        break;
+      }
+      // Get all combination upgrades, excluding ones already owned
+      const ownedIds = new Set(newGameState.consumables.map(c => c.id));
+      const available = COMBINATION_UPGRADES.filter(c => !ownedIds.has(c.id));
+      if (available.length === 0) {
+        shouldRemove = false;
+        wasSuccessfullyUsed = false;
+        break;
+      }
+      // Select 2 random combination upgrades
+      const selected: any[] = [];
+      const indices = new Set<number>();
+      while (selected.length < 2 && indices.size < available.length) {
+        const randomIdx = Math.floor(Math.random() * available.length);
+        if (!indices.has(randomIdx)) {
+          indices.add(randomIdx);
+          selected.push(available[randomIdx]);
+        }
+      }
+      const toAdd = Math.min(selected.length, availableSlots);
+      // Create consumable objects with uses property
+      const newConsumables = selected.slice(0, toAdd).map(c => ({ ...c, uses: c.uses || 1 }));
+      newGameState.consumables = [...newGameState.consumables, ...newConsumables];
       break;
     }
 
@@ -365,9 +486,88 @@ export function applyConsumableEffect(
     }
 
     case 'welfare': {
-      // TODO: Implement combination upgrade system
-      // For now, this is a placeholder - combination upgrades need infrastructure
-      shouldRemove = false; // Don't remove until implemented
+      // Upgrade all combinations by 2 levels
+      const combinationLevels = { ...newGameState.history.combinationLevels };
+      for (const key in combinationLevels) {
+        combinationLevels[key] = (combinationLevels[key] || 1) + 2;
+      }
+      newGameState.history = {
+        ...newGameState.history,
+        combinationLevels
+      };
+      break;
+    }
+
+    // Combination Upgrade consumables - upgrade all combinations of a specific type by 1 level
+    case 'upgradeSingleN':
+    case 'upgradeNPairs':
+    case 'upgradeNOfAKind':
+    case 'upgradeStraightOfN':
+    case 'upgradePyramidOfN': {
+      // Get the combination type from the consumable
+      const combinationUpgrade = COMBINATION_UPGRADES.find(cu => cu.id === consumable.id);
+      if (!combinationUpgrade) {
+        shouldRemove = false;
+        wasSuccessfullyUsed = false;
+        break;
+      }
+      
+      const targetType = combinationUpgrade.combinationType;
+      const combinationLevels = { ...newGameState.history.combinationLevels };
+      const numDice = newGameState.diceSet.length;
+      
+      // Generate all possible combination keys for this type based on dice set
+      const possibleKeys: string[] = [];
+      
+      if (targetType === 'singleN') {
+        possibleKeys.push('singleN:1', 'singleN:5');
+      } else if (targetType === 'nPairs') {
+        for (let n = 1; n <= Math.floor(numDice / 2); n++) {
+          possibleKeys.push(`nPairs:${n}`);
+        }
+      } else if (targetType === 'nOfAKind') {
+        for (let n = 3; n <= numDice; n++) {
+          possibleKeys.push(`nOfAKind:${n}`);
+        }
+      } else if (targetType === 'straightOfN') {
+        for (let n = 4; n <= numDice; n++) {
+          possibleKeys.push(`straightOfN:${n}`);
+        }
+      } else if (targetType === 'pyramidOfN') {
+        for (let n = 3; ; n++) {
+          const pyramidSize = (n * (n + 1)) / 2;
+          if (pyramidSize > numDice) break;
+          possibleKeys.push(`pyramidOfN:${pyramidSize}`);
+        }
+      }
+      
+      // Upgrade all possible combinations of this type by 1 level
+      for (const key of possibleKeys) {
+        combinationLevels[key] = (combinationLevels[key] || 1) + 1;
+      }
+      
+      newGameState.history = {
+        ...newGameState.history,
+        combinationLevels
+      };
+      break;
+    }
+
+    case 'upgradeNTuplets': {
+      // Upgrade all existing tuplet combination levels by 1
+      const combinationLevels = { ...newGameState.history.combinationLevels };
+      const tupletTypes = ['nTriplets', 'nQuadruplets', 'nQuintuplets', 'nSextuplets', 'nSeptuplets', 'nOctuplets', 'nNonuplets', 'nDecuplets'];
+      
+      for (const key in combinationLevels) {
+        if (tupletTypes.some(type => key.startsWith(`${type}:`))) {
+          combinationLevels[key] = combinationLevels[key] + 1;
+        }
+      }
+      
+      newGameState.history = {
+        ...newGameState.history,
+        combinationLevels
+      };
       break;
     }
 
@@ -750,7 +950,7 @@ export function applyDieSideSelectionConsumable(
  * Pure function - processes the user's die selection
  */
 export function applyDieSelectionConsumable(
-  consumableId: 'chisel' | 'potteryWheel' | 'midasTouch',
+  consumableId: 'chisel' | 'potteryWheel' | 'midasTouch' | 'alchemist',
   selectedDieIndex: number | [number, number],
   gameState: GameState,
   roundState: RoundState | null
@@ -786,6 +986,70 @@ export function applyDieSelectionConsumable(
         ? { ...die, material: sourceDie.material }
         : die
     );
+  } else if (consumableId === 'alchemist') {
+    // Handle single die selection for alchemist
+    // selectedDieIndex is from diceHand, need to find corresponding die in diceSet
+    if (typeof selectedDieIndex !== 'number') {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+    
+    // Find the die in diceHand first
+    const diceHandDie = newRoundState?.diceHand?.[selectedDieIndex];
+    if (!diceHandDie) {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+    
+    // Find the corresponding die in diceSet by matching ID
+    const diceSetIndex = newGameState.diceSet.findIndex(d => d.id === diceHandDie.id);
+    if (diceSetIndex === -1) {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+    
+    const currentDie = newGameState.diceSet[diceSetIndex];
+    const currentMaterial = currentDie.material;
+    
+    // Get all non-plastic materials (excluding plastic as it's the default)
+    const nonPlasticMaterials: DiceMaterialType[] = ['crystal', 'flower', 'golden', 'volcano', 'mirror', 'rainbow', 'ghost', 'lead'];
+    
+    // Exclude the current material to guarantee a change
+    const availableMaterials = nonPlasticMaterials.filter(m => m !== currentMaterial);
+    
+    // If somehow all materials are excluded (shouldn't happen), fall back to all non-plastic
+    const materialsToChooseFrom = availableMaterials.length > 0 ? availableMaterials : nonPlasticMaterials;
+    
+    // Pick a random material from available options
+    const randomMaterial = materialsToChooseFrom[Math.floor(Math.random() * materialsToChooseFrom.length)];
+    
+    // Update material in diceSet
+    newGameState.diceSet = newGameState.diceSet.map((die, i) =>
+      i === diceSetIndex
+        ? { ...die, material: randomMaterial }
+        : die
+    );
+    
+    // Also update material in diceHand so it shows immediately on the board
+    if (newRoundState && newRoundState.diceHand) {
+      newRoundState.diceHand = newRoundState.diceHand.map((die, i) =>
+        i === selectedDieIndex
+          ? { ...die, material: randomMaterial }
+          : die
+      );
+    }
+    
+    // Track the new material for unlocking (will be handled by WebGameManager)
+    (newGameState as any).__unlockMaterial = randomMaterial;
   } else if (consumableId === 'chisel' || consumableId === 'potteryWheel') {
     // Handle up to two die selection for chisel/potteryWheel - modify rolled values in diceHand
     if (!Array.isArray(selectedDieIndex)) {
