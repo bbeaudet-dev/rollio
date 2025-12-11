@@ -155,7 +155,7 @@ export const materialEffects: Record<string, MaterialEffectFn> = {
         if (charmManager && typeof charmManager.getCharm === 'function') {
           const rabbitsFoot = charmManager.getCharm('rabbitsFoot');
           if (rabbitsFoot && typeof rabbitsFoot.incrementRainbowTrigger === 'function') {
-            rabbitsFoot.incrementRainbowTrigger();
+            rabbitsFoot.incrementRainbowTrigger(gameState);
           }
         }
       }
@@ -165,7 +165,7 @@ export const materialEffects: Record<string, MaterialEffectFn> = {
         if (charmManager && typeof charmManager.getCharm === 'function') {
           const rabbitsFoot = charmManager.getCharm('rabbitsFoot');
           if (rabbitsFoot && typeof rabbitsFoot.incrementRainbowTrigger === 'function') {
-            rabbitsFoot.incrementRainbowTrigger();
+            rabbitsFoot.incrementRainbowTrigger(gameState);
           }
         }
       }
@@ -342,8 +342,31 @@ export function handleMirrorDiceRolling(diceHand: Die[]): void {
 /**
  * Filters dice indices to remove, accounting for special material effects
  * Lead dice are not removed (they stay in hand after scoring)
+ * Iron Fortress charm: If at least 2 lead dice are scored, ALL scored dice stay in hand
  */
-export function getDiceIndicesToRemove(diceHand: Die[], selectedIndices: number[]): number[] {
+export function getDiceIndicesToRemove(
+  diceHand: Die[], 
+  selectedIndices: number[],
+  charmManager?: any
+): number[] {
+  // Check for Iron Fortress charm
+  if (charmManager) {
+    const ironFortress = charmManager.getActiveCharms().find((charm: any) => charm.id === 'ironFortress');
+    if (ironFortress) {
+      // Count lead dice in selected indices
+      const leadCount = selectedIndices.filter(i => {
+        const die = diceHand[i];
+        return die && die.material === 'lead';
+      }).length;
+      
+      // If at least 2 lead dice are scored, keep ALL dice (return empty array)
+      if (leadCount >= 2) {
+        return [];
+      }
+    }
+  }
+  
+  // Normal behavior: lead dice stay in hand, others are removed
   return selectedIndices.filter(i => {
     const die = diceHand[i];
     // Lead dice stay in hand

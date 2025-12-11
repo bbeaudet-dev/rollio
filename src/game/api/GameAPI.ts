@@ -307,6 +307,14 @@ export class GameAPI {
     
     currentGameState = updateRollHistory(currentGameState, historyEntry);
     
+    // Track dice scored for Sleeper Agent charm
+    const { trackDiceScoredForSleeperAgent } = await import('../logic/charms/RareCharms');
+    currentGameState = trackDiceScoredForSleeperAgent(currentGameState, selectedIndices.length);
+    
+    // Update Generator charm category after scoring breakdown completes
+    const { updateGeneratorCategory } = await import('../logic/charms/charmUtils');
+    currentGameState = updateGeneratorCategory(currentGameState);
+    
     this.emit('diceScored', {
       selectedIndices,
       points: finalPoints,
@@ -324,6 +332,7 @@ export class GameAPI {
       breakdown
     };
   }
+
 
   /**
    * Score selected dice (complete flow - for CLI/backward compatibility)
@@ -846,7 +855,7 @@ export class GameAPI {
       roundState
     );
 
-    const result = applyConsumableEffect(
+    const result = await applyConsumableEffect(
       index,
       gameState,
       roundState,

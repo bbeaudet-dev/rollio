@@ -77,6 +77,7 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
               combinationLevels={gameState.history?.combinationLevels}
               diceSet={gameState.diceSet}
               selectedDiceCount={0}
+              charmState={gameState.history?.charmState}
             />
           </div>
           

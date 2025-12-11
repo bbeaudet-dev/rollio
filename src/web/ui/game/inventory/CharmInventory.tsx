@@ -6,7 +6,7 @@ import { useUnlocks } from '../../../contexts/UnlockContext';
 import { CHARM_PRICES } from '../../../../game/data/charms';
 import { CHARM_CARD_SIZE } from '../../components/cardSizes';
 
-export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm, maxSlots }) => {
+export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm, maxSlots, charmState }) => {
   const { highlightedCharmIds } = useScoringHighlights();
   const { unlockedItems } = useUnlocks();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -54,6 +54,7 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
                     }
                   }}
                   isInActiveGame={true}
+                  charmState={charmState}
                 />
                 {isSelected && onSellCharm && (
                   <div style={{

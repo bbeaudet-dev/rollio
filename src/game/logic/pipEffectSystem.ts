@@ -92,13 +92,13 @@ export function applyPipEffect(
       break;
 
     case 'blank':
-      // Blank pip effect: ^1.1 exponent (or ^1.25 if BlankSlate charm is active)
+      // Blank pip effect: ^1.1 exponent (or ^1.5 if BlankSlate charm is active)
       let blankExponent = 1.1;
       if (context.charmManager) {
         const activeCharms = context.charmManager.getActiveCharms?.() || [];
         const hasBlankSlate = activeCharms.some((c: any) => c.id === 'blankSlate');
         if (hasBlankSlate) {
-          blankExponent = 1.25;
+          blankExponent = 1.5;
         }
       }
       result.scoringElements = addExponent(currentValues, blankExponent);

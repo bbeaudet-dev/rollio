@@ -319,6 +319,7 @@ export const Game: React.FC<GameProps> = ({
         combinationLevels={gameState.history?.combinationLevels}
         diceSet={gameState.diceSet}
         selectedDiceCount={board.selectedDice.length}
+        charmState={gameState.history?.charmState}
       />
       
       {/* Menu and Settings buttons below inventory */}

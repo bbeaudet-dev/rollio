@@ -23,6 +23,7 @@ interface InventoryProps {
   combinationLevels?: CombinationLevels | null;
   diceSet?: Die[];
   selectedDiceCount?: number;
+  charmState?: Record<string, any> | null;
 }
 
 export const Inventory: React.FC<InventoryProps> = ({ 
@@ -37,7 +38,8 @@ export const Inventory: React.FC<InventoryProps> = ({
   onSellConsumable,
   combinationLevels,
   diceSet = [],
-  selectedDiceCount = 0
+  selectedDiceCount = 0,
+  charmState = null
 }) => {
   const [showCombinationLevels, setShowCombinationLevels] = useState(false);
   const [showDiceSet, setShowDiceSet] = useState(false);
@@ -79,7 +81,7 @@ export const Inventory: React.FC<InventoryProps> = ({
           paddingRight: `${MONEY_DISPLAY_MIN_WIDTH + INVENTORY_ICON_GAP + INVENTORY_ICON_SIZE + INVENTORY_ICON_GAP + INVENTORY_ICON_SIZE + 20}px` // Responsive padding: money + gap + hand icon + gap + dice icon + buffer
         }}
       >
-        <CharmInventory charms={charms} onSellCharm={onSellCharm} maxSlots={charmSlots} />
+        <CharmInventory charms={charms} onSellCharm={onSellCharm} maxSlots={charmSlots} charmState={charmState} />
         <ConsumableInventory 
           consumables={consumables}
           onConsumableUse={onConsumableUse || (() => {})}

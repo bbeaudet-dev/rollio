@@ -1,4 +1,4 @@
-import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState, Charm, Consumable, Blessing, GamePhase, WorldState, ConsumableCounters, CharmCounters, BlessingCounters, DiceMaterialType, CombinationLevels } from '../types';
+import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState, Charm, Consumable, Blessing, GamePhase, WorldState, ConsumableCounters, CharmCounters, BlessingCounters, DiceMaterialType, CombinationLevels, CombinationCategory } from '../types';
 import { getRandomInt } from './effectUtils';
 import { validateDiceSetConfig } from '../validation/diceSetValidation';
 import { getLevelConfig, generateWorldLevelConfigs, LevelConfig } from '../data/levels';
@@ -193,7 +193,11 @@ export function createInitialLevelState(
     flopsThisLevel: 0, 
     pointsBanked: 0, 
     currentRound: firstRound,
-    banksThisLevel: 0, 
+    banksThisLevel: 0,
+    isFirstScoring: false,  // Track first scoring of level
+    isFirstFlop: false,  // Track first flop of level
+    isFirstRoll: false,  // Track first roll of level
+    isFirstBank: false,  // Track first bank of level 
     levelEffects,
     effectContext,
   };
@@ -279,7 +283,8 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty:
       charmCounters: {},
       blessingCounters: {},
       highScoreSingleRoll: 0, 
-      highScoreBank: 0, 
+      highScoreBank: 0,
+      charmState: {}, // Track cumulative charm state (e.g., rabbitsFoot.rainbowTriggers, assassin.destroyedDice)
     },
     consecutiveBanks: 0,  
     consecutiveFlops: 0,  
@@ -630,6 +635,12 @@ export function createInitialRoundState(roundNumber: number = 1, diceSet?: any[]
   // If diceSet is provided, we'll use it when rolling, but don't populate diceHand yet
   const diceHand: any[] = [];
   
+  // Initialize Generator charm category (cycles through: singleN, nPairs, nTuplets, straightOfN, pyramidOfN, nOfAKind)
+  const generatorCategories: CombinationCategory[] = [
+    'singleN', 'nPairs', 'nTuplets', 'straightOfN', 'pyramidOfN', 'nOfAKind'
+  ];
+  const generatorCurrentCategory = generatorCategories[Math.floor(Math.random() * generatorCategories.length)];
+  
   return {
     roundNumber: roundNumber,
     roundPoints: 0,
@@ -639,6 +650,7 @@ export function createInitialRoundState(roundNumber: number = 1, diceSet?: any[]
     isActive: true,
     rollHistory: [],
     flowerCounter: 0,  // Initialize flower counter for Bloom charm
+    generatorCurrentCategory,  // Initialize Generator charm category
   };
 }
 

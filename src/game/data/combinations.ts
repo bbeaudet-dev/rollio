@@ -382,7 +382,7 @@ export function calculateStraightOfNPoints(length: number, level: number = 1): n
 /*
  * Calculate the points for pyramidOfN combination
  */
-function getPyramidLayers(pyramidSize: number): number {
+export function getPyramidLayers(pyramidSize: number): number {
   // Pyramid of size n has m layers where n = m*(m+1)/2
   // Solving for m:m = (-1 + sqrt(1 + 8*n)) / 2
   return Math.floor((-1 + Math.sqrt(1 + 8 * pyramidSize)) / 2);

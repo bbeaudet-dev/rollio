@@ -53,6 +53,10 @@ export interface LevelState {
   banksRemaining?: number;
   flopsThisLevel: number; // Track total flops in this level (for progressive penalty)
   banksThisLevel?: number;  // For OneSongGlory charm - tracks banks used in this level
+  isFirstScoring?: boolean;  // Tracks if first scoring of level has occurred (for PointPirate and other charms)
+  isFirstFlop?: boolean;  // Tracks if first flop of level has occurred
+  isFirstRoll?: boolean;  // Tracks if first roll of level has occurred
+  isFirstBank?: boolean;  // Tracks if first bank of level has occurred
   rewards?: {
     baseReward: number;
     banksBonus: number;
@@ -74,6 +78,7 @@ export interface RoundState {
   hotDiceCounter: number; 
   forfeitedPoints: number;
   flowerCounter?: number;  // tracks flower dice scored
+  generatorCurrentCategory?: CombinationCategory; 
 }
 
 
@@ -117,6 +122,9 @@ export interface DiceMaterial {
 }
 
 export type DiceMaterialType = 'plastic' | 'crystal' | 'flower' | 'golden' | 'volcano' | 'mirror' | 'rainbow' | 'ghost' | 'lead';
+
+// Combination category types (used by Generator charm and potentially others)
+export type CombinationCategory = 'singleN' | 'nPairs' | 'nTuplets' | 'straightOfN' | 'pyramidOfN' | 'nOfAKind';
 
 export interface Die {
   id: string;
@@ -291,6 +299,7 @@ export interface GameHistory {
   blessingCounters: BlessingCounters; // Track blessing PURCHASES
   highScoreSingleRoll: number;  // Highest single roll score in this game
   highScoreBank: number;  // Highest bank score in this game
+  charmState?: Record<string, any>; // Track cumulative charm state (e.g., rabbitsFoot.rainbowTriggers, assassin.destroyedDice)
 }
 
 

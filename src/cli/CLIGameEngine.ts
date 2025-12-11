@@ -132,7 +132,7 @@ export class CLIGameEngine {
       roundContext: roundState ? 'in-round' : 'between-rounds'
     });
     
-    const result = applyConsumableEffect(idx, gameState, roundState, this.charmManager);
+    const result = await applyConsumableEffect(idx, gameState, roundState, this.charmManager);
     
     // Update gameState and roundState from result
     const oldMoney = gameState.money;

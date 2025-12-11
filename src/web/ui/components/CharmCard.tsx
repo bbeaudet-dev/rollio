@@ -3,14 +3,14 @@ import { Charm } from '../../../game/types';
 import { CHARM_PRICES } from '../../../game/data/charms';
 import { LockIcon } from './LockIcon';
 import { RarityDot, getRarityColor } from '../../utils/rarityColors';
-import { getItemTypeColor } from '../../utils/colors';
 import { CHARM_CARD_SIZE } from './cardSizes';
 
 /**
  * Convert charm ID to image filename
  * Maps charm IDs to their corresponding image filenames (using first version, not _2 or _3)
+ * For Sleeper Agent, checks if activated (100+ dice scored) to use activated image
  */
-function getCharmImagePath(charmId: string): string | null {
+function getCharmImagePath(charmId: string, charmState?: Record<string, any> | null): string | null {
   // Map of charm IDs to their image filenames
   const imageMap: Record<string, string> = {
     'almostCertain': 'Almost_Certain.png',
@@ -37,6 +37,7 @@ function getCharmImagePath(charmId: string): string | null {
     'ghostWhisperer': 'Ghost_Whisperer.png',
     'goldenTouch': 'Golden_Touch.png',
     'hedgeFund': 'Hedge_Fund.png',
+    'frequentFlyer': 'Frequent_Flyer.png',
     'hoarder': 'Hoarder.png',
     'holyGrail': 'Holy_Grail_2.png',
     'hotDiceHero': 'Hot_Dice_Hero.png',
@@ -71,7 +72,7 @@ function getCharmImagePath(charmId: string): string | null {
     'russianRoulette': 'Russian_Roulette.png',
     'fourForYourFavor': 'Five_Alive.png',
     'fiveAlive': 'Five_Alive_2.png',
-    'divineIntervention': 'Second_Chance_3.png',
+    'divineIntervention': 'Divine_Intervention.png',
     'divineFavor': 'Divine_Favor_2.png',
     'paranoia': 'Paranoia.png',
     'perfectionist': 'Perfectionist.png',
@@ -98,8 +99,26 @@ function getCharmImagePath(charmId: string): string | null {
     'vesuvius': 'Vesuvius.png',
     'weightedDice': 'Weighted_Dice.png',
     'wildCard': 'Wild_Card.png',
+    'brotherhood': 'Brotherhood.png',
+    'sleeperAgent': 'Sleeper_Agent.png',
+    'sleeperAgentActivated': 'Sleep_Agent_Left_2.png',
+    'matterhorn': 'Matterhorn.png',
+    'trumpCard': 'Trump_Card_3.png',
+    'drumpfCard': 'Drumpf_Card.png', 
+    'assassin': 'Assassin.png',
+    'againstTheGrain': 'Against_The_Grain_2.png',
+    'jefferson': 'Jefferson.png',
+    'botox': 'Botox_3.png',
   };
 
+  // Special handling for Sleeper Agent - check if activated
+  if (charmId === 'sleeperAgent' && charmState?.sleeperAgent?.totalDiceScored >= 100) {
+    const activatedFilename = imageMap['sleeperAgentActivated'];
+    if (activatedFilename) {
+      return `/assets/images/charms/${activatedFilename}`;
+    }
+  }
+  
   const filename = imageMap[charmId];
   if (!filename) {
     return null;
@@ -123,6 +142,7 @@ interface CharmCardProps {
   highlighted?: boolean;
   isInActiveGame?: boolean; // true if in shop or inventory during active game
   isLocked?: boolean; // true if item is locked (not unlocked in collection)
+  charmState?: Record<string, any> | null; // For checking charm-specific state (e.g., Sleeper Agent activation)
 }
 
 export const CharmCard: React.FC<CharmCardProps> = ({
@@ -139,7 +159,8 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   onSell,
   highlighted = false,
   isInActiveGame = false,
-  isLocked = false
+  isLocked = false,
+  charmState = null
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
@@ -149,8 +170,8 @@ export const CharmCard: React.FC<CharmCardProps> = ({
   
   const rarity = charm.rarity || 'common';
   const sellValue = CHARM_PRICES[rarity]?.sell || 2;
-  const backgroundColor = getItemTypeColor('charm');
-  const imagePath = getCharmImagePath(charm.id);
+  const backgroundColor = '#1a1a1a'; // Dark gray background for charms
+  const imagePath = getCharmImagePath(charm.id, charmState);
   const borderColor = getRarityColor(rarity);
   
   // Get glow effect based on rarity
