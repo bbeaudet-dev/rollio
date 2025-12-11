@@ -1,5 +1,4 @@
-import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState, Charm, Consumable, Blessing, GamePhase, WorldState, ConsumableCounters, CharmCounters, BlessingCounters, DiceMaterialType } from '../types';
-import { ALL_SCORING_TYPES } from '../data/combinations';
+import { GameState, RoundState, LevelState, DiceSetConfig, Die, CombinationCounters, ShopState, Charm, Consumable, Blessing, GamePhase, WorldState, ConsumableCounters, CharmCounters, BlessingCounters, DiceMaterialType, CombinationLevels } from '../types';
 import { getRandomInt } from './effectUtils';
 import { validateDiceSetConfig } from '../validation/diceSetValidation';
 import { getLevelConfig, generateWorldLevelConfigs, LevelConfig } from '../data/levels';
@@ -14,6 +13,7 @@ import { ALL_BLESSINGS } from '../data/blessings';
 import { DifficultyLevel, getDifficultyConfig, getDifficulty, getStartingCredits } from '../logic/difficulty';
 import { MATERIALS } from '../data/materials';
 import { PIP_EFFECTS, PipEffectType } from '../data/pipEffects';
+import { updateEchoDescription } from '../logic/consumableEffects';
 
 // Default game configuration
 export const DEFAULT_GAME_CONFIG = {
@@ -38,6 +38,12 @@ export const DEFAULT_SHOP_STATE: ShopState = {
 
 function createInitialCombinationCounters(): CombinationCounters {
   // Start with empty object - combinations will be added as they're used
+  return {};
+}
+
+function createInitialCombinationLevels(): CombinationLevels {
+  // Start with empty object - all combinations default to level 1
+  // Levels will be added as combinations are upgraded
   return {};
 }
 
@@ -268,6 +274,7 @@ export function createInitialGameState(diceSetConfig: DiceSetConfig, difficulty:
     // History (consolidated here - all history in one place)
     history: {
       combinationCounters: createInitialCombinationCounters(),
+      combinationLevels: createInitialCombinationLevels(),
       consumableCounters: {},
       charmCounters: {},
       blessingCounters: {},
@@ -608,6 +615,9 @@ export function initializeNewGame(
   
   // Register starting charms with the charm manager
   registerStartingCharms(gameState, charmManager);
+  
+  // Update echo consumable description if last consumable was used
+  updateEchoDescription(gameState);
   
   // Don't create level state yet - player needs to select a world first
   // Level state will be created when world is selected

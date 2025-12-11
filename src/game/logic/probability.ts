@@ -445,7 +445,7 @@ function filterCombinationsByCategory(
 /**
  * Calculate how many dice a combination uses
  */
-function getDiceUsedByCombination(type: ScoringCombinationType, param: number): number {
+export function getDiceUsedByCombination(type: ScoringCombinationType, param: number): number {
   switch (type) {
     case 'singleN':
       return 1;
