@@ -1,5 +1,5 @@
 import { BaseCharm, CharmScoringContext, CharmBankContext, CharmFlopContext, CharmRoundStartContext, ScoringValueModification } from '../charmSystem';
-import { Die, GameState } from '../../types';
+import { Die, GameState, CombinationCategory } from '../../types';
 import { getPipEffectForDie } from '../pipEffectSystem';
 import { CHARMS } from '../../data/charms';
 import { CONSUMABLES } from '../../data/consumables';
@@ -8,7 +8,6 @@ import { CONSUMABLES } from '../../data/consumables';
  * Common Charms Implementation
  * 
  * NOTE: Some charms are skipped because they require systems not yet implemented:
- * - secondChance: Needs reroll granting system
  * - roundRobin: Needs "repeated hands" tracking in round
  * - oneSongGlory: Needs level completion tracking with bank count
  * - digitalNomad: Needs world completion tracking (every 5 levels)
@@ -210,7 +209,7 @@ export class OddOdysseyCharm extends BaseCharm {
 
 export class PairUpCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +20 points for each pair rolled
+    // +50 points for each pair scored
     const valueCounts: Record<number, number> = {};
     for (const idx of context.selectedIndices) {
       const die = context.roundState.diceHand[idx];
@@ -220,7 +219,7 @@ export class PairUpCharm extends BaseCharm {
     }
     const pairCount = Object.values(valueCounts).reduce((sum, count) => sum + Math.floor(count / 2), 0);
     return {
-      basePointsDelta: pairCount * 20
+      basePointsDelta: pairCount * 50
     };
   }
 }
@@ -262,19 +261,23 @@ export class DimeADozenCharm extends BaseCharm {
 
 export class SandbaggerCharm extends BaseCharm {
   onFlop(context: CharmFlopContext): void {
-    // +100 points when flopping (includes prevented flops)
-    // Track bonus for scoring - flops happen before scoring, so we store it
-    if (!context.gameState.sandbaggerBonus) {
-      context.gameState.sandbaggerBonus = 0;
+    // +50 points per flop (cumulative)
+    // Track in charmState
+    if (!context.gameState.history.charmState) {
+      context.gameState.history.charmState = {};
     }
-    context.gameState.sandbaggerBonus += 100;
+    if (!context.gameState.history.charmState.sandbagger) {
+      context.gameState.history.charmState.sandbagger = { flopCount: 0 };
+    }
+    context.gameState.history.charmState.sandbagger.flopCount = 
+      (context.gameState.history.charmState.sandbagger.flopCount || 0) + 1;
   }
 
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Apply any accumulated flop bonuses
-    const bonus = context.gameState.sandbaggerBonus || 0;
-    if (bonus > 0) {
-      context.gameState.sandbaggerBonus = 0; // Reset after applying
+    // Apply cumulative flop bonus: +50 per flop
+    const flopCount = context.gameState.history.charmState?.sandbagger?.flopCount || 0;
+    if (flopCount > 0) {
+      const bonus = flopCount * 50;
       return {
         basePointsDelta: bonus
       };
@@ -285,7 +288,7 @@ export class SandbaggerCharm extends BaseCharm {
 
 export class FlowerPowerCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +10 points for each flower die scored in current round
+    // +100 points for each flower die scored in current round
     // Count flowers scored in this round from rollHistory
     let flowerCount = 0;
     if (context.roundState && context.roundState.rollHistory) {
@@ -303,19 +306,19 @@ export class FlowerPowerCharm extends BaseCharm {
     flowerCount += currentFlowerCount;
     
     return {
-      basePointsDelta: flowerCount * 10
+      basePointsDelta: flowerCount * 100
     };
   }
 }
 
 export class CrystalClearCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +75 points for each crystal die scored
+    // +150 points for each crystal die scored
     const crystalCount = context.selectedIndices.filter(
       idx => context.roundState.diceHand[idx]?.material === 'crystal'
     ).length;
     return {
-      basePointsDelta: crystalCount * 75
+      basePointsDelta: crystalCount * 150
     };
   }
 }
@@ -335,12 +338,12 @@ export class GoldenTouchCharm extends BaseCharm {
 
 export class StraightShooterCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +100 points when scoring a straight
+    // +500 points when scoring a straight
     const hasStraight = context.combinations.some(
       combo => combo.type === 'straight' || combo.type === 'straightOfN'
     );
     return {
-      basePointsDelta: hasStraight ? 100 : 0
+      basePointsDelta: hasStraight ? 500 : 0
     };
   }
 }
@@ -364,7 +367,7 @@ export class LongshotCharm extends BaseCharm {
 
 export class GhostWhispererCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +50 points for each unscored Ghost die; +10 points for each scored Ghost die
+    // +50 points for each scored Ghost die; +250 points for each unscored Ghost die
     const allGhostDice = context.roundState.diceHand.filter((die: Die) => die.material === 'ghost');
     const scoredGhostCount = context.selectedIndices.filter(
       idx => context.roundState.diceHand[idx]?.material === 'ghost'
@@ -372,32 +375,16 @@ export class GhostWhispererCharm extends BaseCharm {
     const unscoredGhostCount = allGhostDice.length - scoredGhostCount;
     
     return {
-      basePointsDelta: (unscoredGhostCount * 50) + (scoredGhostCount * 10)
+      basePointsDelta: (scoredGhostCount * 50) + (unscoredGhostCount * 250)
     };
   }
 }
 
 export class IronFortressCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Each Lead die gives +15 points when scored
-    const leadCount = context.selectedIndices.filter(
-      idx => context.roundState.diceHand[idx]?.material === 'lead'
-    ).length;
-    return {
-      basePointsDelta: leadCount * 15
-    };
-  }
-
-  onFlop(context: CharmFlopContext): boolean | { prevented: boolean, log?: string } | void {
-    // 5% chance to prevent flop
-    const leadCount = context.roundState.diceHand.filter((die: Die) => die.material === 'lead').length;
-    if (leadCount > 0 && Math.random() < 0.05) {
-      return {
-        prevented: true,
-        log: '\n🛡️ Iron Fortress prevented flop!'
-      };
-    }
-    return false;
+    // If at least 2 Lead dice are scored, all scored dice remain in hand
+    // This is handled in getDiceIndicesToRemove via charmManager
+    return {};
   }
 }
 
@@ -539,27 +526,10 @@ export class RerollRangerCharm extends BaseCharm {
 
 export class BankBaronCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +5 points when scoring. Add +5 for each bank (cumulative)
-    // Find this charm in gameState to update its state
-    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
-    if (!charm) return {};
-    
-    // Initialize state if needed
-    if (charm.bankBaronBonus === undefined) {
-      charm.bankBaronBonus = 5; // Starts at 5
-    }
-    
-    // Apply current bonus
-    const bonus = charm.bankBaronBonus;
-    
-    // Note: Bank count is incremented in processBankPoints, so we'll update bonus there
-    // For now, just apply the current bonus
-    
-    // Update description
-    const originalCharm = CHARMS.find((c: any) => c.id === this.id);
-    const baseDescription = originalCharm?.description || charm.description;
-    charm.description = baseDescription.replace(/^\+?\d+/, `+${charm.bankBaronBonus}`);
-    this.description = charm.description; // Update instance description too
+    // +10 PTS when scoring. Add +10 PTS for each bank (cumulative)
+    // Track in charmState
+    const bankCount = context.gameState.history.charmState?.bankBaron?.bankCount || 0;
+    const bonus = 10 + (bankCount * 10);
     
     return {
       basePointsDelta: bonus
@@ -567,41 +537,38 @@ export class BankBaronCharm extends BaseCharm {
   }
   
   onBank(context: CharmBankContext): number {
-    // Increment bonus for next scoring after banking
-    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
-    if (charm) {
-      if (charm.bankBaronBonus === undefined) {
-        charm.bankBaronBonus = 5;
-      }
-      charm.bankBaronBonus += 5; // Increase by 5 for next time
-      
-      // Update description
-      const originalCharm = CHARMS.find((c: any) => c.id === this.id);
-      const baseDescription = originalCharm?.description || charm.description;
-      charm.description = baseDescription.replace(/^\+?\d+/, `+${charm.bankBaronBonus}`);
+    // Increment bank count for next scoring
+    if (!context.gameState.history.charmState) {
+      context.gameState.history.charmState = {};
     }
+    if (!context.gameState.history.charmState.bankBaron) {
+      context.gameState.history.charmState.bankBaron = { bankCount: 0 };
+    }
+    context.gameState.history.charmState.bankBaron.bankCount = 
+      (context.gameState.history.charmState.bankBaron.bankCount || 0) + 1;
+    
     return context.bankedPoints; // Don't modify banked points, bonus is applied on scoring
   }
 }
 
 export class PointPirateCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // No scoring effect
-    return {};
-  }
-
-  onBank(context: CharmBankContext): number {
-    // Track first bank in gameState
-    if (!context.gameState.pointPirateFirstBank) {
-      // +500 points on first bank
-      context.gameState.pointPirateFirstBank = true;
-      return Math.floor(context.bankedPoints + 500);
+    // +1000 PTS on first score of the level, -100 PTS on all other scores
+    const levelState = context.gameState.currentWorld?.currentLevel;
+    if (!levelState) return {};
+    
+    // Check if this is the first score of the level
+    const isFirstScore = !levelState.isFirstScoring;
+    
+    if (isFirstScore) {
+      levelState.isFirstScoring = true;
+      return {
+        basePointsDelta: 1000
+      };
     } else {
-      // -10 points per subsequent roll
-      // Count rolls from round history
-      const rollCount = context.roundState.rollHistory?.length || 0;
-      const penalty = rollCount * 10;
-      return Math.max(0, Math.floor(context.bankedPoints - penalty));
+      return {
+        basePointsDelta: -100
+      };
     }
   }
 }
@@ -613,9 +580,10 @@ export class BlessedCharm extends BaseCharm {
   }
 
   onBank(context: CharmBankContext): number {
-    // +25 points when banking if you have at least one blessing
-    const hasBlessing = context.gameState.blessings && context.gameState.blessings.length > 0;
-    return hasBlessing ? Math.floor(context.bankedPoints + 25) : context.bankedPoints;
+    // +100 PTS when banking for each blessing you own
+    const blessingCount = context.gameState.blessings?.length || 0;
+    const bonus = blessingCount * 100;
+    return Math.floor(context.bankedPoints + bonus);
   }
 }
 
@@ -716,17 +684,45 @@ export class FlopStrategistCharm extends BaseCharm {
 
 export class GeneratorCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Creates a random consumable when scoring 3 or more pairs
-    const valueCounts: Record<number, number> = {};
-    for (const idx of context.selectedIndices) {
-      const die = context.roundState.diceHand[idx];
-      if (die && die.rolledValue !== undefined) {
-        valueCounts[die.rolledValue] = (valueCounts[die.rolledValue] || 0) + 1;
-      }
+    // Creates a random consumable when scoring the required combination category
+    const requiredCategory = context.roundState.generatorCurrentCategory;
+    if (!requiredCategory || !context.gameState) {
+      return {};
     }
-    const pairCount = Object.values(valueCounts).reduce((sum, count) => sum + Math.floor(count / 2), 0);
-    
-    if (pairCount >= 3 && context.gameState) {
+
+    // Check if any of the scored combinations match the required category
+    const hasMatchingCategory = context.combinations.some((combo: any) => {
+      const comboType = combo.type;
+      
+      // Map combination types to categories
+      if (requiredCategory === 'singleN' && comboType === 'singleN') {
+        return true;
+      }
+      if (requiredCategory === 'nPairs' && comboType === 'nPairs') {
+        return true;
+      }
+      if (requiredCategory === 'nTuplets' && (
+        comboType === 'nTriplets' || comboType === 'nQuadruplets' || 
+        comboType === 'nQuintuplets' || comboType === 'nSextuplets' ||
+        comboType === 'nSeptuplets' || comboType === 'nOctuplets' ||
+        comboType === 'nNonuplets' || comboType === 'nDecuplets'
+      )) {
+        return true;
+      }
+      if (requiredCategory === 'straightOfN' && comboType === 'straightOfN') {
+        return true;
+      }
+      if (requiredCategory === 'pyramidOfN' && comboType === 'pyramidOfN') {
+        return true;
+      }
+      if (requiredCategory === 'nOfAKind' && comboType === 'nOfAKind') {
+        return true;
+      }
+      
+      return false;
+    });
+
+    if (hasMatchingCategory) {
       const maxSlots = context.gameState.consumableSlots ?? 2;
       if (context.gameState.consumables.length < maxSlots) {
         const idx = Math.floor(Math.random() * CONSUMABLES.length);
@@ -740,36 +736,21 @@ export class GeneratorCharm extends BaseCharm {
         }
       }
     }
+    
     return {};
   }
 }
 
-export class SecondChanceCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // No scoring effect - reroll bonus is handled in getRerollBonus
-    return {};
-  }
-  
-  getRerollBonus(gameState: any): { add?: number; multiply?: number; override?: number } {
-    // +1 reroll per level
-    return { add: 1 };
-  }
-}
 
 export class RoundRobinCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +150 points when banking if no repeated hands scored in round
-    // This is checked in onBank, not onScoring
-    return {};
-  }
-
-  onBank(context: CharmBankContext): number {
-    // +150 points when banking if no repeated hands scored in round
-    // Check rollHistory for repeated combinations
+    // +750 points when scoring if no repeated combinations are scored in round
+    // Check rollHistory for repeated combinations (including current scoring)
     const rollHistory = context.roundState.rollHistory || [];
     const combinationTypesSeen = new Set<string>();
     let hasRepeats = false;
     
+    // Check previous rolls in this round
     for (const roll of rollHistory) {
       if (roll.combinations && roll.combinations.length > 0) {
         // Create a signature for this combination set (sorted combination types)
@@ -786,11 +767,25 @@ export class RoundRobinCharm extends BaseCharm {
       }
     }
     
-    if (!hasRepeats && combinationTypesSeen.size > 0) {
-      return Math.floor(context.bankedPoints + 150);
+    // Check current scoring combinations
+    if (!hasRepeats && context.combinations && context.combinations.length > 0) {
+      const currentComboSignature = context.combinations
+        .map((c: any) => c.type || c)
+        .sort()
+        .join(',');
+      
+      if (combinationTypesSeen.has(currentComboSignature)) {
+        hasRepeats = true;
+      }
     }
     
-    return context.bankedPoints;
+    if (!hasRepeats && (combinationTypesSeen.size > 0 || (context.combinations && context.combinations.length > 0))) {
+      return {
+        basePointsDelta: 750
+      };
+    }
+    
+    return {};
   }
 }
 
@@ -829,7 +824,7 @@ export class DigitalNomadCharm extends BaseCharm {
   }
 }
 
-export class HoarderCharm extends BaseCharm {
+export class FrequentFlyerCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // No scoring effect - bank bonus is handled in getBankBonus
     return {};
@@ -838,6 +833,19 @@ export class HoarderCharm extends BaseCharm {
   getBankBonus(gameState: any): { add?: number; multiply?: number } {
     // +2 banks
     return { add: 2 };
+  }
+}
+
+export class HoarderCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +100 points for each die in your set
+    const diceSetSize = context.gameState.diceSet?.length || 0;
+    if (diceSetSize > 0) {
+      return {
+        basePointsDelta: diceSetSize * 100
+      };
+    }
+    return {};
   }
 }
 
@@ -852,4 +860,5 @@ export class ComebackKidCharm extends BaseCharm {
     return { add: 3 };
   }
 }
+
 

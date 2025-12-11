@@ -1,6 +1,7 @@
 import { BaseCharm, CharmScoringContext, CharmFlopContext, CharmBankContext, ScoringValueModification } from '../charmSystem';
 import { getPipEffectForDie } from '../pipEffectSystem';
 import { getSizeMultiplier } from '../../utils/dieSizeUtils';
+import { getPyramidLayers } from '../../data/combinations';
 
 /**
  * Rare Charms Implementation
@@ -33,37 +34,52 @@ export class KingslayerCharm extends BaseCharm {
 
 export class DoubleDownCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // 2x multiplier if a two-faced side is scored
-    // Check if any selected die has two-faced pip effect
-    const hasTwoFaced = context.selectedIndices.some(idx => {
+    // 2x MLT for each two-faced effect scored
+    // Count how many two-faced effects are scored
+    let twoFacedCount = 0;
+    for (const idx of context.selectedIndices) {
       const die = context.roundState.diceHand[idx];
       if (die) {
         const pipEffect = getPipEffectForDie(die);
-        return pipEffect === 'twoFaced';
+        if (pipEffect === 'twoFaced') {
+          twoFacedCount++;
+        }
       }
-      return false;
-    });
+    }
+    // Multiply by 2 for each two-faced effect (2^count)
+    const multiplier = twoFacedCount > 0 ? Math.pow(2, twoFacedCount) : 1;
     return {
-      multiplierMultiply: hasTwoFaced ? 2 : 1
+      multiplierMultiply: multiplier
     };
   }
 }
 
 export class PerfectionistCharm extends BaseCharm {
-  private consecutiveAllDiceScored: number = 0;
-
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +0.25x multiplier for each consecutive time all dice are scored
+    // +0.25x MLT for each consecutive time all dice are scored
+    // Resets if not all dice are scored
+    // Track in charmState
+    if (!context.gameState.history.charmState) {
+      context.gameState.history.charmState = {};
+    }
+    if (!context.gameState.history.charmState.perfectionist) {
+      context.gameState.history.charmState.perfectionist = { consecutiveAllDiceScored: 0 };
+    }
+    
     // Check if all dice in hand were scored
     const allDiceScored = context.selectedIndices.length === context.roundState.diceHand.length;
     
     if (allDiceScored) {
-      this.consecutiveAllDiceScored++;
+      context.gameState.history.charmState.perfectionist.consecutiveAllDiceScored = 
+        (context.gameState.history.charmState.perfectionist.consecutiveAllDiceScored || 0) + 1;
     } else {
-      this.consecutiveAllDiceScored = 0; // Reset if not all dice scored
+      // Reset if not all dice scored
+      context.gameState.history.charmState.perfectionist.consecutiveAllDiceScored = 0;
     }
     
-    const multiplierBonus = this.consecutiveAllDiceScored * 0.25;
+    const consecutiveCount = context.gameState.history.charmState.perfectionist.consecutiveAllDiceScored || 0;
+    const multiplierBonus = consecutiveCount * 0.25;
+    
     return {
       multiplierAdd: multiplierBonus
     };
@@ -150,15 +166,11 @@ export class DukeOfDiceCharm extends BaseCharm {
 export class EyeOfHorusCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // +1.5x multiplier for each layer of a scored Pyramid, 0.25x for all other hands
-    // Calculate layers from pyramid size N (N = m(m+1)/2, so m = (√(8N+1)-1)/2)
     const pyramidCombo = context.combinations.find(combo => combo.type === 'pyramidOfN');
     if (pyramidCombo) {
-      // Calculate layers from pyramid size N
-      // Pyramid of N has m layers where N = m(m+1)/2
-      // Solving for m: m = (√(8N+1)-1)/2
-      // Extract N from the combination (it's stored in the points calculation, but we can get it from dice count)
+      // Use getPyramidLayers to get the number of layers
       const n = pyramidCombo.dice.length;
-      const layers = Math.floor((Math.sqrt(8 * n + 1) - 1) / 2);
+      const layers = getPyramidLayers(n);
       
       // Multiply by 1.5 for each layer
       const multiplier = Math.pow(1.5, layers);
@@ -208,7 +220,7 @@ export class ShootingStarCharm extends BaseCharm {
 
 export class BlankSlateCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Blank pip effects give ^1.25 multiplier instead of ^1.1
+    // Blank pip effects give ^1.5 EXP instead of ^1.1
     // This is handled in pipEffectSystem.ts - the charm is checked when applying blank pip effects
     return {};
   }
@@ -216,9 +228,20 @@ export class BlankSlateCharm extends BaseCharm {
 
 export class LeadTitanCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // If at least one Lead die is scored, all scored dice remain in hand
-    // TODO: Needs dice removal modification system
-    // This would need to modify the dice removal logic after scoring
+    // Each scored Lead die gives ^1.1 EXP (exponent multiplication)
+    const leadCount = context.selectedIndices.filter(
+      idx => context.roundState.diceHand[idx]?.material === 'lead'
+    ).length;
+    
+    if (leadCount > 0) {
+      // Multiply exponent by 1.1 for each lead die
+      // If we have 2 lead dice, that's 1.1 * 1.1 = 1.21x exponent
+      const exponentMultiplier = Math.pow(1.1, leadCount);
+      return {
+        exponentMultiply: exponentMultiplier
+      };
+    }
+    
     return {};
   }
 }
@@ -278,23 +301,27 @@ export class BloomCharm extends BaseCharm {
 
 export class MustBeThisTallToRideCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Copies the effect of the charm to the left if current level is 10 or higher
-    // TODO: Needs charm position tracking
-    // This would need to know the position of charms in the charm array
+    // +2 EXP if current level is 10 or higher
+    const levelNumber = context.gameState.currentWorld?.currentLevel?.levelNumber || 0;
+    if (levelNumber >= 10) {
+      return {
+        exponentAdd: 2
+      };
+    }
     return {};
   }
 }
 
 export class QueensGambitCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +1x multiplier for each die below set's starting size in your full set
+    // +3 MLT for each die below set's starting size in your full set
     const originalDiceSetSize = context.gameState.config.diceSetConfig.dice.length;
     const currentDiceSetSize = context.gameState.diceSet.length;
     const diceRemoved = originalDiceSetSize - currentDiceSetSize;
     
     if (diceRemoved > 0) {
       return {
-        multiplierAdd: diceRemoved
+        multiplierAdd: diceRemoved * 3
       };
     }
     
@@ -368,6 +395,18 @@ export class SizeMattersCharm extends BaseCharm {
   }
 }
 
+export class BrotherhoodCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +1.5 MLT for each consecutive level without rerolling or flopping
+    // Track in charmState
+    const consecutiveLevels = context.gameState.history.charmState?.brotherhood?.consecutiveLevels || 0;
+    
+    return {
+      multiplierAdd: consecutiveLevels * 1.5
+    };
+  }
+}
+
 export class RefineryCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // No scoring effect - this is a banking effect
@@ -386,5 +425,46 @@ export class RefineryCharm extends BaseCharm {
     
     return context.bankedPoints;
   }
+}
+
+export class SleeperAgentCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // Copies the effect of the charm to the left after 100 dice have been scored
+    // Check if activated (100+ dice scored)
+    const totalDiceScored = context.gameState.history.charmState?.sleeperAgent?.totalDiceScored || 0;
+    const isActivated = totalDiceScored >= 100;
+    
+    if (!isActivated) {
+      return {};
+    }
+    
+    // Copy effect of charm to the left
+    if (context.charmManager) {
+      const leftCharm = context.charmManager.getCharmToLeft(this.id);
+      if (leftCharm && leftCharm.active) {
+        // Apply the left charm's onScoring effect
+        const leftCharmResult = leftCharm.onScoring(context);
+        return leftCharmResult;
+      }
+    }
+    
+    return {};
+  }
+}
+
+/**
+ * Track dice scored for Sleeper Agent charm
+ */
+export function trackDiceScoredForSleeperAgent(gameState: any, diceCount: number): any {
+  if (!gameState.history.charmState) {
+    gameState.history.charmState = {};
+  }
+  if (!gameState.history.charmState.sleeperAgent) {
+    gameState.history.charmState.sleeperAgent = { totalDiceScored: 0 };
+  }
+  gameState.history.charmState.sleeperAgent.totalDiceScored = 
+    (gameState.history.charmState.sleeperAgent.totalDiceScored || 0) + diceCount;
+  
+  return gameState;
 }
 

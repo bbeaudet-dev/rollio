@@ -1,5 +1,5 @@
 import { CHARMS, CHARM_PRICES } from '../data/charms';
-import { CONSUMABLES, WHIMS, WISHES, COMBINATION_UPGRADES } from '../data/consumables';
+import { CONSUMABLES, WHIMS, WISHES, COMBINATION_UPGRADES, Consumable } from '../data/consumables';
 import { MATERIALS } from '../data/materials';
 import { getNextDieSize, getPreviousDieSize } from '../utils/dieSizeUtils';
 import { GameState, RoundState, DiceMaterialType } from '../types';
@@ -177,17 +177,77 @@ function applyConsumableWithDieSideSelectionInternal(
 }
 
 /**
+ * Track consumable usage for charm effects (Whim Whisperer, Shooting Star, etc.)
+ */
+async function trackConsumableUsage(gameState: GameState, consumable: Consumable, charmManager?: any): Promise<void> {
+  // Track in charmState for charm-specific tracking
+  if (!gameState.history.charmState) {
+    gameState.history.charmState = {};
+  }
+  
+  // Track consumable usage count
+  if (!gameState.history.charmState.consumableUsage) {
+    gameState.history.charmState.consumableUsage = { totalUsed: 0, whimUsed: 0, wishUsed: 0 };
+  }
+  gameState.history.charmState.consumableUsage.totalUsed = 
+    (gameState.history.charmState.consumableUsage.totalUsed || 0) + 1;
+  
+  // Track by type - check if it's a whim or wish by checking if it's in the respective arrays
+  const isWhim = WHIMS.some(w => w.id === consumable.id);
+  const isWish = WISHES.some(w => w.id === consumable.id);
+  
+  if (isWhim) {
+    gameState.history.charmState.consumableUsage.whimUsed = 
+      (gameState.history.charmState.consumableUsage.whimUsed || 0) + 1;
+  } else if (isWish) {
+    gameState.history.charmState.consumableUsage.wishUsed = 
+      (gameState.history.charmState.consumableUsage.wishUsed || 0) + 1;
+  }
+  
+  // Update lastConsumableUsed for Echo consumable
+  gameState.lastConsumableUsed = consumable.id;
+  
+  // Check for Whim Whisperer charm (25% chance to not consume whim)
+  if (isWhim && charmManager) {
+    const whimWhisperer = charmManager.getActiveCharms().find((c: any) => c.id === 'whimWhisperer');
+    if (whimWhisperer && Math.random() < 0.25) {
+      // 25% chance to not consume - this will be handled by the caller
+      // We'll set a flag that the consumable should not be removed
+      (gameState as any).whimWhispererPreventedConsumption = true;
+    }
+  }
+  
+  // Check for Shooting Star charm (10% chance to create random wish when using whim)
+  if (isWhim && charmManager) {
+    const shootingStar = charmManager.getActiveCharms().find((c: any) => c.id === 'shootingStar');
+    if (shootingStar && Math.random() < 0.10) {
+      // 10% chance to create a random wish
+      const wishes = WISHES;
+      if (wishes.length > 0 && gameState.consumables.length < (gameState.consumableSlots || 2)) {
+        const randomWish = wishes[Math.floor(Math.random() * wishes.length)];
+        gameState.consumables.push({ ...randomWish });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('itemGenerated', {
+            detail: { type: 'consumable', id: randomWish.id }
+          }));
+        }
+      }
+    }
+  }
+}
+
+/**
  * Apply consumable effect - pure function
  * Returns only state changes - no messages, no I/O
  */
-export function applyConsumableEffect(
+export async function applyConsumableEffect(
   idx: number,
   gameState: GameState,
   roundState: RoundState | null,
   charmManager: any,
   dieSelectionInput?: number | [number, number], // For chisel, potteryWheel, midasTouch
   dieSideSelectionInput?: { dieIndex: number; sideValue: number } // For pip effect consumables
-): ConsumableEffectResult {
+): Promise<ConsumableEffectResult> {
   const consumable = gameState.consumables[idx];
   if (!consumable) {
     return {
@@ -204,6 +264,11 @@ export function applyConsumableEffect(
   newGameState.consumables = [...newGameState.consumables];
   let wasSuccessfullyUsed = true;
   let shouldRemove = true;
+  let unlockInfo: { type: 'pip_effect' | 'material'; id: string } | undefined = undefined;
+  
+  // Track consumable usage for charms (before applying effects)
+  // This needs to be async because Shooting Star might import CONSUMABLES
+  await trackConsumableUsage(newGameState, consumable, charmManager);
   
   // Handle consumables that require input - if input is provided, process it
   if (dieSelectionInput !== undefined && (consumable.id === 'chisel' || consumable.id === 'potteryWheel' || consumable.id === 'midasTouch' || consumable.id === 'alchemist')) {
@@ -479,6 +544,10 @@ export function applyConsumableEffect(
       
       // Also remove from diceSet by matching ID
       newGameState.diceSet = newGameState.diceSet.filter(d => d.id !== dieToRemove.id);
+      
+      // Track for Assassin charm (cumulative destroyed dice)
+      const { incrementAssassinDestroyedDice } = await import('./charms/UncommonCharms');
+      incrementAssassinDestroyedDice(newGameState);
       
       // Add charm slot
       newGameState.charmSlots = (newGameState.charmSlots || 3) + 1;
@@ -834,13 +903,20 @@ export function applyConsumableEffect(
     wasSuccessfullyUsed = false;
   }
 
+  // Check if Whim Whisperer prevented consumption
+  if ((newGameState as any).whimWhispererPreventedConsumption) {
+    shouldRemove = false;
+    delete (newGameState as any).whimWhispererPreventedConsumption;
+  }
+  
   // success = true if the consumable was successfully used
   // success = false if the consumable couldn't be used (e.g., no valid targets)
   return {
     success: wasSuccessfullyUsed,
     shouldRemove,
     gameState: newGameState,
-    roundState: newRoundState
+    roundState: newRoundState,
+    unlockInfo
   };
 }
 

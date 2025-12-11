@@ -30,7 +30,6 @@ import {
   AngelInvestorCharm,
   SureShotCharm,
   FlopStrategistCharm,
-  SecondChanceCharm,
   RoundRobinCharm,
   OneSongGloryCharm,
   DigitalNomadCharm,
@@ -38,6 +37,7 @@ import {
   MoneyMagnetCharm,
   HighStakesCharm,
   LowHangingFruitCharm,
+  FrequentFlyerCharm,
   HoarderCharm,
   ComebackKidCharm,
   GeneratorCharm,
@@ -67,6 +67,7 @@ import {
   DoubleAgentCharm,
   PuristCharm,
   RussianRouletteCharm,
+  AssassinCharm,
 } from './UncommonCharms';
 
 import {
@@ -92,10 +93,14 @@ import {
   FlopCollectorCharm,
   SizeMattersCharm,
   RefineryCharm,
+  BrotherhoodCharm,
+  SleeperAgentCharm,
 } from './RareCharms';
 
 import {
   ParanoiaCharm,
+  TrumpCardCharm,
+  DrumpfCardCharm,
 } from './LegendaryCharms';
 
 /**
@@ -133,7 +138,6 @@ export function registerCharms(): void {
   registry.register(AngelInvestorCharm, 'angelInvestor');
   registry.register(SureShotCharm, 'sureShot');
   registry.register(FlopStrategistCharm, 'flopStrategist');
-  registry.register(SecondChanceCharm, 'secondChance');
   registry.register(RoundRobinCharm, 'roundRobin');
   registry.register(OneSongGloryCharm, 'oneSongGlory');
   registry.register(DigitalNomadCharm, 'digitalNomad');
@@ -141,6 +145,7 @@ export function registerCharms(): void {
   registry.register(MoneyMagnetCharm, 'moneyMagnet'); // legacy charm, might be duplicate
   registry.register(HighStakesCharm, 'highStakes'); // legacy charm, might be duplicate
   registry.register(LowHangingFruitCharm, 'lowHangingFruit'); // legacy charm, might be duplicate
+  registry.register(FrequentFlyerCharm, 'frequentFlyer');
   registry.register(HoarderCharm, 'hoarder');
   registry.register(ComebackKidCharm, 'comebackKid');
   registry.register(GeneratorCharm, 'generator');
@@ -169,6 +174,7 @@ export function registerCharms(): void {
   registry.register(DoubleAgentCharm, 'doubleAgent');
   registry.register(PuristCharm, 'purist');
   registry.register(RussianRouletteCharm, 'russianRoulette');
+  registry.register(AssassinCharm, 'assassin');
   
   // Rare charms
   registry.register(KingslayerCharm, 'kingslayer');
@@ -193,7 +199,11 @@ export function registerCharms(): void {
   registry.register(FlopCollectorCharm, 'flopCollector'); // legacy charm, might be duplicate
   registry.register(SizeMattersCharm, 'sizeMatters'); // legacy charm, might be duplicate
   registry.register(RefineryCharm, 'refinery');
+  registry.register(BrotherhoodCharm, 'brotherhood');
+  registry.register(SleeperAgentCharm, 'sleeperAgent');
   
   // Legendary charms
   registry.register(ParanoiaCharm, 'paranoia');
+  registry.register(TrumpCardCharm, 'trumpCard');
+  registry.register(DrumpfCardCharm, 'drumpfCard');
 } 

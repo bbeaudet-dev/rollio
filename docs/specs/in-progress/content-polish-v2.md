@@ -60,6 +60,7 @@ Consider renaming the material system to "Essence" or "Core" for better thematic
 - **Against the Grain**: Provides bonus when playing straights, pyramids, n=3 pairs? with a mirror die
 - **New charms for Angelic**: Increase odds, various reroll/flop/bank bonuses
 - **New charms for Lunar**: More points, different triggers
+   Lunar retriggers effects realted to that die? pip effects, charms
 
 #### Dice Set Size
 
@@ -238,10 +239,10 @@ These consumables will upgrade combinations in groups, allowing players to enhan
 
 OTHER
 
-
 - Better world/level display, fix level effects
 - Animation for exponent to apply to multiplier, then multiplier to apply to score
 - Cumulative hot dice charm
-- Fix pip effects, consumables, materials, etc.
 
-- charm: 2^n multiplier where n is the highest value played
+
+Weird bugs, singles pairs not working after volcano, value adjustment, matieral copying, flower dice, etc.
+Oh and two faced probably is the culprit

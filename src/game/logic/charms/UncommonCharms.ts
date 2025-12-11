@@ -33,12 +33,12 @@ export class QuadBoostersCharm extends BaseCharm {
 
 export class LuckySevensCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +77 points if at least one 7 is rolled
+    // +777 points if at least one 7 is scored
     const hasSeven = context.selectedIndices.some(
       idx => context.roundState.diceHand[idx]?.rolledValue === 7
     );
     return {
-      basePointsDelta: hasSeven ? 77 : 0
+      basePointsDelta: hasSeven ? 777 : 0
     };
   }
 }
@@ -110,18 +110,13 @@ export class LuckyLeprechaunCharm extends BaseCharm {
 
 export class IrrationalCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // 3.1415x multiplier if scored hand contains 1,1,3,4,5
-    const values = context.selectedIndices.map(
+    // 3.1415x multiplier if scored hand contains 1,3,4,5
+    const values = new Set(context.selectedIndices.map(
       idx => context.roundState.diceHand[idx]?.rolledValue
-    ).filter(v => v !== undefined).sort() as number[];
+    ).filter(v => v !== undefined));
     
-    // Check if values contain 1,1,3,4,5 (in any order, but need two 1s)
-    const counts: Record<number, number> = {};
-    for (const v of values) {
-      counts[v] = (counts[v] || 0) + 1;
-    }
-    
-    const hasPattern = counts[1] >= 2 && counts[3] >= 1 && counts[4] >= 1 && counts[5] >= 1;
+    // Check if values contain 1,3,4,5
+    const hasPattern = values.has(1) && values.has(3) && values.has(4) && values.has(5);
     return {
       multiplierMultiply: hasPattern ? 3.1415 : 1
     };
@@ -130,21 +125,21 @@ export class IrrationalCharm extends BaseCharm {
 
 export class FerrisEulerCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // 2.71x multiplier if scored hand contains 1,2,7
+    // ^2.71 EXP if scored hand contains 1,2,7
     const values = new Set(context.selectedIndices.map(
       idx => context.roundState.diceHand[idx]?.rolledValue
     ).filter(v => v !== undefined));
     
     const hasPattern = values.has(1) && values.has(2) && values.has(7);
     return {
-      multiplierMultiply: hasPattern ? 2.71 : 1
+      exponentMultiply: hasPattern ? 2.71 : 1
     };
   }
 }
 
 export class FourForYourFavorCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +40 points when scoring four-of-a-kind
+    // +600 points when scoring four-of-a-kind
     const valueCounts: Record<number, number> = {};
     for (const idx of context.selectedIndices) {
       const die = context.roundState.diceHand[idx];
@@ -154,14 +149,14 @@ export class FourForYourFavorCharm extends BaseCharm {
     }
     const hasFourOfAKind = Object.values(valueCounts).some(count => count >= 4);
     return {
-      basePointsDelta: hasFourOfAKind ? 40 : 0
+      basePointsDelta: hasFourOfAKind ? 600 : 0
     };
   }
 }
 
 export class FiveAliveCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +50 points when scoring five-of-a-kind
+    // +800 points when scoring five-of-a-kind
     const valueCounts: Record<number, number> = {};
     for (const idx of context.selectedIndices) {
       const die = context.roundState.diceHand[idx];
@@ -171,14 +166,14 @@ export class FiveAliveCharm extends BaseCharm {
     }
     const hasFiveOfAKind = Object.values(valueCounts).some(count => count >= 5);
     return {
-      basePointsDelta: hasFiveOfAKind ? 50 : 0
+      basePointsDelta: hasFiveOfAKind ? 800 : 0
     };
   }
 }
 
 export class SixShooterCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +60 points when scoring six-of-a-kind
+    // +1000 points when scoring six-of-a-kind
     const valueCounts: Record<number, number> = {};
     for (const idx of context.selectedIndices) {
       const die = context.roundState.diceHand[idx];
@@ -188,7 +183,7 @@ export class SixShooterCharm extends BaseCharm {
     }
     const hasSixOfAKind = Object.values(valueCounts).some(count => count >= 6);
     return {
-      basePointsDelta: hasSixOfAKind ? 60 : 0
+      basePointsDelta: hasSixOfAKind ? 1000 : 0
     };
   }
 }
@@ -227,7 +222,7 @@ export class HotPocketCharm extends BaseCharm {
 
 export class WildCardCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +25 points for each wild pip effect in the scoring selection
+    // +250 points for each wild pip effect in the scoring selection
     let wildCount = 0;
     for (const idx of context.selectedIndices) {
       const die = context.roundState.diceHand[idx];
@@ -239,7 +234,7 @@ export class WildCardCharm extends BaseCharm {
       }
     }
     return {
-      basePointsDelta: wildCount * 25
+      basePointsDelta: wildCount * 250
     };
   }
 }
@@ -256,8 +251,7 @@ export class SwordInTheStoneCharm extends BaseCharm {
 export class WhimWhispererCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // Whims have a 25% chance to not be consumed when used
-    // TODO: Needs consumable use tracking system
-    // This would need to hook into the consumable use logic
+    // This is handled in trackConsumableUsage in consumableEffects.ts
     return {};
   }
 }
@@ -303,21 +297,24 @@ export class SnowballCharm extends BaseCharm {
 }
 
 export class RabbitsFootCharm extends BaseCharm {
-  // Track triggers in the game (persists across rounds)
-  private rainbowTriggers: number = 0;
-
   // Call this from the material system when a Rainbow die triggers
-  public incrementRainbowTrigger() {
-    this.rainbowTriggers++;
+  public incrementRainbowTrigger(gameState: any) {
+    if (!gameState.history.charmState) {
+      gameState.history.charmState = {};
+    }
+    if (!gameState.history.charmState.rabbitsFoot) {
+      gameState.history.charmState.rabbitsFoot = { rainbowTriggers: 0 };
+    }
+    gameState.history.charmState.rabbitsFoot.rainbowTriggers++;
   }
 
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Score multiplier based on number of successful Rainbow die effect triggers
-    // Multiplier: 1.1x per trigger
-    if (this.rainbowTriggers > 0) {
-      const multiplier = 1 + 0.1 * this.rainbowTriggers;
+    // +0.1x MLT per successful Rainbow die effect triggered (cumulative)
+    const rainbowTriggers = context.gameState.history.charmState?.rabbitsFoot?.rainbowTriggers || 0;
+    if (rainbowTriggers > 0) {
+      const multiplierAdd = 0.1 * rainbowTriggers;
       return {
-        multiplierMultiply: multiplier
+        multiplierAdd
       };
     }
     return {};
@@ -366,5 +363,28 @@ export class RussianRouletteCharm extends BaseCharm {
       exponentMultiply: 1.25
     };
   }
+}
+
+export class AssassinCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +1 MLT for each die destroyed (cumulative)
+    // Track destroyed dice count in charmState
+    const destroyedDice = context.gameState.history.charmState?.assassin?.destroyedDice || 0;
+    
+    return {
+      multiplierAdd: destroyedDice
+    };
+  }
+}
+
+// Static function to track destroyed dice (called from consumableEffects)
+export function incrementAssassinDestroyedDice(gameState: any) {
+  if (!gameState.history.charmState) {
+    gameState.history.charmState = {};
+  }
+  if (!gameState.history.charmState.assassin) {
+    gameState.history.charmState.assassin = { destroyedDice: 0 };
+  }
+  gameState.history.charmState.assassin.destroyedDice = (gameState.history.charmState.assassin.destroyedDice || 0) + 1;
 }
 

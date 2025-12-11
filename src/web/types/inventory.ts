@@ -4,6 +4,7 @@ export interface CharmInventoryProps {
   charms: Charm[];
   onSellCharm?: (index: number) => void;
   maxSlots?: number;
+  charmState?: Record<string, any> | null;
 }
  
 export interface ConsumableInventoryProps {

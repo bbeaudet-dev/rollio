@@ -101,6 +101,7 @@ export interface CharmScoringContext {
   scoringElements: ScoringElements;
   combinations: any[];
   selectedIndices: number[];
+  charmManager?: any; // Optional charm manager for position tracking
 }
 
 export interface CharmFlopContext {
@@ -192,6 +193,34 @@ export class CharmManager {
   }
 
   /**
+   * Get the position/index of a charm in the charms array
+   * Returns -1 if charm not found
+   */
+  getCharmPosition(charmId: string): number {
+    return this.charms.findIndex(charm => charm.id === charmId);
+  }
+
+  /**
+   * Get the charm to the left of the given charm
+   * Returns null if no charm to the left
+   */
+  getCharmToLeft(charmId: string): BaseCharm | null {
+    const position = this.getCharmPosition(charmId);
+    if (position <= 0) return null;
+    return this.charms[position - 1] || null;
+  }
+
+  /**
+   * Get the charm to the right of the given charm
+   * Returns null if no charm to the right
+   */
+  getCharmToRight(charmId: string): BaseCharm | null {
+    const position = this.getCharmPosition(charmId);
+    if (position < 0 || position >= this.charms.length - 1) return null;
+    return this.charms[position + 1] || null;
+  }
+
+  /**
    * Sync charm manager with gameState.charms
    * This ensures newly purchased charms are included in charm effects
    * Should be called after purchasing charms or when gameState.charms changes
@@ -231,7 +260,8 @@ export class CharmManager {
       const result = charm.onScoring({
         ...context,
         scoringElements: values,
-        combinations: filteredCombinations
+        combinations: filteredCombinations,
+        charmManager: this
       });
       
       // Apply modifications

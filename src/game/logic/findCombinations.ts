@@ -6,7 +6,6 @@
  */
 
 import { Die, ScoringCombination, EffectContext } from '../types';
-import { shouldAllowSingleThrees } from './charms/charmUtils';
 import { expandDiceValuesForCombinations } from './pipEffectSystem';
 import { DifficultyLevel, isCombinationAvailable } from './difficulty';
 import { markDebuffedCombinations } from './debuffs';
@@ -366,8 +365,17 @@ export function findAllPossibleCombinations(
           });
         } else if (value === 3) {
           // Single 3s only valid if Low Hanging Fruit charm is active
-          // Use the check function from the charm file
-          if (shouldAllowSingleThrees(context?.charmManager, context?.charms)) {
+          const allowsSingleThrees = (() => {
+            if (context?.charmManager) {
+              const activeCharms = context.charmManager.getActiveCharms?.() || [];
+              return activeCharms.some((c: any) => c.id === 'lowHangingFruit');
+            }
+            if (context?.charms) {
+              return context.charms.some((c: any) => c.id === 'lowHangingFruit' && c.active);
+            }
+            return false;
+          })();
+          if (allowsSingleThrees) {
             combinations.push({
               type: 'singleN',
               dice: subsetIndices,

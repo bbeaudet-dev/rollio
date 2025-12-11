@@ -28,11 +28,11 @@ interface ScoringContext {
  * Remove dice from hand by indices
  * Note: Uses material system to check for special removal rules (e.g., lead dice stay in hand)
  */
-export function removeDiceFromHand(gameState: GameState, indices: number[]): GameState {
+export function removeDiceFromHand(gameState: GameState, indices: number[], charmManager?: any): GameState {
   const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   
-  // Get actual indices to remove (accounting for lead dice, etc.)
-  const indicesToRemove = getDiceIndicesToRemove(roundState.diceHand, indices);
+  // Get actual indices to remove (accounting for lead dice, Iron Fortress charm, etc.)
+  const indicesToRemove = getDiceIndicesToRemove(roundState.diceHand, indices, charmManager);
   
   const newGameState = { ...gameState };
   newGameState.currentWorld = { 
@@ -540,8 +540,8 @@ export function removeDiceAndCheckHotDice(
   // Check if all dice were scored (before removal) - needed for SwordInTheStone charm
   const allDiceWereScored = selectedIndices.length === roundState.diceHand.length;
   
-  // Remove dice from hand (Lead dice stay in hand normally)
-  let newGameState = removeDiceFromHand(gameState, selectedIndices);
+  // Remove dice from hand (Lead dice stay in hand normally, Iron Fortress charm can keep all dice)
+  let newGameState = removeDiceFromHand(gameState, selectedIndices, charmManager);
   
   // Check for hot dice (includes SwordInTheStone special case)
   const remainingDice = newGameState.currentWorld!.currentLevel.currentRound!.diceHand;
@@ -552,6 +552,7 @@ export function removeDiceAndCheckHotDice(
     wasHotDice
   };
 }
+
 
 /**
  * ============================================================================
