@@ -3,7 +3,7 @@ import { CharmManager } from '../game/logic/charmSystem';
 import { DEFAULT_GAME_CONFIG, createInitialGameState, registerStartingCharms } from '../game/utils/factories';
 import { ALL_DICE_SETS } from '../game/data/diceSets';
 import { CHARMS } from '../game/data/charms';
-import { CONSUMABLES, WHIMS, WISHES } from '../game/data/consumables';
+import { CONSUMABLES, WHIMS, WISHES, COMBINATION_UPGRADES } from '../game/data/consumables';
 import { MATERIALS } from '../game/data/materials';
 import { DiceMaterialType } from '../game/types';
 
@@ -76,7 +76,8 @@ export class SetupManager {
     const availableConsumables = CONSUMABLES.map(consumable => {
       const isWish = WISHES.some((w: any) => w.id === consumable.id);
       const isWhim = WHIMS.some((w: any) => w.id === consumable.id);
-      const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+      const isCombinationUpgrade = COMBINATION_UPGRADES.some((cu: any) => cu.id === consumable.id);
+      const category = isWish ? 'wish' : (isWhim ? 'whim' : (isCombinationUpgrade ? 'combinationUpgrade' : 'whim'));
       return `${consumable.name} (${category}) - ${consumable.description}`;
     });
     const selectedConsumableIndices = await gameInterface.askForConsumableSelection(availableConsumables, consumableSlots);

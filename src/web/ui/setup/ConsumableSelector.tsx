@@ -1,5 +1,5 @@
 import React from 'react';
-import { WHIMS, WISHES } from '../../../game/data/consumables';
+import { WHIMS, WISHES, COMBINATION_UPGRADES } from '../../../game/data/consumables';
 import { getConsumableColor } from '../../utils/colors';
 
 interface ConsumableSelectorProps {
@@ -51,7 +51,7 @@ export const ConsumableSelector: React.FC<ConsumableSelectorProps> = ({
                 cursor: canSelect ? 'pointer' : 'not-allowed',
                 opacity: canSelect ? 1 : 0.5,
                 borderRadius: '4px',
-                backgroundColor: getConsumableColor(consumable.id, WHIMS, WISHES)
+                backgroundColor: getConsumableColor(consumable.id, WHIMS, WISHES, COMBINATION_UPGRADES)
               }}
               onClick={() => canSelect && onConsumableSelect(index)}
             >

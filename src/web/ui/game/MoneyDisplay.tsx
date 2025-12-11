@@ -9,13 +9,18 @@ export const MoneyDisplay: React.FC<MoneyDisplayProps> = ({ money }) => {
     <div style={{
       padding: '6px 12px',
       backgroundColor: '#fff',
-      borderRadius: '4px',
-      border: '1px solid #dee2e6',
-      fontSize: '14px',
+      borderRadius: '6px',
+      border: '2px solid rgba(0, 0, 0, 0.2)',
+      fontSize: '16px',
       fontWeight: 'bold',
-      textAlign: 'center'
+      textAlign: 'center',
+      color: '#2c3e50',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: '60px'
     }}>
-      <strong>Money:</strong> ${money}
+      ${money}
     </div>
   );
 };

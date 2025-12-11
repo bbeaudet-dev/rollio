@@ -119,7 +119,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'generator',
     name: 'Generator',
-    description: 'Creates a random consumable when scoring 3 or more pairs',
+    description: 'Creates a random consumable when scoring a combination',
     rarity: 'common'
   },
   {
@@ -627,11 +627,3 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
 
 // activation required, e.g. activates after level 20, after rerolling 100 times, etc.
 // sleeper agent
-
-/* 
-Implemented but then didn't make sense? Rounds without flopping is just banks
-  id: 'pennyPincher',
-  name: 'Penny Pincher',
-  description: '+$1 for each round completed without flopping',
-  rarity: 'common'
-*/

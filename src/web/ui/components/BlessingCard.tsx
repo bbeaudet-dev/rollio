@@ -5,6 +5,7 @@ import { getItemTypeColor } from '../../utils/colors';
 import { getRarityColor } from '../../utils/rarityColors';
 import { ActionButton } from './ActionButton';
 import { LockIcon } from './LockIcon';
+import { BLESSING_CARD_SIZE } from './cardSizes';
 
 /**
  * Convert blessing ID to image filename based on blessing type and tier
@@ -133,7 +134,7 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
   const glowStyle = getGlowStyle();
   
   // Square aspect ratio (1:1) 
-  const cardSize = 84; // 120 * 0.7 = 84
+  const cardSize = BLESSING_CARD_SIZE;
   
   const handleClick = (e: React.MouseEvent) => {
     // If there's an onClick handler, call it

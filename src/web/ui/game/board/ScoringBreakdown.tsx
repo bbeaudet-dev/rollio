@@ -13,7 +13,7 @@ interface ScoringBreakdownProps {
 
 function formatScoreFormula(elements: ScoringElements): string {
   const total = calculateFinalScore(elements);
-  return `${elements.basePoints} pts × ${elements.multiplier}x ^ ${elements.exponent} = ${total}`;
+  return `${formatNumber(elements.basePoints)} pts × ${formatNumber(elements.multiplier)}x ^ ${formatNumber(elements.exponent)} = ${formatNumber(total)}`;
 }
 
 function formatStepDescription(step: ScoringBreakdownStep): string {
@@ -326,7 +326,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
   return (
     <div style={{
       position: 'absolute',
-      top: '10px',
+      top: '140px', 
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 30,
@@ -340,19 +340,6 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
       pointerEvents: 'none',
       userSelect: 'none'
     }}>
-      {/* Combinations */}
-      <div style={{
-        marginBottom: '8px',
-        padding: '6px',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '4px'
-      }}>
-        <div style={{ fontSize: '11px', fontWeight: '500' }}>
-          {(breakdown as any).combinationKeys 
-            ? (breakdown as any).combinationKeys.map((key: string) => formatCombinationKey(key)).join(', ')
-            : baseStep.description.split('=')[0].trim()}
-        </div>
-      </div>
 
       {/* Current Step */}
       {currentStep && currentStepIndex >= 0 && !isComplete && (
@@ -403,7 +390,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
             whiteSpace: 'nowrap'
           }}>
             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e7d32' }}>
-              {displayElements.basePoints}
+              {formatNumber(displayElements.basePoints)}
             </div>
           </div>
 
@@ -475,7 +462,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
             color: '#1976d2'
           }}>
             <span style={{ fontWeight: 'normal' }}>+</span>
-            <span style={{ fontWeight: 'bold' }}>{calculateFinalScore(breakdown.final)}</span>
+            <span style={{ fontWeight: 'bold' }}>{formatNumber(calculateFinalScore(breakdown.final))}</span>
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Blessing } from '../../../../game/types';
 import { BlessingCard } from '../../components/BlessingCard';
 import { useUnlocks } from '../../../contexts/UnlockContext';
+import { BLESSING_CARD_SIZE } from '../../components/cardSizes';
 
 interface BlessingInventoryProps {
   blessings: Blessing[];
@@ -37,17 +38,30 @@ export const BlessingInventory: React.FC<BlessingInventoryProps> = ({ blessings 
     return { groups, standalone };
   }, [blessings]);
 
-  const cardSize = 84; // Blessing card size
+  const cardSize = BLESSING_CARD_SIZE;
   const overlapOffset = Math.round(cardSize * 0.5); // 50% offset = 50% visible (more stacked)
 
   return (
     <div style={{ paddingRight: '12px' }}>
       {blessings.length === 0 ? (
-        <p style={{ 
-          fontSize: '10px', 
-          margin: '0',
-          color: '#666'
-        }}>No blessings</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'flex-start' }}>
+          <div
+            style={{
+              width: `${cardSize}px`,
+              height: `${cardSize}px`,
+              border: '3px dashed #ccc', // Match card border width (3px) for accurate sizing
+              borderRadius: '8px',
+              backgroundColor: '#f5f5f5',
+              fontSize: '11px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#999',
+              fontStyle: 'italic',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'flex-start' }}>
           {/* Render grouped blessings (stacked horizontally) */}

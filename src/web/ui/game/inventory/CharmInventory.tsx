@@ -4,6 +4,7 @@ import { CharmCard } from '../../components/CharmCard';
 import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
 import { useUnlocks } from '../../../contexts/UnlockContext';
 import { CHARM_PRICES } from '../../../../game/data/charms';
+import { CHARM_CARD_SIZE } from '../../components/cardSizes';
 
 export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm, maxSlots }) => {
   const { highlightedCharmIds } = useScoringHighlights();
@@ -98,9 +99,9 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
           <div
             key={`empty-${index}`}
             style={{
-              width: '108px',
-              height: '108px',
-              border: '1px dashed #ccc',
+              width: `${CHARM_CARD_SIZE}px`,
+              height: `${CHARM_CARD_SIZE}px`,
+              border: '3px dashed #ccc', // Match card border width (3px) for accurate sizing
               borderRadius: '8px',
               backgroundColor: '#f5f5f5',
               fontSize: '11px',

@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS completed_games (
   -- Game metadata
   dice_set_name VARCHAR(100) NOT NULL,
   difficulty VARCHAR(20) NOT NULL,
-  end_reason VARCHAR(10) NOT NULL, -- 'win', 'lost', 'quit'
+  end_reason VARCHAR(20) NOT NULL, -- 'win', 'lost', 'quit', 'in_progress'
   
   -- Game stats
   final_score INTEGER DEFAULT 0,

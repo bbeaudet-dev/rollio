@@ -316,6 +316,9 @@ export const Game: React.FC<GameProps> = ({
         onConsumableUse={inventoryActions.handleConsumableUse}
         onSellCharm={inventoryActions.handleSellCharm}
         onSellConsumable={inventoryActions.handleSellConsumable}
+        combinationLevels={gameState.history?.combinationLevels}
+        diceSet={gameState.diceSet}
+        selectedDiceCount={board.selectedDice.length}
       />
       
       {/* Menu and Settings buttons below inventory */}

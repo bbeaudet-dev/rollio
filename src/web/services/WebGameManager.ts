@@ -145,7 +145,16 @@ export class WebGameManager {
     gameState: GameState,
     roundState: RoundState | null,
     selectedDice: number[],
-    previewScoring: { isValid: boolean; points: number; combinations: string[] } | null,
+    previewScoring: { 
+      isValid: boolean; 
+      points: number; 
+      combinations: string[];
+      baseScoringElements?: {
+        basePoints: number;
+        baseMultiplier: number;
+        baseExponent: number;
+      };
+    } | null,
     justBanked: boolean,
     justFlopped: boolean,
     isProcessing: boolean = false,
@@ -341,6 +350,10 @@ export class WebGameManager {
     // The backend already deserialized and rebuilt charm instances, so we just need to register them
     const { registerStartingCharms } = await import('../../game/utils/factories');
     registerStartingCharms(gameState, (this.gameAPI as any).charmManager);
+    
+    // Update echo consumable description with last consumable was used
+    const { updateEchoDescription } = await import('../../game/logic/consumableEffects');
+    updateEchoDescription(gameState);
 
     // The gameState should already have the current level and round state
     const roundState = gameState.currentWorld?.currentLevel?.currentRound || null;
@@ -433,11 +446,12 @@ export class WebGameManager {
     
     // Use the original roundState - dice are still in hand
     // The breakdown will highlight using the original indices
+    // Preserve previewScoring so it stays visible during breakdown
     return this.createWebGameState(
       calculation.gameState, // Use calculated gameState (combination tracking updated, but dice not removed)
       roundState, // Use original roundState (dice still in hand)
       selectedIndicesForBreakdown, // Use original indices - they still work for highlighting
-      null, 
+      state.previewScoring, // Preserve previewScoring so it stays visible during breakdown
       false, 
       false, 
       false,
@@ -803,29 +817,14 @@ export class WebGameManager {
     const gameState = result.gameState;
     const roundState = result.roundState !== undefined ? result.roundState : state.roundState;
     
-    // Track unlocks for pip effects when pip effect consumables are used
-    const consumable = state.gameState.consumables[index];
-    if (consumable && result.success) {
-      const pipEffectMap: Record<string, string> = {
-        'emptyAsAPocket': 'blank',
-        'moneyPip': 'money',
-        'stallion': 'wild',
-        'practice': 'upgradeCombo',
-        'phantom': 'twoFaced',
-        'accumulation': 'createConsumable'
-      };
-      
-      const pipEffectId = pipEffectMap[consumable.id];
-      if (pipEffectId) {
-        // Unlock the pip effect
-        const { progressApi } = await import('./api');
-        try {
-          await progressApi.unlockItem('pip_effect', pipEffectId);
-          window.dispatchEvent(new CustomEvent('unlock:refresh'));
-        } catch (error) {
-          console.debug('Failed to unlock pip effect:', error);
-        }
-      }
+    // Handle unlocks if the consumable effect returned unlock info
+    if (result.unlockInfo) {
+      const { progressApi } = await import('./api');
+      progressApi.unlockItem(result.unlockInfo.type, result.unlockInfo.id).then(() => {
+        window.dispatchEvent(new CustomEvent('unlock:refresh'));
+      }).catch((error) => {
+        console.debug(`Failed to unlock ${result.unlockInfo!.type}:`, error);
+      });
     }
     
     // Keep selected dice after using consumable
@@ -856,16 +855,14 @@ export class WebGameManager {
     
     if (result.success) {
       playPurchaseSound();
-      // Unlock the item in the user's collection (if authenticated)
-      try {
-        const { progressApi } = await import('./api');
-        await progressApi.unlockItem('charm', charm.id);
-        // Trigger unlock refresh event
+      // Unlock the item in the user's collection (if authenticated) - fire and forget for instant response
+      const { progressApi } = await import('./api');
+      progressApi.unlockItem('charm', charm.id).then(() => {
         window.dispatchEvent(new CustomEvent('unlock:refresh'));
-      } catch (error) {
+      }).catch((error) => {
         // Silently fail if not authenticated or API error
         console.debug('Failed to unlock charm:', error);
-      }
+      });
       // Mark the purchased item as null instead of regenerating the shop
       const newShopState = {
         ...state.shopState,
@@ -899,16 +896,14 @@ export class WebGameManager {
     
     if (result.success) {
       playPurchaseSound();
-      // Unlock the item in the user's collection (if authenticated)
-      try {
-        const { progressApi } = await import('./api');
-        await progressApi.unlockItem('consumable', consumable.id);
-        // Trigger unlock refresh event
+      // Unlock the item in the user's collection (if authenticated) - fire and forget for instant response
+      const { progressApi } = await import('./api');
+      progressApi.unlockItem('consumable', consumable.id).then(() => {
         window.dispatchEvent(new CustomEvent('unlock:refresh'));
-      } catch (error) {
+      }).catch((error) => {
         // Silently fail if not authenticated or API error
         console.debug('Failed to unlock consumable:', error);
-      }
+      });
       // Mark the purchased item as null instead of regenerating the shop
       const newShopState = {
         ...state.shopState,
@@ -942,16 +937,14 @@ export class WebGameManager {
     
     if (result.success) {
       playPurchaseSound();
-      // Unlock the item in the user's collection (if authenticated)
-      try {
-        const { progressApi } = await import('./api');
-        await progressApi.unlockItem('blessing', blessing.id);
-        // Trigger unlock refresh event
+      // Unlock the item in the user's collection (if authenticated) - fire and forget for instant response
+      const { progressApi } = await import('./api');
+      progressApi.unlockItem('blessing', blessing.id).then(() => {
         window.dispatchEvent(new CustomEvent('unlock:refresh'));
-      } catch (error) {
+      }).catch((error) => {
         // Silently fail if not authenticated or API error
         console.debug('Failed to unlock blessing:', error);
-      }
+      });
       // Mark the purchased item as null instead of regenerating the shop
       const newShopState = {
         ...state.shopState,

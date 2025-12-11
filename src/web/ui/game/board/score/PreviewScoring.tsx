@@ -6,50 +6,195 @@ interface PreviewScoringProps {
     isValid: boolean;
     points: number;
     combinations: string[];
+    baseScoringElements?: {
+      basePoints: number;
+      baseMultiplier: number;
+      baseExponent: number;
+    };
   } | null;
+  isScoring?: boolean; // true when showing scoring breakdown
+}
+
+function formatNumber(value: number): string {
+  const rounded = Math.round(value * 100) / 100;
+  if (Math.abs(rounded - Math.round(rounded)) < 0.001) {
+    return Math.round(rounded).toString();
+  }
+  return rounded.toString().replace(/\.?0+$/, '');
 }
 
 export const PreviewScoring: React.FC<PreviewScoringProps> = ({
-  previewScoring
+  previewScoring,
+  isScoring = false
 }) => {
+  // FORCE RENDER - Always show if we have data
   if (!previewScoring) {
+    console.warn('PreviewScoring: previewScoring is null/undefined', { isScoring });
     return null;
   }
+  
+  const label = isScoring ? 'Scored:' : 'Will Score:';
+  
+  // Debug log to verify baseScoringElements
+  console.log('PreviewScoring render:', { 
+    isScoring,
+    hasBaseElements: !!previewScoring.baseScoringElements,
+    baseScoringElements: previewScoring.baseScoringElements,
+    isValid: previewScoring.isValid,
+    shouldShowElements: previewScoring.baseScoringElements && !isScoring
+  });
 
   return (
     <div style={{
       position: 'absolute',
-      top: '10px',
+      top: '20px',
       left: '50%',
       transform: 'translateX(-50%)',
-      zIndex: 20,
-      backgroundColor: previewScoring.isValid ? 'rgba(227, 242, 253, 0.95)' : 'rgba(255, 235, 238, 0.95)',
-      border: `2px solid ${previewScoring.isValid ? '#007bff' : '#f44336'}`,
-      borderRadius: '8px',
-      padding: '10px',
-      fontSize: '14px',
-      fontWeight: 500,
+      zIndex: 100, 
+      backgroundColor: previewScoring.isValid 
+        ? 'rgba(76, 175, 80, 0.95)' 
+        : 'rgba(244, 67, 54, 0.95)',
+      border: `2px solid ${previewScoring.isValid ? '#4caf50' : '#f44336'}`,
+      borderRadius: '12px',
+      padding: '12px 20px',
+      fontSize: '18px',
+      fontWeight: 600,
       minWidth: '280px',
-      maxWidth: '360px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+      maxWidth: '600px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
       pointerEvents: 'none',
-      userSelect: 'none'
+      userSelect: 'none',
+      textAlign: 'center',
+      color: 'white',
+      textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+      letterSpacing: '0.3px'
     }}>
-      <div style={{ fontWeight: 'bold', marginBottom: '6px', fontSize: '12px' }}>
-        Selected Dice Preview:
-      </div>
       {previewScoring.isValid ? (
-        <div style={{ fontSize: '13px', fontWeight: 'normal' }}>
-          <div style={{ marginBottom: '4px' }}>
-            {previewScoring.combinations.map((key: string) => formatCombinationKey(key)).join(', ')}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <div style={{ 
+            fontSize: '11px', 
+            fontWeight: 500, 
+            opacity: 0.9,
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px'
+          }}>
+            {label}
           </div>
-          <div style={{ fontWeight: 'bold', color: '#007bff' }}>
-            {previewScoring.points} points
+          <div style={{ 
+            fontSize: '20px', 
+            fontWeight: 700,
+            lineHeight: '1.3',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            {previewScoring.combinations.map((key: string, index: number) => (
+              <React.Fragment key={key}>
+                <span 
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    backdropFilter: 'blur(4px)',
+                    fontSize: '18px'
+                  }}
+                >
+                  {formatCombinationKey(key)}
+                </span>
+                {index < previewScoring.combinations.length - 1 && (
+                  <span style={{ fontSize: '18px', opacity: 0.8, fontWeight: 400 }}>+</span>
+                )}
+              </React.Fragment>
+            ))}
           </div>
+          {/* Show scoring elements ONLY before scoring (when isScoring is false) */}
+          {previewScoring.baseScoringElements && !isScoring && (
+            <div style={{
+              display: 'flex',
+              gap: '6px',
+              marginTop: '8px',
+              overflow: 'hidden'
+            }}>
+              {/* Base Points - Green */}
+              <div style={{
+                flex: 1,
+                padding: '6px',
+                backgroundColor: '#c8e6c9',
+                borderRadius: '4px',
+                border: '1px solid #4caf50',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap'
+              }}>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e7d32' }}>
+                  {formatNumber(previewScoring.baseScoringElements.basePoints)}
+                </div>
+              </div>
+
+              {/* Multiplier - Magenta */}
+              <div style={{
+                flex: 1,
+                padding: '6px',
+                backgroundColor: '#f8bbd0',
+                borderRadius: '4px',
+                border: '1px solid #e91e63',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap'
+              }}>
+                <div style={{ fontSize: '16px', color: '#c2185b' }}>
+                  <span style={{ fontWeight: 'normal' }}>x</span>
+                  <span style={{ fontWeight: 'bold' }}>{formatNumber(previewScoring.baseScoringElements.baseMultiplier)}</span>
+                </div>
+              </div>
+
+              {/* Exponent - Dark Purple */}
+              <div style={{
+                flex: 1,
+                padding: '6px',
+                backgroundColor: '#ce93d8',
+                borderRadius: '4px',
+                border: '1px solid #9c27b0',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap'
+              }}>
+                <div style={{ fontSize: '16px', color: '#7b1fa2' }}>
+                  <span style={{ fontWeight: 'normal' }}>^</span>
+                  <span style={{ fontWeight: 'bold' }}>{formatNumber(previewScoring.baseScoringElements.baseExponent)}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <div style={{ color: '#f44336', fontSize: '13px', fontWeight: 'normal' }}>
-          No valid combinations
+        <div style={{ 
+          fontSize: '16px', 
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px'
+        }}>
+          <span>⚠️</span>
+          <span>Invalid Selection</span>
         </div>
       )}
     </div>

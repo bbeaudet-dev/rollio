@@ -2,18 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ConsumableInventoryProps } from '../../../types/inventory';
 import { ConsumableCard } from '../../components/ConsumableCard';
 import { useUnlocks } from '../../../contexts/UnlockContext';
-import { WHIMS, WISHES } from '../../../../game/data/consumables';
-
-const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
-  wish: { buy: 8, sell: 4 },
-  whim: { buy: 4, sell: 2 },
-};
+import { WHIMS, WISHES, COMBINATION_UPGRADES } from '../../../../game/data/consumables';
+import { CONSUMABLE_PRICES } from '../../../../game/logic/shop';
+import { getDiceSelectionRequirement } from '../../../../game/logic/consumableEffects';
+import { CONSUMABLE_CARD_SIZE } from '../../components/cardSizes';
 
 export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({ 
   consumables, 
   onConsumableUse,
   onSellConsumable,
-  maxSlots
+  maxSlots,
+  selectedDiceCount = 0
 }) => {
   const { unlockedItems } = useUnlocks();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -44,9 +43,13 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
         {consumables.map((consumable, index) => {
             const isWish = WISHES.some((w: any) => w.id === consumable.id);
             const isWhim = WHIMS.some((w: any) => w.id === consumable.id);
-            const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+            const isCombinationUpgrade = COMBINATION_UPGRADES.some((cu: any) => cu.id === consumable.id);
+            const category = isWish ? 'wish' : (isWhim ? 'whim' : (isCombinationUpgrade ? 'combinationUpgrade' : 'whim'));
             const sellValue = CONSUMABLE_PRICES[category]?.sell || 2;
             const isSelected = selectedIndex === index;
+            const diceRequirement = getDiceSelectionRequirement(consumable.id);
+            const isUseButtonDisabled = diceRequirement.requires && 
+              (selectedDiceCount < diceRequirement.min || selectedDiceCount > diceRequirement.max);
             
             return (
               <div key={index} onClick={() => {
@@ -80,18 +83,22 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onConsumableUse(index);
-                        setSelectedIndex(null);
+                        if (!isUseButtonDisabled) {
+                          onConsumableUse(index);
+                          setSelectedIndex(null);
+                        }
                       }}
+                      disabled={isUseButtonDisabled}
                       style={{
-                        backgroundColor: '#007bff',
+                        backgroundColor: isUseButtonDisabled ? '#6c757d' : '#007bff',
                         color: 'white',
                         border: 'none',
                         padding: '6px 12px',
                         borderRadius: '4px',
-                        cursor: 'pointer',
+                        cursor: isUseButtonDisabled ? 'not-allowed' : 'pointer',
                         fontSize: '12px',
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
+                        opacity: isUseButtonDisabled ? 0.6 : 1
                       }}
                     >
                       Use
@@ -128,9 +135,9 @@ export const ConsumableInventory: React.FC<ConsumableInventoryProps> = ({
           <div
             key={`empty-${index}`}
             style={{
-              width: '96px',
-              height: '96px',
-              border: '1px dashed #ccc',
+              width: `${CONSUMABLE_CARD_SIZE}px`,
+              height: `${CONSUMABLE_CARD_SIZE}px`,
+              border: '3px dashed #ccc', // Match card border width (3px) for accurate sizing
               borderRadius: '8px',
               backgroundColor: '#f5f5f5',
               fontSize: '11px',

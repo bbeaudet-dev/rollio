@@ -5,8 +5,8 @@ import { RoundInfo } from './RoundInfo';
 import { GameAlerts } from './GameAlerts';
 import { ScoringBreakdownComponent } from './ScoringBreakdown';
 import { PreviewScoring } from './score/PreviewScoring';
-import { ScoringBreakdown, Die } from '../../../../game/types';
-import { ViewDiceSet } from './ViewDiceSet';
+import { Die } from '../../../../game/types';
+import { ScoringBreakdown } from '../../../../game/logic/scoringBreakdown';
 import { DifficultyDiceDisplay } from '../../components/DifficultyDiceDisplay';
 import { useDifficulty } from '../../../contexts/DifficultyContext';
 import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
@@ -28,6 +28,11 @@ interface BoardProps {
     isValid: boolean;
     points: number;
     combinations: string[];
+    baseScoringElements?: {
+      basePoints: number;
+      baseMultiplier: number;
+      baseExponent: number;
+    };
   } | null;
   canChooseFlopShield?: boolean;
   onFlopShieldChoice?: (useShield: boolean) => void;
@@ -63,9 +68,9 @@ export const Board: React.FC<BoardProps> = ({
   scoringBreakdown = null,
   breakdownState = 'hidden',
   onCompleteBreakdown = () => {},
-  diceSet = [],
-  hotDiceCounter = 0
-}) => {
+      diceSet = [],
+      hotDiceCounter = 0
+    }) => {
   const difficulty = useDifficulty();
   const { highlightedDiceIndices, setHighlightedDice, clearAll } = useScoringHighlights();
   
@@ -186,10 +191,37 @@ export const Board: React.FC<BoardProps> = ({
       )}
       
 
-      {/* Selected Dice Preview - top center (same position as breakdown, hidden when showing breakdown) */}
-      {previewScoring && breakdownState === 'hidden' && (
-        <PreviewScoring previewScoring={previewScoring} />
-      )}
+      {/* Selected Dice Preview - top center (stays visible during breakdown) */}
+      {(() => {
+        const shouldShow = previewScoring || (breakdownState !== 'hidden' && scoringBreakdown);
+        const previewData = previewScoring || (scoringBreakdown ? {
+          isValid: true,
+          points: 0,
+          combinations: (scoringBreakdown as any).combinationKeys || [],
+          baseScoringElements: scoringBreakdown.steps[0]?.input ? {
+            basePoints: scoringBreakdown.steps[0].input.basePoints,
+            baseMultiplier: scoringBreakdown.steps[0].input.multiplier,
+            baseExponent: scoringBreakdown.steps[0].input.exponent
+          } : undefined
+        } : null);
+        
+        if (breakdownState !== 'hidden') {
+          console.log('Board: Rendering PreviewScoring during breakdown', {
+            hasPreviewScoring: !!previewScoring,
+            hasScoringBreakdown: !!scoringBreakdown,
+            shouldShow,
+            previewData,
+            breakdownState
+          });
+        }
+        
+        return shouldShow && previewData ? (
+          <PreviewScoring 
+            previewScoring={previewData} 
+            isScoring={breakdownState !== 'hidden'}
+          />
+        ) : null;
+      })()}
 
       {!justBanked && (
         <DiceDisplay
@@ -213,8 +245,6 @@ export const Board: React.FC<BoardProps> = ({
         justFlopped={justFlopped}
       />
 
-      {/* View Dice Set - Bottom Right */}
-      {diceSet.length > 0 && <ViewDiceSet diceSet={diceSet} />}
     </div>
   );
 };

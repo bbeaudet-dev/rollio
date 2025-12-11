@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { progressApi } from '../services/api';
+import { CHARMS } from '../../game/data/charms';
+import { CONSUMABLES } from '../../game/data/consumables';
+import { ALL_BLESSINGS } from '../../game/data/blessings';
+import { MATERIALS } from '../../game/data/materials';
+import { PIP_EFFECTS } from '../../game/data/pipEffects';
+import { DifficultyLevel, DIFFICULTY_CONFIGS } from '../../game/logic/difficulty';
 
 interface UnlockContextType {
   unlockedItems: Set<string>;
@@ -22,6 +28,45 @@ interface UnlockProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Generate a Set of all possible unlock keys when no user is logged in
+ */
+function getAllUnlockKeys(): Set<string> {
+  const allKeys = new Set<string>();
+  
+  // Add all charms
+  CHARMS.forEach(charm => {
+    allKeys.add(`charm:${charm.id}`);
+  });
+  
+  // Add all consumables
+  CONSUMABLES.forEach(consumable => {
+    allKeys.add(`consumable:${consumable.id}`);
+  });
+  
+  // Add all blessings
+  ALL_BLESSINGS.forEach(blessing => {
+    allKeys.add(`blessing:${blessing.id}`);
+  });
+  
+  // Add all materials
+  MATERIALS.forEach(material => {
+    allKeys.add(`material:${material.id}`);
+  });
+  
+  // Add all pip effects
+  PIP_EFFECTS.forEach(effect => {
+    allKeys.add(`pip_effect:${effect.id}`);
+  });
+  
+  // Add all difficulties
+  (Object.keys(DIFFICULTY_CONFIGS) as DifficultyLevel[]).forEach(difficulty => {
+    allKeys.add(`difficulty:${difficulty}`);
+  });
+  
+  return allKeys;
+}
+
 export const UnlockProvider: React.FC<UnlockProviderProps> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const [unlockedItems, setUnlockedItems] = useState<Set<string>>(new Set());
@@ -29,7 +74,8 @@ export const UnlockProvider: React.FC<UnlockProviderProps> = ({ children }) => {
 
   const refreshUnlocks = useCallback(async () => {
     if (!isAuthenticated) {
-      setUnlockedItems(new Set());
+      // When not authenticated, unlock everything
+      setUnlockedItems(getAllUnlockKeys());
       return;
     }
 

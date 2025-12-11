@@ -4,15 +4,16 @@
 
 import { GameState, Charm, Consumable, Blessing, ShopState, GamePhase } from '../types';
 import { CHARMS } from '../data/charms';
-import { CONSUMABLES, WHIMS, WISHES } from '../data/consumables';
+import { CONSUMABLES, WHIMS, WISHES, COMBINATION_UPGRADES } from '../data/consumables';
 import { selectRandomBlessing, getBlessingName, getBlessingDescription, enrichBlessingForDisplay } from '../data/blessings';
 
 import { CHARM_PRICES } from '../data/charms';
 import { getDifficultyConfig, getDifficulty, DifficultyLevel } from '../logic/difficulty';
 
-const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
+export const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = {
   wish: { buy: 8, sell: 4 },
   whim: { buy: 4, sell: 2 },
+  combinationUpgrade: { buy: 2, sell: 1 },
 };
 
 const BLESSING_PRICE = 5;
@@ -62,10 +63,11 @@ export function getCharmPrice(charm: Charm, difficulty?: DifficultyLevel): numbe
  * Get consumable price (with difficulty modifier applied)
  */
 export function getConsumablePrice(consumable: Consumable, difficulty?: DifficultyLevel): number {
-  // Check if consumable is a wish or whim
+  // Check if consumable is a wish, whim, or combination upgrade
   const isWish = WISHES.some(w => w.id === consumable.id);
   const isWhim = WHIMS.some(w => w.id === consumable.id);
-  const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+  const isCombinationUpgrade = COMBINATION_UPGRADES.some(cu => cu.id === consumable.id);
+  const category = isWish ? 'wish' : (isWhim ? 'whim' : (isCombinationUpgrade ? 'combinationUpgrade' : 'whim'));
   const priceInfo = CONSUMABLE_PRICES[category] || CONSUMABLE_PRICES.whim;
   let price = priceInfo.buy;
   
@@ -118,34 +120,40 @@ export function generateShopInventory(gameState: GameState): ShopState {
   }
   
   // Select 2 random consumables (excluding owned ones)
-  // 10% chance for wishes, 90% chance for whims
+  // 10% chance for wishes, 50% chance for whims, 40% chance for combination upgrades
   const availableWhims = WHIMS.filter(c => !ownedConsumableIds.has(c.id));
   const availableWishes = WISHES.filter(c => !ownedConsumableIds.has(c.id));
+  const availableCombinationUpgrades = COMBINATION_UPGRADES.filter(c => !ownedConsumableIds.has(c.id));
   const selectedConsumables: Consumable[] = [];
   const consumableIndices = new Set<number>();
   
-  while (selectedConsumables.length < 2 && (consumableIndices.size < availableWhims.length + availableWishes.length)) {
-    // 10% chance to pick from wishes, 90% chance from whims
-    const isWish = Math.random() < 0.1;
-    const pool = isWish ? availableWishes : availableWhims;
+  while (selectedConsumables.length < 2 && (consumableIndices.size < availableWhims.length + availableWishes.length + availableCombinationUpgrades.length)) {
+    const rand = Math.random();
+    let pool: Consumable[];
+    if (rand < 0.1) {
+      // 10% chance for wishes
+      pool = availableWishes;
+    } else if (rand < 0.6) {
+      // 50% chance for whims
+      pool = availableWhims;
+    } else {
+      // 40% chance for combination upgrades
+      pool = availableCombinationUpgrades;
+    }
     
     if (pool.length === 0) {
-      // If pool is empty, use the other one
-      const otherPool = isWish ? availableWhims : availableWishes;
-      if (otherPool.length === 0) break;
-      const randomIndex = Math.floor(Math.random() * otherPool.length);
-      const consumable = otherPool[randomIndex];
-      if (!selectedConsumables.some(c => c.id === consumable.id)) {
-        selectedConsumables.push({ ...consumable });
-        consumableIndices.add(consumable.id as any);
-      }
-    } else {
-      const randomIndex = Math.floor(Math.random() * pool.length);
-      const consumable = pool[randomIndex];
-      if (!selectedConsumables.some(c => c.id === consumable.id)) {
-        selectedConsumables.push({ ...consumable });
-        consumableIndices.add(consumable.id as any);
-      }
+      // If pool is empty, try the other pools
+      const fallbackPools = [availableWishes, availableWhims, availableCombinationUpgrades].filter(p => p.length > 0);
+      if (fallbackPools.length === 0) break;
+      const fallbackPool = fallbackPools[Math.floor(Math.random() * fallbackPools.length)];
+      pool = fallbackPool;
+    }
+    
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    const consumable = pool[randomIndex];
+    if (!selectedConsumables.some(c => c.id === consumable.id)) {
+      selectedConsumables.push({ ...consumable });
+      consumableIndices.add(consumable.id as any);
     }
   }
   
@@ -317,7 +325,8 @@ export function sellConsumable(
   const consumable = gameState.consumables[consumableIndex];
   const isWish = WISHES.some(w => w.id === consumable.id);
   const isWhim = WHIMS.some(w => w.id === consumable.id);
-  const category = isWish ? 'wish' : (isWhim ? 'whim' : 'whim');
+  const isCombinationUpgrade = COMBINATION_UPGRADES.some(cu => cu.id === consumable.id);
+  const category = isWish ? 'wish' : (isWhim ? 'whim' : (isCombinationUpgrade ? 'combinationUpgrade' : 'whim'));
   const sellValue = CONSUMABLE_PRICES[category]?.sell || 2;
   
   // Remove consumable and add money

@@ -119,7 +119,7 @@ export class TutorialSystem {
     await this.gameInterface.log('');
     await this.gameInterface.log('🧪 CONSUMABLES:');
     await this.gameInterface.log('• One-time use items with powerful effects');
-    await this.gameInterface.log('• Examples: Flop Recovery, Extra Die, Material Enchanter');
+    await this.gameInterface.log('• Examples: Flop Recovery, Extra Die, Alchemist');
     await this.gameInterface.log('• Strategic timing is key!');
     await this.gameInterface.log('');
     await this.gameInterface.log('🏪 THE SHOP:');

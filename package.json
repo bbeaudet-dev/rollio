@@ -19,7 +19,9 @@
     "test:watch": "vitest watch",
     "update-name": "ts-node scripts/updateName.ts",
     "dice-animation": "ts-node scripts/testDiceAnimation.ts",
-    "flexible-dice": "ts-node src/experiments/flexibleDiceAnimation.ts"
+    "flexible-dice": "ts-node src/experiments/flexibleDiceAnimation.ts",
+    "test:scoring": "ts-node scripts/testScoring.ts",
+    "validate:balance": "ts-node scripts/validateBalance.ts"
   },
   "keywords": [
     "rollio",
