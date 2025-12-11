@@ -12,18 +12,18 @@
  * This is the high-level API for scoring dice selections.
  */
 
-import { Die, DieValue, ScoringCombination, Charm, GameState, RoundState } from '../types';
+import { Die, DieValue, ScoringCombination, GameState, RoundState } from '../types';
 import type { ScoringBreakdown } from './scoringBreakdown';
-import { ScoringCombinationType, ALL_SCORING_TYPES } from '../data/combinations';
-import { findAllPossibleCombinations, hasAnyScoringCombination, countDice, ScoringContext } from './findCombinations';
-import { findAllValidPartitionings, getHighestPointsPartitioning } from './partitioning';
+import { ScoringContext, getSpecificCombinationParams } from './findCombinations';
+import { findAllValidPartitionings, getBestPartitioning } from './partitioning';
 import { applyMaterialEffects } from './materialSystem';
 import { applyAllPipEffects } from './pipEffectSystem';
 import { ScoringElements, createScoringElementsFromPoints, calculateFinalScore, multiplyMultiplier, addBasePoints } from './scoringElements';
+import { calculateCombinationPoints, ScoringCombinationType } from '../data/combinations';
+import { createCombinationKey } from '../utils/combinationTracking';
 import { createBreakdownBuilder } from './scoringBreakdown';
 import { CharmManager } from './charmSystem';
 import { getDifficulty } from './difficulty';
-import { createCombinationKey } from '../utils/combinationTracking';
 
 // Re-export types and constants for convenience (allows importing from scoring.ts)
 export type { ScoringCombinationType } from '../data/combinations';
@@ -31,7 +31,7 @@ export { ALL_SCORING_TYPES } from '../data/combinations';
 
 // Re-export combination and partitioning functions
 export { findAllPossibleCombinations, hasAnyScoringCombination, countDice } from './findCombinations';
-export { findAllValidPartitionings, getHighestPointsPartitioning } from './partitioning';
+export { findAllValidPartitionings, getBestPartitioning, getHighestPointsPartitioning } from './partitioning';
 
 /**
  * Get scoring combinations for validation purposes.
@@ -82,6 +82,33 @@ export function rollDice(numDice: number, sides: number = 6): DieValue[] {
 
 
 /**
+ * Calculate combination points with level support
+ * Looks up the combination level from combinationLevels and calculates points accordingly
+ */
+function calculateCombinationPointsWithLevel(
+  type: ScoringCombinationType,
+  params: { n?: number; count?: number; length?: number; faceValue?: number },
+  diceHand: Die[],
+  combinationDiceIndices: number[],
+  combinationLevels?: { [key: string]: number }
+): number {
+  // Get level from combinationLevels if available, otherwise default to 1
+  let level = 1;
+  if (combinationLevels) {
+    // Create a temporary combination object to generate the key
+    const tempCombo: ScoringCombination = {
+      type: type as any,
+      dice: combinationDiceIndices,
+      points: 0, // Temporary, will be recalculated
+    };
+    const key = createCombinationKey(tempCombo, diceHand);
+    level = combinationLevels[key] || 1;
+  }
+  
+  return calculateCombinationPoints(type, params, level);
+}
+
+/**
  * Calculate complete scoring breakdown for selected dice
  * 
  * Order of operations:
@@ -119,21 +146,32 @@ export function calculateScoringBreakdown(
     return null;
   }
 
-  // Get the best partitioning (highest points)
-  const bestPartitioningIndex = getHighestPointsPartitioning(allPartitionings);
+  // Get the best partitioning (most dice used, with hierarchy tie-breaker)
+  const bestPartitioningIndex = getBestPartitioning(allPartitionings);
   const selectedPartitioning = allPartitionings[bestPartitioningIndex] || [];
 
   // Step 2: Create initial ScoringElements from combinations
+  // Calculate points for each combination (now that we know which partitioning was selected)
   // Check for debuffed combinations and set their points to 0
   const debuffedCombinations: string[] = [];
   let basePoints = 0;
+  const combinationLevels = gameState.history.combinationLevels;
   
   for (const combo of selectedPartitioning) {
     if ((combo as any).isDebuffed) {
       // Debuffed combination scores 0 points
       debuffedCombinations.push(createCombinationKey(combo, diceHand));
     } else {
-      basePoints += combo.points;
+      // Calculate points for this combination using its level
+      const comboKey = createCombinationKey(combo, diceHand);
+      const level = combinationLevels[comboKey] || 1;
+      
+      // Get parameters for this combination
+      const params = getSpecificCombinationParams(combo, diceHand);
+      
+      // Calculate points
+      const comboPoints = calculateCombinationPoints(combo.type as ScoringCombinationType, params, level);
+      basePoints += comboPoints;
     }
   }
   

@@ -172,6 +172,53 @@ export function extractCombinationTypesFromBreakdown(breakdown: any): string[] {
 }
 
 /**
+ * Get the upgrade level for a combination key
+ * Returns 1 if the combination hasn't been upgraded yet
+ */
+export function getCombinationLevel(gameState: GameState, combinationKey: string): number {
+  return gameState.history.combinationLevels[combinationKey] || 1;
+}
+
+/**
+ * Upgrade a combination by one level
+ * Returns updated gameState with the combination level incremented
+ */
+export function upgradeCombination(gameState: GameState, combinationKey: string): GameState {
+  const currentLevel = getCombinationLevel(gameState, combinationKey);
+  const combinationLevels = { ...gameState.history.combinationLevels };
+  combinationLevels[combinationKey] = currentLevel + 1;
+  
+  return {
+    ...gameState,
+    history: {
+      ...gameState.history,
+      combinationLevels
+    }
+  };
+}
+
+/**
+ * Upgrade multiple combinations (for consumables that upgrade groups)
+ * Returns updated gameState with all specified combinations upgraded
+ */
+export function upgradeCombinations(gameState: GameState, combinationKeys: string[]): GameState {
+  const combinationLevels = { ...gameState.history.combinationLevels };
+  
+  for (const key of combinationKeys) {
+    const currentLevel = combinationLevels[key] || 1;
+    combinationLevels[key] = currentLevel + 1;
+  }
+  
+  return {
+    ...gameState,
+    history: {
+      ...gameState.history,
+      combinationLevels
+    }
+  };
+}
+
+/**
  * Track combination usage from a scoring breakdown
  * Updates the gameState's combinationCounters with composite keys
  */

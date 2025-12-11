@@ -221,6 +221,7 @@ export type BlessingEffect =
 
 
 export type CombinationCounters = Record<string, number>;
+export type CombinationLevels = Record<string, number>; // Combination key -> level (default: 1)
 export type ConsumableCounters = Record<string, number>; // consumableId -> usage count
 export type CharmCounters = Record<string, number>; // charmId -> purchase count
 export type BlessingCounters = Record<string, number>; // blessingId -> purchase count (calculate category/tier on-demand)
@@ -284,6 +285,7 @@ export interface EffectContext {
 export interface GameHistory {
   // Usage/purchase tracking
   combinationCounters: CombinationCounters;
+  combinationLevels: CombinationLevels; // Track combination upgrade levels (key -> level, default: 1)
   consumableCounters: ConsumableCounters; // Track consumable USAGE
   charmCounters: CharmCounters; // Track charm PURCHASES
   blessingCounters: BlessingCounters; // Track blessing PURCHASES

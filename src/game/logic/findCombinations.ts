@@ -6,7 +6,6 @@
  */
 
 import { Die, ScoringCombination, EffectContext } from '../types';
-import { calculateCombinationPoints } from '../data/combinations';
 import { shouldAllowSingleThrees } from './charms/charmUtils';
 import { expandDiceValuesForCombinations } from './pipEffectSystem';
 import { DifficultyLevel, isCombinationAvailable } from './difficulty';
@@ -66,10 +65,15 @@ export function getSpecificCombinationParams(
   switch (combo.type) {
     case 'singleN':
       return { faceValue: diceValues[0] };
-    case 'nPairs':
-      return { n: combo.dice.length / 2 };
-    case 'nOfAKind':
-      return { count: combo.dice.length };
+    case 'nPairs': {
+      // For pairs, we need the highest face value
+      const maxFaceValue = Math.max(...diceValues);
+      return { n: combo.dice.length / 2, faceValue: maxFaceValue };
+    }
+    case 'nOfAKind': {
+      const faceValue = diceValues[0];
+      return { count: combo.dice.length, faceValue };
+    }
     case 'straightOfN':
       return { length: combo.dice.length };
     case 'nTriplets':
@@ -200,10 +204,7 @@ export function findAllPossibleCombinations(
         combinations.push({
           type: 'nOfAKind',
           dice: diceIndices,
-          points: calculateCombinationPoints('nOfAKind', {
-            faceValue: value,
-            count: n,
-          }),
+          points: 0,
         });
       }
     }
@@ -268,7 +269,7 @@ export function findAllPossibleCombinations(
         combinations.push({
           type: 'nPairs',
           dice: pairDiceIndices,
-          points: calculateCombinationPoints('nPairs', { n: pairCount, faceValue: highestPairValue }),
+          points: 0,
         });
       }
     }
@@ -311,7 +312,7 @@ export function findAllPossibleCombinations(
               combinations.push({
                 type: 'straightOfN',
                 dice: straightDiceIndices,
-                points: calculateCombinationPoints('straightOfN', { length: straightLength }),
+                points: 0,
               });
             }
           }
@@ -338,7 +339,7 @@ export function findAllPossibleCombinations(
           combinations.push({
             type: 'pyramidOfN',
             dice: subsetIndices,
-            points: calculateCombinationPoints('pyramidOfN', { n: subsetSize }),
+            points: 0,
           });
         }
       }
@@ -361,7 +362,7 @@ export function findAllPossibleCombinations(
           combinations.push({
             type: 'singleN',
             dice: subsetIndices,
-            points: calculateCombinationPoints('singleN', { faceValue: value }),
+            points: 0,
           });
         } else if (value === 3) {
           // Single 3s only valid if Low Hanging Fruit charm is active
@@ -370,7 +371,7 @@ export function findAllPossibleCombinations(
             combinations.push({
               type: 'singleN',
               dice: subsetIndices,
-              points: calculateCombinationPoints('singleN', { faceValue: value }),
+              points: 0,
             });
           }
         }
@@ -383,7 +384,7 @@ export function findAllPossibleCombinations(
       combinations.push({
         type: 'nTriplets',
         dice: subsetIndices,
-        points: calculateCombinationPoints('nTriplets', { n: tripletCount }),
+        points: 0,
       });
     }
     
@@ -393,7 +394,7 @@ export function findAllPossibleCombinations(
       combinations.push({
         type: 'nQuadruplets',
         dice: subsetIndices,
-        points: calculateCombinationPoints('nQuadruplets', { n: quadrupletCount }),
+        points: 0,
       });
     }
     
@@ -403,7 +404,7 @@ export function findAllPossibleCombinations(
       combinations.push({
         type: 'nQuintuplets',
         dice: subsetIndices,
-        points: calculateCombinationPoints('nQuintuplets', { n: quintupletCount }),
+        points: 0,
       });
     }
     
@@ -413,7 +414,7 @@ export function findAllPossibleCombinations(
       combinations.push({
         type: 'nSextuplets',
         dice: subsetIndices,
-        points: calculateCombinationPoints('nSextuplets', { n: sextupletCount }),
+        points: 0,
       });
     }
     
@@ -423,7 +424,7 @@ export function findAllPossibleCombinations(
       combinations.push({
         type: 'nSeptuplets',
         dice: subsetIndices,
-        points: calculateCombinationPoints('nSeptuplets', { n: septupletCount }),
+        points: 0,
       });
     }
     
@@ -433,7 +434,7 @@ export function findAllPossibleCombinations(
       combinations.push({
         type: 'nOctuplets',
         dice: subsetIndices,
-        points: calculateCombinationPoints('nOctuplets', { n: octupletCount }),
+        points: 0,
       });
     }
     
@@ -443,7 +444,7 @@ export function findAllPossibleCombinations(
       combinations.push({
         type: 'nNonuplets',
         dice: subsetIndices,
-        points: calculateCombinationPoints('nNonuplets', { n: nonupletCount }),
+        points: 0,
       });
     }
     
@@ -453,7 +454,7 @@ export function findAllPossibleCombinations(
       combinations.push({
         type: 'nDecuplets',
         dice: subsetIndices,
-        points: calculateCombinationPoints('nDecuplets', { n: decupletCount }),
+        points: 0,
       });
     }
     } // End of subsetIndices loop

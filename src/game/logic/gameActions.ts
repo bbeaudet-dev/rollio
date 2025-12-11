@@ -1,6 +1,7 @@
 import { GameState, RoundState, DieValue, LevelState, RollState, Die, GamePhase, WorldState } from '../types';
 import { isFlop, canBankPoints, isLevelCompleted } from './gameLogic';
-import { getHighestPointsPartitioning, getAllPartitionings } from './scoring';
+import { getAllPartitionings } from './scoring';
+import { getBestPartitioning } from './partitioning';
 import { getDiceIndicesToRemove, handleMirrorDiceRolling, shouldTriggerHotDice } from './materialSystem';
 import { createInitialRoundState, createInitialLevelState } from '../utils/factories';
 import { validateDiceSelection } from '../utils/effectUtils';
@@ -9,6 +10,8 @@ import { createCombinationKey } from '../utils/combinationTracking';
 import { selectWorld as selectWorldMap, getAvailableWorldChoices } from './mapGeneration';
 import { getDifficulty } from './difficulty';
 import { WORLD_POOL } from '../data/worlds';
+import { getBaseScoringElementValues } from '../data/combinations';
+import { getSpecificCombinationParams } from './findCombinations';
 
 interface ScoringContext {
   charms: any[];
@@ -732,6 +735,11 @@ export function calculatePreviewScoring(
   isValid: boolean;
   points: number;
   combinations: string[];
+  baseScoringElements?: {
+    basePoints: number;
+    baseMultiplier: number;
+    baseExponent: number;
+  };
 } {
   if (selectedIndices.length === 0) {
     return { isValid: false, points: 0, combinations: [] };
@@ -750,25 +758,57 @@ export function calculatePreviewScoring(
       return { isValid: false, points: 0, combinations: [] };
     }
     
-    // Get the best partitioning
-    const bestPartitioningIndex = getHighestPointsPartitioning(allPartitionings);
+    // Get the best partitioning (most dice used, with hierarchy tie-breaker)
+    const bestPartitioningIndex = getBestPartitioning(allPartitionings);
     const bestPartitioning = allPartitionings[bestPartitioningIndex] || [];
     const totalComboDice = bestPartitioning.reduce((sum, c) => sum + c.dice.length, 0);
     const valid = bestPartitioning.length > 0 && totalComboDice === selectedIndicesFromInput.length;
-    
-    // Calculate base points only (for display purposes)
-    const basePoints = bestPartitioning.reduce((sum, c) => sum + c.points, 0);
     
     // Convert combinations to composite keys (e.g., "single1", "nPairs:2")
     const combinationKeys = bestPartitioning.map((c: any) => 
       createCombinationKey(c, roundState.diceHand)
     );
     
-    return {
+    // Calculate base scoring elements
+    let totalBasePoints = 0;
+    let totalBaseMultiplier = 1;
+    let totalBaseExponent = 1;
+    
+    if (valid) {
+      const combinationLevels = gameState.history.combinationLevels;
+      
+      for (const combo of bestPartitioning) {
+        const comboKey = createCombinationKey(combo, roundState.diceHand);
+        const level = combinationLevels[comboKey] || 1;
+        const params = getSpecificCombinationParams(combo, roundState.diceHand);
+        const baseElements = getBaseScoringElementValues(combo.type as any, level, params);
+        
+        totalBasePoints += baseElements.basePoints;
+        totalBaseMultiplier += (baseElements.baseMultiplier - 1); // Additive multiplier
+        totalBaseExponent += (baseElements.baseExponent - 1); // Additive exponent
+      }
+    }
+    
+    const result = {
       isValid: valid,
-      points: basePoints, // Just base combination points, not final score
-      combinations: combinationKeys
+      points: 0, 
+      combinations: combinationKeys,
+      baseScoringElements: valid ? {
+        basePoints: totalBasePoints,
+        baseMultiplier: totalBaseMultiplier,
+        baseExponent: totalBaseExponent
+      } : undefined
     };
+    
+    // Debug log
+    console.log('calculatePreviewScoring returning:', {
+      valid,
+      hasBaseElements: !!result.baseScoringElements,
+      baseScoringElements: result.baseScoringElements,
+      combinations: combinationKeys
+    });
+    
+    return result;
   } catch (error) {
     return { isValid: false, points: 0, combinations: [] };
   }
