@@ -115,6 +115,37 @@ export const DIFFICULTY_COLORS = {
   },
 } as const;
 
+// Scoring element colors (for formatted descriptions)
+export const SCORING_ELEMENT_COLORS = {
+  PTS: {
+    text: '#2e7d32',      // Dark green
+    background: '#c8e6c9' // Light green
+  },
+  MLT: {
+    text: '#c2185b',      // Magenta
+    background: '#f8bbd0' // Light pink
+  },
+  EXP: {
+    text: '#7b1fa2',      // Purple
+    background: '#ce93d8' // Light purple
+  },
+  MONEY: {
+    text: '#f57c00',      // Dark orange
+    background: '#ffe0b2' // Light orange
+  }
+} as const;
+
+// Game concept colors (for formatted descriptions)
+export const GAME_CONCEPT_COLORS = {
+  combination: '#4A90E2',  // Light blue
+  round: '#FF8C42',        // Orange
+  level: '#FFD700',        // Gold
+  world: '#9B59B6',        // Purple
+  bank: '#4caf50',         // Green
+  flop: '#f44336',         // Red
+  reroll: '#007bff',       // Blue 
+} as const;
+
 /**
  * Get the background color for a consumable based on whether it's a whim, wish, or combination upgrade
  */

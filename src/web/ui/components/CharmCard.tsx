@@ -4,6 +4,7 @@ import { CHARM_PRICES } from '../../../game/data/charms';
 import { LockIcon } from './LockIcon';
 import { RarityDot, getRarityColor } from '../../utils/rarityColors';
 import { CHARM_CARD_SIZE } from './cardSizes';
+import { formatDescription } from '../../utils/descriptionFormatter';
 
 /**
  * Convert charm ID to image filename
@@ -11,6 +12,13 @@ import { CHARM_CARD_SIZE } from './cardSizes';
  * For Sleeper Agent, checks if activated (100+ dice scored) to use activated image
  */
 function getCharmImagePath(charmId: string, charmState?: Record<string, any> | null): string | null {
+  // Handle copied charms from Frankenstein - extract original charm ID
+  // Copied charms have IDs like "originalCharmId_copy_1234567890"
+  let originalCharmId = charmId;
+  if (charmId.includes('_copy_')) {
+    originalCharmId = charmId.split('_copy_')[0];
+  }
+  
   // Map of charm IDs to their image filenames
   const imageMap: Record<string, string> = {
     'almostCertain': 'Almost_Certain.png',
@@ -30,7 +38,7 @@ function getCharmImagePath(charmId: string, charmState?: Record<string, any> | n
     'doubleDown': 'Double_Down.png',
     'dukeOfDice': 'Duke_Of_Dice.png',
     'eyeOfHorus': 'Eye_Of_Horus.png',
-    'ferrisEuler': 'Ferris_Euler.png',
+    'ferrisEuler': 'Ferris_Euler_2.png',
     'flopShield': 'Flop_Shield_3.png',
     'flopStrategist': 'Flop_Strategist.png',
     'flowerPower': 'Flower_Power.png',
@@ -109,17 +117,18 @@ function getCharmImagePath(charmId: string, charmState?: Record<string, any> | n
     'againstTheGrain': 'Against_The_Grain_2.png',
     'jefferson': 'Jefferson.png',
     'botox': 'Botox_3.png',
+    'ticketEater': 'Ticket_Eater.png',
   };
 
   // Special handling for Sleeper Agent - check if activated
-  if (charmId === 'sleeperAgent' && charmState?.sleeperAgent?.totalDiceScored >= 100) {
+  if (originalCharmId === 'sleeperAgent' && charmState?.sleeperAgent?.totalDiceScored >= 100) {
     const activatedFilename = imageMap['sleeperAgentActivated'];
     if (activatedFilename) {
       return `/assets/images/charms/${activatedFilename}`;
     }
   }
   
-  const filename = imageMap[charmId];
+  const filename = imageMap[originalCharmId];
   if (!filename) {
     return null;
   }
@@ -142,7 +151,7 @@ interface CharmCardProps {
   highlighted?: boolean;
   isInActiveGame?: boolean; // true if in shop or inventory during active game
   isLocked?: boolean; // true if item is locked (not unlocked in collection)
-  charmState?: Record<string, any> | null; // For checking charm-specific state (e.g., Sleeper Agent activation)
+  charmState?: Record<string, any> | null; // For checking charm-specific state (e.g., Sleeper Agent activation, generator.currentCategory)
 }
 
 export const CharmCard: React.FC<CharmCardProps> = ({
@@ -347,7 +356,49 @@ export const CharmCard: React.FC<CharmCardProps> = ({
             )}
           </div>
           <div style={{ fontSize: '12px', lineHeight: '1.4', color: '#ddd', marginBottom: '8px' }}>
-            {charm.description}
+            {formatDescription(charm.description, (() => {
+              // Extract currentValue from charm object or charmState
+              // This is still a bit hardcoded, but it's the simplest way to get the values
+              const charmAny = charm as any;
+              const values: any = {};
+              
+              if (charm.id === 'stairstepper') {
+                values.currentValue = charmAny.stairstepperBonus ?? 20;
+              } else if (charm.id === 'rerollRanger') {
+                values.currentValue = charmAny.rerollRangerBonus ?? 5;
+              } else if (charm.id === 'oddOdyssey') {
+                values.currentValue = charmAny.oddOdysseyBonus ?? 0.25;
+              } else if (charm.id === 'bankBaron' && charmState?.bankBaron?.bankCount !== undefined) {
+                values.currentValue = charmState.bankBaron.bankCount * 10;
+              } else if (charm.id === 'sandbagger' && charmState?.sandbagger?.flopCount !== undefined) {
+                values.currentValue = charmState.sandbagger.flopCount * 50;
+              } else if (charm.id === 'rabbitsFoot' && charmState?.rabbitsFoot?.rainbowTriggers !== undefined) {
+                values.currentValue = charmState.rabbitsFoot.rainbowTriggers * 0.1;
+              } else if (charm.id === 'assassin' && charmState?.assassin?.destroyedDice !== undefined) {
+                values.currentValue = charmState.assassin.destroyedDice;
+              } else if (charm.id === 'sleeperAgent' && charmState?.sleeperAgent?.totalDiceScored !== undefined) {
+                // Calculate remaining dice needed (100 - totalDiceScored)
+                const totalDiceScored = charmState.sleeperAgent.totalDiceScored;
+                values.remaining = Math.max(0, 100 - totalDiceScored);
+              }
+              
+              // Handle Generator charm category
+              if (charm.id === 'generator' && charmState?.generator?.currentCategory) {
+                const category = charmState.generator.currentCategory;
+                // Format category name nicely
+                const categoryNames: Record<string, string> = {
+                  'singleN': 'Single',
+                  'nPairs': 'Pair',
+                  'nTuplets': 'Tuplet',
+                  'straightOfN': 'Straight',
+                  'pyramidOfN': 'Pyramid',
+                  'nOfAKind': 'N of a Kind'
+                };
+                values.generatorCategory = categoryNames[category] || category;
+              }
+              
+              return values;
+            })())}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <RarityDot rarity={rarity} />
