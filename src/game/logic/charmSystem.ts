@@ -3,13 +3,23 @@ import { ScoringElements } from './scoringElements';
 
 /**
  * Scoring value modification returned by charms
+ * Supports ADD, MULTIPLY, and EXPONENT operations for all three scoring elements:
+ * - Points: basePointsAdd (ADD), basePointsMultiply (MULTIPLY), basePointsExponent (EXPONENT)
+ * - Multiplier: multiplierAdd (ADD), multiplierMultiply (MULTIPLY), multiplierExponent (EXPONENT)
+ * - Exponent: exponentAdd (ADD), exponentMultiply (MULTIPLY), exponentExponent (EXPONENT)
+ * 
+ * Operations are applied in order: ADD → MULTIPLY → EXPONENT
  */
 export interface ScoringValueModification {
-  basePointsDelta?: number;
-  multiplierAdd?: number;
-  multiplierMultiply?: number;
-  exponentAdd?: number;
-  exponentMultiply?: number;
+  basePointsAdd?: number;        // ADD to base points
+  basePointsMultiply?: number;   // MULTIPLY base points
+  basePointsExponent?: number;   // Raise base points to the power of this value
+  multiplierAdd?: number;        // ADD to multiplier
+  multiplierMultiply?: number;   // MULTIPLY multiplier
+  multiplierExponent?: number;   // Raise multiplier to the power of this value
+  exponentAdd?: number;          // ADD to exponent
+  exponentMultiply?: number;     // MULTIPLY exponent
+  exponentExponent?: number;     // Raise exponent to the power of this value
 }
 
 /**
@@ -243,6 +253,12 @@ export class CharmManager {
    * Optionally tracks each charm in breakdown if breakdownBuilder is provided.
    */
   applyCharmEffects(context: CharmScoringContext, breakdownBuilder?: any): ScoringElements {
+    // IMPORTANT: Sync with gameState to ensure charm order matches inventory order
+    // This is critical for charms like Paranoia and Sleeper Agent that reference position
+    if (context.gameState) {
+      this.syncFromGameState(context.gameState);
+    }
+    
     // First, filter combinations if any charm has a filter method
     let filteredCombinations = context.combinations;
     for (const charm of this.getActiveCharms()) {
@@ -254,7 +270,7 @@ export class CharmManager {
     // Start with current scoring elements
     let values: ScoringElements = { ...context.scoringElements };
     
-    // Apply scoring effects from each charm individually and track in breakdown
+    // Apply scoring effects from each charm individually in order
     for (const charm of this.getActiveCharms()) {
       const beforeCharm = { ...values };
       const result = charm.onScoring({
@@ -264,23 +280,41 @@ export class CharmManager {
         charmManager: this
       });
       
-      // Apply modifications
+      // Apply modifications for this charm in order: ADD → MULTIPLY → EXPONENT
       if (result) {
         const mod = result as ScoringValueModification;
-        if (mod.basePointsDelta !== undefined) {
-          values.basePoints += mod.basePointsDelta;
+        
+        // Points: ADD → MULTIPLY → EXPONENT
+        if (mod.basePointsAdd !== undefined) {
+          values.basePoints += mod.basePointsAdd;
         }
+        if (mod.basePointsMultiply !== undefined) {
+          values.basePoints *= mod.basePointsMultiply;
+        }
+        if (mod.basePointsExponent !== undefined) {
+          values.basePoints = Math.pow(values.basePoints, mod.basePointsExponent);
+        }
+        
+        // Multiplier: ADD → MULTIPLY → EXPONENT
         if (mod.multiplierAdd !== undefined) {
           values.multiplier += mod.multiplierAdd;
         }
         if (mod.multiplierMultiply !== undefined) {
           values.multiplier *= mod.multiplierMultiply;
         }
+        if (mod.multiplierExponent !== undefined) {
+          values.multiplier = Math.pow(values.multiplier, mod.multiplierExponent);
+        }
+        
+        // Exponent: ADD → MULTIPLY → EXPONENT
         if (mod.exponentAdd !== undefined) {
           values.exponent += mod.exponentAdd;
         }
         if (mod.exponentMultiply !== undefined) {
           values.exponent *= mod.exponentMultiply;
+        }
+        if (mod.exponentExponent !== undefined) {
+          values.exponent = Math.pow(values.exponent, mod.exponentExponent);
         }
       }
       
@@ -330,6 +364,20 @@ export class CharmManager {
     }
     
     return { prevented, log };
+  }
+
+  /**
+   * Call onFlop on all active charms (for tracking purposes, even when flop isn't prevented).
+   * This is called after a flop occurs to allow charms like Sandbagger to track flops.
+   */
+  callAllOnFlop(context: CharmFlopContext): void {
+    for (const charm of this.getActiveCharms()) {
+      if (charm.onFlop && charm.canUse()) {
+        // Call onFlop - some charms just track flops (return void), others might prevent
+        // We call this after the flop has already occurred, so prevention results are ignored
+        charm.onFlop(context);
+      }
+    }
   }
 
   /**

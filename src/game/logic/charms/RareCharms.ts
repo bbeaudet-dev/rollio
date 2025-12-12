@@ -276,20 +276,20 @@ export class ResonanceCharm extends BaseCharm {
 export class BloomCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // Each flower die scored adds 3 to flower dice counter
-    // Track in roundState (resets each round, not per level)
-    const roundState = context.roundState;
-    const currentFlowerCounter = roundState.flowerCounter || 0;
+    // Track in levelState (resets when banking or flopping)
+    const levelState = context.gameState.currentWorld?.currentLevel;
+    const currentFlowerCounter = levelState?.flowerCounter || 0;
     
     // Count flower dice in this scoring selection
     const flowerDiceScored = context.selectedIndices.filter(idx => {
-      const die = roundState.diceHand[idx];
+      const die = context.roundState.diceHand[idx];
       return die && die.material === 'flower';
     }).length;
     
     // Calculate new counter value (will be persisted by the caller)
     const newFlowerCounter = currentFlowerCounter + (flowerDiceScored * 3);
     
-    // Update roundState immutably (this will be handled by the scoring system)
+    // Update levelState immutably (this will be handled by the scoring system)
     // For now, we just track it - the actual state update happens in the scoring flow
     // TODO: Apply multiplier based on newFlowerCounter
     // The multiplier should be based on the counter value after this scoring
@@ -344,7 +344,7 @@ export class FlopCollectorCharm extends BaseCharm {
     }
     
     return {
-      basePointsDelta: bonus
+      basePointsAdd: bonus
     };
   }
 
