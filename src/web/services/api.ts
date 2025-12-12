@@ -31,6 +31,8 @@ export interface ApiResponse<T = any> {
   pictures?: any[]; // For profile pictures responses
   combinations?: any[]; // For combination stats responses
   leaderboard?: any[]; // For leaderboard responses
+  charms?: any[]; // For charm usage responses
+  consumables?: any[]; // For consumable usage responses
 }
 
 export interface ApiError {
@@ -340,6 +342,20 @@ export const statsApi = {
    */
   async getCombinations(): Promise<ApiResponse> {
     return apiRequest('/api/stats/combinations');
+  },
+
+  /**
+   * Get charm usage statistics
+   */
+  async getCharms(): Promise<ApiResponse> {
+    return apiRequest('/api/stats/charms');
+  },
+
+  /**
+   * Get consumable usage statistics
+   */
+  async getConsumables(): Promise<ApiResponse> {
+    return apiRequest('/api/stats/consumables');
   },
   
   /**
