@@ -10,6 +10,7 @@ import { DifficultyLevel } from '../../../../game/logic/difficulty';
 interface ShopDisplayProps {
   shopState: ShopState;
   playerMoney: number;
+  shopVouchers?: number;
   blessings?: any[];
   currentLevelNumber?: number;
   difficulty?: DifficultyLevel;
@@ -19,6 +20,7 @@ interface ShopDisplayProps {
 export const ShopDisplay: React.FC<ShopDisplayProps> = ({ 
   shopState,
   playerMoney,
+  shopVouchers = 0,
   blessings = [],
   currentLevelNumber,
   difficulty,
@@ -84,16 +86,6 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
         overflow: 'visible', // No scrollbar - everything should be visible
         boxSizing: 'border-box'
       }}>
-        {/* Refresh at top */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px', flexShrink: 0 }}>
-          <ActionButton
-            onClick={refreshShop}
-            variant="secondary"
-            size="small"
-          >
-            Refresh Shop
-          </ActionButton>
-        </div>
         
         {discount > 0 && (
           <div style={{
@@ -162,13 +154,18 @@ export const ShopDisplay: React.FC<ShopDisplayProps> = ({
           )}
         </div>
       
-        {/* Continue button at bottom */}
-        <div style={{ marginTop: '8px', textAlign: 'center', flexShrink: 0 }}>
-          <div style={{ display: 'inline-block' }}>
-            <ActionButton onClick={exitShop} variant="success" size="medium">
-              Continue to Next Level
-            </ActionButton>
-          </div>
+        {/* Continue button and Refresh at bottom */}
+        <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+          <ActionButton
+            onClick={refreshShop}
+            variant="secondary"
+            size="medium"
+          >
+            Refresh Shop {shopVouchers > 0 ? `(1 voucher)` : `(No vouchers)`}
+          </ActionButton>
+          <ActionButton onClick={exitShop} variant="success" size="medium">
+            Continue to Next Level
+          </ActionButton>
         </div>
       </div>
     </div>

@@ -81,7 +81,7 @@ export const WHIMS: Whim[] = [
   {
     id: 'practice',
     name: 'Practice',
-    description: 'Turn one selected side to an Upgrade Combo pip effect',
+    description: 'Turn one selected side to an Combo Upgrade pip effect',
     uses: 1
   },
   {
@@ -93,13 +93,19 @@ export const WHIMS: Whim[] = [
   {
     id: 'accumulation',
     name: 'Accumulation',
-    description: 'Turn one selected side to a Create Consumable pip effect',
+    description: 'Turn one selected side to a Consumable Generator pip effect',
     uses: 1
   },
   {
     id: 'alchemist',
     name: 'Alchemist',
     description: 'Change a selected die to a random material',
+    uses: 1
+  },
+  {
+    id: 'jackpot',
+    name: 'Jackpot',
+    description: 'Gain 2 shop vouchers',
     uses: 1
   }
 ];

@@ -291,6 +291,51 @@ export function resetConsecutiveBanks(gameState: GameState): GameState {
 }
 
 /**
+ * Increment flower counter for flower dice scored in the level
+ */
+export function incrementFlowerCounter(gameState: GameState, flowerDiceCount: number): GameState {
+  if (!gameState.currentWorld?.currentLevel) {
+    return gameState;
+  }
+  
+  const levelState = gameState.currentWorld.currentLevel;
+  const currentFlowerCounter = levelState.flowerCounter || 0;
+  
+  return {
+    ...gameState,
+    currentWorld: {
+      ...gameState.currentWorld,
+      currentLevel: {
+        ...levelState,
+        flowerCounter: currentFlowerCounter + flowerDiceCount
+      }
+    }
+  };
+}
+
+/**
+ * Reset flower counter to 0 (called on flop or new level)
+ */
+export function resetFlowerCounter(gameState: GameState): GameState {
+  if (!gameState.currentWorld?.currentLevel) {
+    return gameState;
+  }
+  
+  const levelState = gameState.currentWorld.currentLevel;
+  
+  return {
+    ...gameState,
+    currentWorld: {
+      ...gameState.currentWorld,
+      currentLevel: {
+        ...levelState,
+        flowerCounter: 0
+      }
+    }
+  };
+}
+
+/**
  * Set forfeited points on round
  */
 export function setForfeitedPoints(gameState: GameState, points: number): GameState {
@@ -537,11 +582,22 @@ export function removeDiceAndCheckHotDice(
 ): { gameState: GameState; wasHotDice: boolean } {
   const roundState = gameState.currentWorld!.currentLevel.currentRound!;
   
+  // Count flower dice before removal (for flower counter increment)
+  const flowerDiceScored = selectedIndices.filter(idx => {
+    const die = roundState.diceHand[idx];
+    return die && die.material === 'flower';
+  }).length;
+  
   // Check if all dice were scored (before removal) - needed for SwordInTheStone charm
   const allDiceWereScored = selectedIndices.length === roundState.diceHand.length;
   
   // Remove dice from hand (Lead dice stay in hand normally, Iron Fortress charm can keep all dice)
   let newGameState = removeDiceFromHand(gameState, selectedIndices, charmManager);
+  
+  // Increment flower counter for flower dice scored (tracked per level)
+  if (flowerDiceScored > 0) {
+    newGameState = incrementFlowerCounter(newGameState, flowerDiceScored);
+  }
   
   // Check for hot dice (includes SwordInTheStone special case)
   const remainingDice = newGameState.currentWorld!.currentLevel.currentRound!.diceHand;
@@ -736,6 +792,7 @@ export function calculatePreviewScoring(
   isValid: boolean;
   points: number;
   combinations: string[];
+  combinationLevels?: { [key: string]: number }; 
   baseScoringElements?: {
     basePoints: number;
     baseMultiplier: number;
@@ -770,10 +827,11 @@ export function calculatePreviewScoring(
       createCombinationKey(c, roundState.diceHand)
     );
     
-    // Calculate base scoring elements
+    // Calculate base scoring elements and track levels
     let totalBasePoints = 0;
     let totalBaseMultiplier = 1;
     let totalBaseExponent = 1;
+    const combinationLevelsMap: { [key: string]: number } = {};
     
     if (valid) {
       const combinationLevels = gameState.history.combinationLevels;
@@ -781,6 +839,7 @@ export function calculatePreviewScoring(
       for (const combo of bestPartitioning) {
         const comboKey = createCombinationKey(combo, roundState.diceHand);
         const level = combinationLevels[comboKey] || 1;
+        combinationLevelsMap[comboKey] = level;
         const params = getSpecificCombinationParams(combo, roundState.diceHand);
         const baseElements = getBaseScoringElementValues(combo.type as any, level, params);
         
@@ -794,6 +853,7 @@ export function calculatePreviewScoring(
       isValid: valid,
       points: 0, 
       combinations: combinationKeys,
+      combinationLevels: valid ? combinationLevelsMap : undefined,
       baseScoringElements: valid ? {
         basePoints: totalBasePoints,
         baseMultiplier: totalBaseMultiplier,

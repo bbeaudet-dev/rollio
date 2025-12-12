@@ -41,6 +41,7 @@ export type CharmType =
   | 'frequentFlyer'
   | 'hoarder'
   | 'comebackKid'
+  | 'ticketEater'
 
   // Uncommon charms
   | 'quadBoosters'
@@ -109,73 +110,73 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'flopShield',
     name: 'Flop Shield',
-    description: 'Prevents three flops (breaks on final use)',
+    description: 'Prevents three {Flops}, breaks on final use (Remaining: [3])',
     rarity: 'common'
   },
   {
     id: 'stairstepper',
     name: 'Stairstepper',
-    description: '+20 points when scoring. Add +20 per straight played (cumulative)',
+    description: 'Increment +20 PTS per {Straight} played (Current: +[20] PTS)',
     rarity: 'common'
   },
   {
     id: 'generator',
     name: 'Generator',
-    description: 'Creates a random consumable when scoring a specified combination',
+    description: 'Creates a random Consumable when scoring a {generatorCategory} combination',
     rarity: 'common'
   },
   {
     id: 'oddsAndEnds',
     name: 'Odds and Ends',
-    description: '+25 points for each odd value scored',
+    description: '+25 PTS per odd value scored',
     rarity: 'common'
   },
   {
     id: 'nowWereEven',
     name: 'Now We\'re Even',
-    description: 'If all selected dice are even, gain +150 points',
+    description: '+200 PTS if all selected dice are even',
     rarity: 'common'
   },
   {
     id: 'moneyMagnet',
     name: 'Money Magnet',
-    description: '+1 point for every $1 you have',
+    description: '+2 PTS for every $1 you have (Current: +[] PTS)',
     rarity: 'common'
   },
   {
     id: 'highStakes',
     name: 'High Stakes',
-    description: '2x scoring multiplier, but removes Singles as valid scoring combinations',
+    description: '2x MLT, but removes Singles as valid scoring combinations',
     rarity: 'common'
   },
   {
     id: 'lowHangingFruit',
     name: 'Low Hanging Fruit',
-    description: 'Allows single 3s to be scored as valid combinations (worth 25 points)',
+    description: 'Allows single 3s to be scored as valid combinations (worth 25 PTS)',
     rarity: 'common'
   },
   {
     id: 'ninetyEightPercentAPlus',
     name: '98% A+',
-    description: '+10 points if scored dice includes a pair',
+    description: '+10 PTS if scored dice includes a {Pair}',
     rarity: 'common'
   },
   {
     id: 'oddOdyssey',
     name: 'Odd Odyssey',
-    description: '+0.25 points when scoring. Add +0.25 for each odd value scored (cumulative)',
+    description: 'Increment +0.25 PTS for each odd value scored (Current: +[0.25] PTS)',
     rarity: 'common'
   },
   {
     id: 'pairUp',
     name: 'Pair Up',
-    description: '+50 points for each pair scored',
+    description: '+50 PTS for each {Pair} scored',
     rarity: 'common'
   },
   {
     id: 'tripleThreat',
     name: 'Triple Play',
-    description: '+50 points for each triplet scored',
+    description: '+50 PTS for each 3 of a Kind scored',
     rarity: 'common'
   },
   {
@@ -187,73 +188,73 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'sandbagger',
     name: 'Sandbagger',
-    description: 'Gains +50 points per flop. Each flop increases the bonus by +50 points',
+    description: 'Each {Flop} increments this charm by +50 PTS (Current: +[50] PTS)',
     rarity: 'common'
   },
   {
     id: 'flowerPower',
     name: 'Flower Power',
-    description: '+100 points for each flower die scored in current round',
+    description: '+100 PTS for each Flower die scored in current {Round}',
     rarity: 'common'
   },
   {
     id: 'crystalClear',
     name: 'Crystal Clear',
-    description: '+150 points for each crystal die scored',
+    description: '+150 PTS for each Crystal die scored',
     rarity: 'common'
   },
   {
     id: 'goldenTouch',
     name: 'Golden Touch',
-    description: '+$1 for each golden die scored',
+    description: '+$1 for each Golden die scored',
     rarity: 'common'
   },
   {
     id: 'straightShooter',
     name: 'Straight Shooter',
-    description: '+500 points when scoring a straight',
+    description: '+500 PTS when scoring a {Straight}',
     rarity: 'common'
   },
   {
     id: 'longshot',
     name: 'Longshot',
-    description: '+250 points when scoring a straight of 6 or longer',
+    description: '+250 PTS when scoring a {Straight} of 6 or longer',
     rarity: 'common'
   },
   {
     id: 'roundRobin',
     name: 'Round Robin',
-    description: '+750 points when scoring if no repeated combinations are scored in round',
+    description: '+750 PTS when scoring if no repeated combinations are scored in {Round}',
     rarity: 'common'
   },
   {
     id: 'ghostWhisperer',
     name: 'Ghost Whisperer',
-    description: '+50 points for each scored Ghost die; +250 points for each unscored Ghost die',
+    description: '+50 PTS for each scored Ghost die; +250 PTS for each unscored Ghost die',
     rarity: 'common'
   },
   {
     id: 'ironFortress',
     name: 'Iron Fortress',
-    description: 'If at least 2 lead dice are scored, all scored dice remain in hand',
+    description: 'If at least 2 Lead dice are scored, all scored dice remain in hand',
     rarity: 'common'
   },
   {
     id: 'rerollRanger',
     name: 'Reroll Ranger',
-    description: '+5 points when scoring. Add +5 for each reroll used (cumulative)',
+    description: 'Increment +5 PTS for each {Reroll} used (Current: +[5] PTS)',
     rarity: 'common'
   },
   {
     id: 'bankBaron',
     name: 'Bank Baron',
-    description: '+10 PTS when scoring. Add +10 PTSfor each bank (cumulative)',
+    description: 'Increment +10 PTS for each {Bank} (Current: +[10] PTS)',
     rarity: 'common'
   },
   {
     id: 'pointPirate',
     name: 'Point Pirate',
-    description: '+1000 PTS on first score of the level, -100 PTS on all other scores',
+    description: '+1000 PTS on first score of the {Level}, -100 PTS on all other scores',
     rarity: 'common'
   },
   {
@@ -265,25 +266,25 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'oneSongGlory',
     name: 'One Song Glory',
-    description: '+$5 for completing a level with a single bank',
+    description: '+$5 for completing a {Level} with a single {Bank}',
     rarity: 'common'
   },
   {
     id: 'blessed',
     name: 'Blessed',
-    description: '+100 PTS when banking for each blessing you own',
+    description: '+100 PTS when {Banking} for each Blessing you own',
     rarity: 'common'
   },
   {
     id: 'blessYou',
     name: 'Bless You',
-    description: '25% of forfeited points recovered when flopping',
+    description: '25% of forfeited points recovered when {Flopping}',
     rarity: 'common'
   },
   {
     id: 'angelInvestor',
     name: 'Angel Investor',
-    description: '+$1 for each flop',
+    description: '+$1 for each {Flop}',
     rarity: 'common'
   },
   {
@@ -301,103 +302,103 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'sureShot',
     name: 'Sure Shot',
-    description: '+1 reroll and +100 points when rolling no scoring combinations',
+    description: '+1 {Reroll} and +100 PTS when rolling no scoring combinations',
     rarity: 'common'
   },
   {
     id: 'flopStrategist',
     name: 'Flop Strategist',
-    description: '+100 points for flopping with remaining reroll(s)',
+    description: '+100 PTS for {Flopping} with remaining {Rerolls}',
     rarity: 'common'
   },
   {
     id: 'pipCollector',
     name: 'Pip Collector',
-    description: '+100 points for each die with a pip effect in the scoring selection',
+    description: '+100 PTS for each die with a pip effect in the scoring selection',
     rarity: 'common'
   },
   {
     id: 'digitalNomad',
     name: 'Digital Nomad',
-    description: '+$10 when completing a world (every 5 levels)',
+    description: '+$10 when completing a {World} (every 5 {Levels})',
     rarity: 'common'
   },
   {
     id: 'frequentFlyer',
     name: 'Frequent Flyer',
-    description: '+2 banks',
+    description: '+2 {Banks}',
     rarity: 'common'
   },
   {
     id: 'hoarder',
     name: 'Hoarder',
-    description: '+100 points for each die in your set',
+    description: '+50 PTS for each die in your set',
     rarity: 'common'
   },
   {
     id: 'comebackKid',
     name: 'Comeback Kid',
-    description: '+3 rerolls',
+    description: '+3 {Rerolls}',
     rarity: 'common'
   },
   {
     id: 'savingGrace',
     name: 'Saving Grace',
-    description: '50% chance to prevent all flops',
+    description: '50% chance to prevent all {Flops}',
     rarity: 'common'
   },
   {
     id: 'primeTime',
     name: 'Prime Time',
-    description: '2x multiplier when scoring only prime numbers (2, 3, 5, 7, etc.)',
+    description: '2x MLT when scoring only prime numbers (2, 3, 5, 7, etc.)',
     rarity: 'common'
   },
   {
     id: 'luckyLeprechaun',
     name: 'Lucky Leprechaun',
-    description: '+$2 when scoring a combination worth 1000+ points',
+    description: '+$2 when scoring a combination worth 1000+ PTS',
     rarity: 'common'
   },
   {
     id: 'fourForYourFavor',
     name: 'Four For Your Favor',
-    description: '+600 points when scoring four-of-a-kind',
+    description: '+600 PTS when scoring Four of a Kind',
     rarity: 'common'
   },
   {
     id: 'fiveAlive',
     name: 'Five Alive',
-    description: '+800 points when scoring five-of-a-kind',
+    description: '+800 PTS when scoring Five of a Kind',
     rarity: 'common'
   },
   {
     id: 'sixShooter',
     name: 'Six Shooter',
-    description: '+1000 points when scoring six-of-a-kind',
+    description: '+1000 PTS when scoring Six of a Kind',
     rarity: 'common'
   },
   {
     id: 'hotPocket',
     name: 'Hot Pocket',
-    description: '2x multiplier when hot dice counter is 2 or higher',
+    description: '2x MLT when Hot Dice counter is 2 or higher',
     rarity: 'common'
   },
   {
     id: 'wildCard',
     name: 'Wild Card',
-    description: '+250 points for each wild pip effect in the scoring selection',
+    description: '+250 PTS for each Wild pip effect in the scoring selection',
     rarity: 'common'
   },
   {
     id: 'doubleAgent',
     name: 'Double Agent',
-    description: 'Doubles rerolls at the start of the level',
+    description: 'Doubles {Rerolls} at the start of the {Level}',
     rarity: 'common'
   },
   {
     id: 'botox',
     name: 'Botox',
-    description: '+0.5 EXP when scoring only plastic dice',
+    description: '+0.5 MLT when scoring only Plastic dice',
     rarity: 'common'
   },
 
@@ -407,19 +408,19 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'quadBoosters',
     name: 'Quad Boosters',
-    description: '3x MLT if scored dice include four of the same value',
+    description: '3x MLT if scored dice include Four of a Kind',
     rarity: 'uncommon'
   },
   {
     id: 'snowball',
     name: 'Snowball',
-    description: 'Multiplies level score by 1.15x when banking points', // this affects banked points, not round scores
+    description: 'Multiplies Banked points by 1.15x when {Banking}', // this affects banked points, not round scores
     rarity: 'uncommon'
   },
   {
     id: 'rabbitsFoot',
     name: "Rabbit's Foot",
-    description: '+0.1x MLT per successful Rainbow die effect triggered (Currently: 1x)',
+    description: '+0.1 MLT per successful Rainbow die effect triggered (Current: +[0.0] MLT)',
     rarity: 'uncommon'
   },
   {
@@ -431,13 +432,13 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'luckySevens',
     name: 'Lucky Sevens',
-    description: '+777 points if at least one 7 is scored',
+    description: '+777 PTS if at least one 7 is scored',
     rarity: 'uncommon'
   },
   {
     id: 'tasteTheRainbow',
     name: 'Taste the Rainbow',
-    description: '+300 points if all rolled dice have unique materials',
+    description: '+300 PTS if all rolled dice have unique materials',
     rarity: 'uncommon'
   },
   {
@@ -449,19 +450,19 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'irrational',
     name: 'Irrational',
-    description: '3.1415x multiplier if scored hand contains 1,3,4,5',
+    description: '3.1415 MLT if scored hand contains 1,3,4,5',
     rarity: 'uncommon'
   },
   {
     id: 'hedgeFund',
     name: 'Hedge Fund',
-    description: '+1x MLT for every $100 owned',
+    description: '+1 MLT for every $100 owned',
     rarity: 'uncommon'
   },
   {
     id: 'luckyLotus',
     name: 'Lucky Lotus',
-    description: '+$4 when scoring a combination worth 3000+ points',
+    description: '+$4 when scoring a combination worth 3000+ PTS',
     rarity: 'uncommon'
   },
   {
@@ -473,13 +474,13 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'assassin',
     name: 'Assassin',
-    description: '+1 MLT for each die destroyed (Currently: 1x)',
+    description: '+1 MLT for each die destroyed (Current: +[0] MLT)',
     rarity: 'uncommon'
   },
   {
     id: 'againstTheGrain',
     name: 'Against the Grain',
-    description: '+100 points when scoring a straight, pyramid, or n=3+ pairs with a mirror die',
+    description: '+100 PTS when scoring a Straight, Pyramid, or n=3+ Pairs with a mirror die',
     rarity: 'uncommon'
   },
   {
@@ -521,19 +522,19 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'shootingStar',
     name: 'Shooting Star',
-    description: 'Using a whim has a 10% chance to create a random wish',
+    description: 'Using a consumable has a 10% chance to create a rare consumable',
     rarity: 'uncommon'
   },
   {
     id: 'blankSlate',
     name: 'Blank Slate',
-    description: 'Blank pip effects give ^1.5 EXP instead of ^1.1',
+    description: 'Blank pip effects give ^1.5 EXP instead of ^1.1 EXP',
     rarity: 'uncommon'
   },
   {
     id: 'bodyDouble',
     name: 'Body Double',
-    description: '+1 to Hot Dice counter when triggering Hot Dice with an unscored Ghost Die',
+    description: '+1 to Hot Dice counter when triggering Hot Dice with an unscored Ghost die',
     rarity: 'uncommon'
   },
   {
@@ -545,7 +546,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'sizeMatters',
     name: 'Size Matters',
-    description: 'Multiplier based on die size: 6 faces = 1x, below 6 = -0.5x per size, above 6 = +0.5x per size',
+    description: 'Multiplier based on die size: 6 faces = 1x, below 6 = -0.5 MLT per size, above 6 = +0.5 MLT per size',
     rarity: 'uncommon'
   },
   {
@@ -557,25 +558,25 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'russianRoulette',
     name: 'Russian Roulette',
-    description: '^1.25 EXP, but 1 in 6 chance of automatically flopping',
+    description: '^1.25 EXP, but 1 in 6 chance of automatically {Flopping}',
     rarity: 'uncommon'
   },
   {
     id: 'brotherhood',
     name: 'Brotherhood',
-    description: '+1.5 MLT for each consecutive level without rerolling or flopping',
+    description: '+1.5 MLT for each consecutive {Level} without {Rerolling} or {Flopping}',
     rarity: 'uncommon'
   },
   {
     id: 'purist',
     name: 'Purist',
-    description: 'Doubles banks at the start of the level, sets rerolls to 0',
+    description: 'Doubles {Banks} at the start of the {Level}, sets {Rerolls} to 0',
     rarity: 'uncommon'
   },
   {
     id: 'drumpfCard',
     name: 'Drumpf Card',
-    description: '50/50 chance to either gain +1.5x or lose -1.5x multiplier for each other charm in inventory (per score)',
+    description: '50/50 chance for either +1.5 MLT or -1.5 MLT for each other Charm in inventory',
     rarity: 'uncommon'
   },
 
@@ -585,49 +586,49 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'kingslayer',
     name: 'Kingslayer',
-    description: '3x multiplier during miniboss and boss levels',
+    description: '3x MLT during miniboss and boss {Levels}',
     rarity: 'rare'
   },
   {
     id: 'doubleDown',
     name: 'Double Down',
-    description: '2x MLT for each two-faced effect scored',
+    description: '2x MLT for each Two-Faced effect scored',
     rarity: 'rare'
   },
   {
     id: 'perfectionist',
     name: 'Perfectionist',
-    description: '+0.25x MLT for each consecutive time all dice are scored',
+    description: '+0.25 MLT for each consecutive time all dice are scored',
     rarity: 'rare'
   },
   { // probably remove, kinda boring
     id: 'divineIntervention',
     name: 'Divine Intervention',
-    description: '80% chance to prevent all flops',
+    description: '80% chance to prevent all {Flops}',
     rarity: 'rare'
   },
   {
     id: 'holyGrail',
     name: 'Holy Grail',
-    description: '+2x multiplier for each Tier 3 Blessing you own',
+    description: '+2 MLT for each Tier 3 Blessing you own',
     rarity: 'rare'
   },
   {
     id: 'divineFavor',
     name: 'Divine Favor',
-    description: '+10 / +100 / +1000 points when banking for each blessing tier 1 / 2 / 3 you own',
+    description: '+10 PTS / +100 PTS / +1000 PTS when {Banking} for each Blessing Tier 1 / 2 / 3 you own',
     rarity: 'rare'
   },
   {
     id: 'dukeOfDice',
     name: 'Duke of Dice',
-    description: '+0.75x MLT for each repeated value on each scored die',
+    description: '+0.75 MLT for each repeated value on each scored die',
     rarity: 'rare'
   },
   {
     id: 'eyeOfHorus',
     name: 'Eye of Horus',
-    description: '+1.5x multiplier for each layer of a scored Pyramid, 0.25x for all other hands',
+    description: '+1.5 MLT for each layer of a scored Pyramid, 0.25x MLT for all other hands',
     rarity: 'rare'
   }, 
   {
@@ -639,43 +640,43 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'resonance',
     name: 'Resonance',
-    description: '1 in 3 chance for crystal dice to bounce off of each other, repeating effect until failure',
+    description: '1 in 3 chance for Crystal dice to bounce off of each other, repeating effect until failure',
     rarity: 'rare'
   },
   {
     id: 'bloom',
     name: 'Bloom',
-    description: 'Each flower die scored adds 3 to flower dice counter',
+    description: 'Each Flower die scored adds 3 to Flower dice counter',
     rarity: 'rare'
   },
   {
     id: 'vesuvius',
     name: 'Vesuvius',
-    description: '+0.25 MLT per volcano die × hot dice counter',
+    description: '+0.25 MLT per Volcano die × Hot Dice counter',
     rarity: 'rare'
   },
   {
     id: 'armadilloArmor',
     name: 'Armadillo Armor',
-    description: '+1 MLT for each reroll remaining',
+    description: '+1 MLT for each {Reroll} remaining',
     rarity: 'rare'
   },
   {
     id: 'refinery',
     name: 'Refinery',
-    description: 'Multiplies round score by 1.25x when using a reroll',
+    description: 'Multiplies {Round} score by 1.25x when using a {Reroll}',
     rarity: 'rare'
   },
   {
     id: 'mustBeThisTallToRide',
     name: 'Must Be This Tall to Ride',
-    description: '+2 EXP if current level is 10 or higher',
+    description: '+2 EXP if current {Level} is 10 or higher',
     rarity: 'rare'
   },
   {
     id: 'sleeperAgent',
     name: 'Sleeper Agent',
-    description: 'Copies the effect of the charm to the left after 100 dice have been scored',
+    description: 'Copies the effect of the charm to the left after 100 dice have been scored (Remaining: [100])',
     rarity: 'rare'
   },
   {
@@ -701,7 +702,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'trumpCard',
     name: 'Trump Card',
-    description: '+2^n multiplier where n is the highest value scored',
+    description: '+2^n MLT where n is the highest value scored',
     rarity: 'legendary'
   },
 

@@ -89,7 +89,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
                 fontWeight: 'bold'
               }}
             >
-              Buy ${finalPrice}
+              <span style={{ whiteSpace: 'nowrap' }}>Buy ${finalPrice}</span>
             </button>
           </div>
         )}
@@ -140,7 +140,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
                 fontWeight: 'bold'
               }}
             >
-              Buy ${finalPrice}
+              <span style={{ whiteSpace: 'nowrap' }}>Buy ${finalPrice}</span>
             </button>
           </div>
         )}
@@ -194,7 +194,7 @@ export const ShopItem: React.FC<ShopItemProps> = ({
               fontWeight: 'bold'
             }}
           >
-            Buy ${finalPrice}
+            <span style={{ whiteSpace: 'nowrap' }}>Buy ${finalPrice}</span>
           </button>
         </div>
       )}
