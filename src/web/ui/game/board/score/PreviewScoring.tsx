@@ -1,11 +1,13 @@
 import React from 'react';
-import { formatCombinationKey } from '../../../../../game/utils/combinationTracking';
+import { formatCombinationKey, getCategoryFromKey } from '../../../../../game/utils/combinationTracking';
+import { getCombinationLevelColor } from '../../../../utils/combinationLevelColors';
 
 interface PreviewScoringProps {
   previewScoring: {
     isValid: boolean;
     points: number;
     combinations: string[];
+    combinationLevels?: { [key: string]: number };
     baseScoringElements?: {
       basePoints: number;
       baseMultiplier: number;
@@ -15,11 +17,28 @@ interface PreviewScoringProps {
   isScoring?: boolean; // true when showing scoring breakdown
 }
 
-function formatNumber(value: number): string {
+/**
+ * Format a number based on context
+ * - Points: Always whole numbers
+ * - Multiplier/Exponent: Decimals allowed, but stop showing decimals after 10x
+ */
+function formatNumber(value: number, type: 'points' | 'multiplier' | 'exponent' = 'points'): string {
+  if (type === 'points') {
+    // Points: Always show as whole number
+    return Math.round(value).toString();
+  }
+  
+  // Multiplier/Exponent: Show decimals, but stop after 10x
+  if (value >= 10) {
+    return Math.round(value).toString();
+  }
+  
+  // Below 10x: Show decimals (up to 2 decimal places, remove trailing zeros)
   const rounded = Math.round(value * 100) / 100;
   if (Math.abs(rounded - Math.round(rounded)) < 0.001) {
     return Math.round(rounded).toString();
   }
+  // Remove trailing zeros from decimal representation
   return rounded.toString().replace(/\.?0+$/, '');
 }
 
@@ -27,27 +46,16 @@ export const PreviewScoring: React.FC<PreviewScoringProps> = ({
   previewScoring,
   isScoring = false
 }) => {
-  // FORCE RENDER - Always show if we have data
   if (!previewScoring) {
-    console.warn('PreviewScoring: previewScoring is null/undefined', { isScoring });
     return null;
   }
   
   const label = isScoring ? 'Scored:' : 'Will Score:';
-  
-  // Debug log to verify baseScoringElements
-  console.log('PreviewScoring render:', { 
-    isScoring,
-    hasBaseElements: !!previewScoring.baseScoringElements,
-    baseScoringElements: previewScoring.baseScoringElements,
-    isValid: previewScoring.isValid,
-    shouldShowElements: previewScoring.baseScoringElements && !isScoring
-  });
 
   return (
     <div style={{
       position: 'absolute',
-      top: '20px',
+      top: '0',
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 100, 
@@ -55,7 +63,8 @@ export const PreviewScoring: React.FC<PreviewScoringProps> = ({
         ? 'rgba(76, 175, 80, 0.95)' 
         : 'rgba(244, 67, 54, 0.95)',
       border: `2px solid ${previewScoring.isValid ? '#4caf50' : '#f44336'}`,
-      borderRadius: '12px',
+      borderTop: 'none',
+      borderRadius: '0 0 12px 12px',
       padding: '12px 20px',
       fontSize: '18px',
       fontWeight: 600,
@@ -95,25 +104,42 @@ export const PreviewScoring: React.FC<PreviewScoringProps> = ({
             alignItems: 'center',
             gap: '6px'
           }}>
-            {previewScoring.combinations.map((key: string, index: number) => (
-              <React.Fragment key={key}>
-                <span 
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    backdropFilter: 'blur(4px)',
-                    fontSize: '18px'
-                  }}
-                >
-                  {formatCombinationKey(key)}
-                </span>
-                {index < previewScoring.combinations.length - 1 && (
-                  <span style={{ fontSize: '18px', opacity: 0.8, fontWeight: 400 }}>+</span>
-                )}
-              </React.Fragment>
-            ))}
+            {previewScoring.combinations.map((key: string, index: number) => {
+              const level = previewScoring.combinationLevels?.[key] || 1;
+              const levelColor = getCombinationLevelColor(level);
+              
+              return (
+                <React.Fragment key={key}>
+                  <span 
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      backdropFilter: 'blur(4px)',
+                      fontSize: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>{formatCombinationKey(key)}</span>
+                    <span 
+                      style={{
+                        color: levelColor,
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Lv.{level}
+                    </span>
+                  </span>
+                  {index < previewScoring.combinations.length - 1 && (
+                    <span style={{ fontSize: '18px', opacity: 0.8, fontWeight: 400 }}>+</span>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </div>
           {/* Show scoring elements ONLY before scoring (when isScoring is false) */}
           {previewScoring.baseScoringElements && !isScoring && (
@@ -138,7 +164,7 @@ export const PreviewScoring: React.FC<PreviewScoringProps> = ({
                 whiteSpace: 'nowrap'
               }}>
                 <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e7d32' }}>
-                  {formatNumber(previewScoring.baseScoringElements.basePoints)}
+                  {formatNumber(previewScoring.baseScoringElements.basePoints, 'points')}
                 </div>
               </div>
 
@@ -158,7 +184,7 @@ export const PreviewScoring: React.FC<PreviewScoringProps> = ({
               }}>
                 <div style={{ fontSize: '16px', color: '#c2185b' }}>
                   <span style={{ fontWeight: 'normal' }}>x</span>
-                  <span style={{ fontWeight: 'bold' }}>{formatNumber(previewScoring.baseScoringElements.baseMultiplier)}</span>
+                  <span style={{ fontWeight: 'bold' }}>{formatNumber(previewScoring.baseScoringElements.baseMultiplier, 'multiplier')}</span>
                 </div>
               </div>
 
@@ -178,7 +204,7 @@ export const PreviewScoring: React.FC<PreviewScoringProps> = ({
               }}>
                 <div style={{ fontSize: '16px', color: '#7b1fa2' }}>
                   <span style={{ fontWeight: 'normal' }}>^</span>
-                  <span style={{ fontWeight: 'bold' }}>{formatNumber(previewScoring.baseScoringElements.baseExponent)}</span>
+                  <span style={{ fontWeight: 'bold' }}>{formatNumber(previewScoring.baseScoringElements.baseExponent, 'exponent')}</span>
                 </div>
               </div>
             </div>

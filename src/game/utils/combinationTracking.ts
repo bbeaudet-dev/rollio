@@ -89,6 +89,52 @@ export function createCombinationKey(
 }
 
 /**
+ * Get the category from a combination key
+ * Extracts the category part (before the colon) from keys like "nPairs:2" -> "nPairs"
+ */
+export function getCategoryFromKey(key: string): string {
+  const [category] = key.split(':');
+  return category || key;
+}
+
+/**
+ * Format a combination category name for display (plural form)
+ * Converts "singleN" to "Singles", "nPairs" to "Pairs", etc.
+ */
+export function formatCategoryName(category: string): string {
+  switch (category) {
+    case 'singleN':
+      return 'Singles';
+    case 'nPairs':
+      return 'Pairs';
+    case 'nOfAKind':
+      return 'N of a Kind';
+    case 'nTriplets':
+      return 'Triplets';
+    case 'nQuadruplets':
+      return 'Quadruplets';
+    case 'nQuintuplets':
+      return 'Quintuplets';
+    case 'nSextuplets':
+      return 'Sextuplets';
+    case 'nSeptuplets':
+      return 'Septuplets';
+    case 'nOctuplets':
+      return 'Octuplets';
+    case 'nNonuplets':
+      return 'Nonuplets';
+    case 'nDecuplets':
+      return 'Decuplets';
+    case 'straightOfN':
+      return 'Straights';
+    case 'pyramidOfN':
+      return 'Pyramids';
+    default:
+      return category;
+  }
+}
+
+/**
  * Format a combination key for display
  * Converts "nPairs:2" to "2 Pairs", "nOfAKind:4" to "4 of a Kind", etc.
  */

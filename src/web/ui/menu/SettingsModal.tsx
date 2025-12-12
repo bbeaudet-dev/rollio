@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../components/Modal';
 import { getUISettings, saveUISettings, UISettings } from '../../utils/uiSettings';
+import { updateMusicVolume } from '../../utils/music';
+import { updateSoundEffectsVolume } from '../../utils/sounds';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -20,6 +22,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     const newSettings = { ...settings, animationSpeed: value };
     setSettings(newSettings);
     saveUISettings({ animationSpeed: value });
+  };
+
+  const handleSoundEffectsVolumeChange = (value: number) => {
+    const newSettings = { ...settings, soundEffectsVolume: value };
+    setSettings(newSettings);
+    saveUISettings({ soundEffectsVolume: value });
+    updateSoundEffectsVolume(); 
+  };
+
+  const handleMusicVolumeChange = (value: number) => {
+    const newSettings = { ...settings, musicVolume: value };
+    setSettings(newSettings);
+    saveUISettings({ musicVolume: value });
+    updateMusicVolume(); // Update currently playing music
   };
 
   const containerStyle: React.CSSProperties = {
@@ -114,13 +130,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         </div>
 
         <div style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>Game Settings</h2>
-          <p style={{ color: '#6c757d', fontStyle: 'italic' }}>Game settings will be available here.</p>
-        </div>
-
-        <div style={sectionStyle}>
           <h2 style={sectionTitleStyle}>Audio Settings</h2>
-          <p style={{ color: '#6c757d', fontStyle: 'italic' }}>Audio settings will be available here.</p>
+          
+          <div style={settingRowStyle}>
+            <label style={labelStyle}>Sound Effects</label>
+            <div style={sliderContainerStyle}>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={settings.soundEffectsVolume}
+                onChange={(e) => handleSoundEffectsVolumeChange(parseFloat(e.target.value))}
+                style={sliderStyle}
+              />
+              <span style={valueStyle}>{Math.round(settings.soundEffectsVolume * 100)}%</span>
+            </div>
+          </div>
+
+          <div style={settingRowStyle}>
+            <label style={labelStyle}>Music</label>
+            <div style={sliderContainerStyle}>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={settings.musicVolume}
+                onChange={(e) => handleMusicVolumeChange(parseFloat(e.target.value))}
+                style={sliderStyle}
+              />
+              <span style={valueStyle}>{Math.round(settings.musicVolume * 100)}%</span>
+            </div>
+          </div>
         </div>
       </div>
       <style>{`

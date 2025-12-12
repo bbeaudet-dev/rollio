@@ -204,17 +204,7 @@ export const Board: React.FC<BoardProps> = ({
             baseExponent: scoringBreakdown.steps[0].input.exponent
           } : undefined
         } : null);
-        
-        if (breakdownState !== 'hidden') {
-          console.log('Board: Rendering PreviewScoring during breakdown', {
-            hasPreviewScoring: !!previewScoring,
-            hasScoringBreakdown: !!scoringBreakdown,
-            shouldShow,
-            previewData,
-            breakdownState
-          });
-        }
-        
+                
         return shouldShow && previewData ? (
           <PreviewScoring 
             previewScoring={previewData} 

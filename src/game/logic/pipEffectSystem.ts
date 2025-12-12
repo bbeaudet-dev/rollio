@@ -268,20 +268,38 @@ export function applyAllPipEffects(
         if (charmResult !== null && charmResult !== undefined) {
           // Apply charm modification
           const mod = charmResult as any;
-          if (mod.basePointsDelta !== undefined) {
-            values.basePoints += mod.basePointsDelta;
+          
+          // Points: ADD → MULTIPLY → EXPONENT
+          if (mod.basePointsAdd !== undefined) {
+            values.basePoints += mod.basePointsAdd;
           }
+          if (mod.basePointsMultiply !== undefined) {
+            values.basePoints *= mod.basePointsMultiply;
+          }
+          if (mod.basePointsExponent !== undefined) {
+            values.basePoints = Math.pow(values.basePoints, mod.basePointsExponent);
+          }
+          
+          // Multiplier: ADD → MULTIPLY → EXPONENT
           if (mod.multiplierAdd !== undefined) {
             values.multiplier += mod.multiplierAdd;
           }
           if (mod.multiplierMultiply !== undefined) {
             values.multiplier *= mod.multiplierMultiply;
           }
+          if (mod.multiplierExponent !== undefined) {
+            values.multiplier = Math.pow(values.multiplier, mod.multiplierExponent);
+          }
+          
+          // Exponent: ADD → MULTIPLY → EXPONENT
           if (mod.exponentAdd !== undefined) {
             values.exponent += mod.exponentAdd;
           }
           if (mod.exponentMultiply !== undefined) {
             values.exponent *= mod.exponentMultiply;
+          }
+          if (mod.exponentExponent !== undefined) {
+            values.exponent = Math.pow(values.exponent, mod.exponentExponent);
           }
           
           // Track in breakdown if builder provided

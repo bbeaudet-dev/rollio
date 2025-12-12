@@ -165,7 +165,7 @@ export const CollectionPage: React.FC = () => {
           gap: '15px',
           justifyContent: 'center'
         }}>
-          {CHARMS.map((charm) => (
+          {CHARMS.filter(charm => charm.id && charm.id.trim() !== '').map((charm) => (
             <CharmCard
               key={charm.id}
               charm={{ ...charm, active: false }}

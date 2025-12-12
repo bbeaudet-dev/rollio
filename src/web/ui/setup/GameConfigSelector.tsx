@@ -13,6 +13,7 @@ import { DifficultyLevel } from '../../../game/logic/difficulty';
 import { Die, DiceSetConfig } from '../../../game/types';
 import { PipEffectType } from '../../../game/data/pipEffects';
 import { createDiceSetConfigFromCustomization } from './diceSetCustomizationUtils';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface GameConfigSelectorProps {
   onConfigComplete: (config: {
@@ -46,6 +47,7 @@ const DUMMY_CHALLENGES = [
 ];
 
 export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfigComplete }) => {
+  const { isAuthenticated } = useAuth();
   const [mode, setMode] = useState<GameMode>('newGame');
   const [startGameHandler, setStartGameHandler] = useState<(() => void) | null>(null);
   const [isDifficultyLocked, setIsDifficultyLocked] = useState(false);
@@ -288,7 +290,9 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
           <div style={{
             marginTop: '20px',
             display: 'flex',
-            justifyContent: 'center'
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px'
           }}>
             <div title={isDifficultyLocked ? 'This difficulty is locked. Complete the previous difficulty to unlock it.' : undefined}>
               <ActionButton
@@ -300,6 +304,16 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
                 Start Game
               </ActionButton>
             </div>
+            {!isAuthenticated && (
+              <span style={{
+                fontSize: '11px',
+                color: '#dc3545',
+                textAlign: 'center',
+                fontStyle: 'italic'
+              }}>
+                ⚠️ Sign in to save your progress
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -508,7 +522,9 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
           <div style={{
             marginTop: '20px',
             display: 'flex',
-            justifyContent: 'center'
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px'
           }}>
             <div title={isDifficultyLocked ? 'This difficulty is locked. Complete the previous difficulty to unlock it.' : undefined}>
               <ActionButton
@@ -533,6 +549,16 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
                 Start Game
               </ActionButton>
             </div>
+            {!isAuthenticated && (
+              <span style={{
+                fontSize: '11px',
+                color: '#dc3545',
+                textAlign: 'center',
+                fontStyle: 'italic'
+              }}>
+                ⚠️ Sign in to save your progress
+              </span>
+            )}
           </div>
         </div>
       )}

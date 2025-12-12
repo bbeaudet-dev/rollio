@@ -2,39 +2,9 @@ import React, { useMemo } from 'react';
 import { Modal } from '../components/Modal';
 import { CombinationLevels } from '../../../game/types';
 import { ALL_SCORING_TYPES } from '../../../game/data/combinations';
-
-function formatCategoryName(category: string): string {
-  switch (category) {
-    case 'singleN':
-      return 'Singles';
-    case 'nPairs':
-      return 'Pairs';
-    case 'nOfAKind':
-      return 'N of a Kind';
-    case 'nTriplets':
-      return 'Triplets';
-    case 'nQuadruplets':
-      return 'Quadruplets';
-    case 'nQuintuplets':
-      return 'Quintuplets';
-    case 'nSextuplets':
-      return 'Sextuplets';
-    case 'nSeptuplets':
-      return 'Septuplets';
-    case 'nOctuplets':
-      return 'Octuplets';
-    case 'nNonuplets':
-      return 'Nonuplets';
-    case 'nDecuplets':
-      return 'Decuplets';
-    case 'straightOfN':
-      return 'Straights';
-    case 'pyramidOfN':
-      return 'Pyramids';
-    default:
-      return category;
-  }
-}
+import { getCombinationLevelColor } from '../../utils/combinationLevelColors';
+import { COMBINATION_HIERARCHY } from '../../../game/logic/partitioning';
+import { formatCategoryName } from '../../../game/utils/combinationTracking';
 
 interface CombinationLevelsModalProps {
   isOpen: boolean;
@@ -75,7 +45,12 @@ export const CombinationLevelsModal: React.FC<CombinationLevelsModalProps> = ({
       result.push({ category, level });
     }
     
-    return result.sort((a, b) => a.category.localeCompare(b.category));
+    // Sort by reverse hierarchy (Singles at top, Straights at bottom)
+    return result.sort((a, b) => {
+      const hierarchyA = COMBINATION_HIERARCHY[a.category] || 0;
+      const hierarchyB = COMBINATION_HIERARCHY[b.category] || 0;
+      return hierarchyA - hierarchyB; // Lower hierarchy first (Singles = 10, Straights = 90)
+    });
   }, [levels]);
 
   return (
@@ -112,7 +87,7 @@ export const CombinationLevelsModal: React.FC<CombinationLevelsModalProps> = ({
                 {formatCategoryName(category)}
               </span>
               <span style={{
-                color: '#4caf50',
+                color: getCombinationLevelColor(level),
                 fontSize: '14px',
                 fontWeight: 'bold',
                 minWidth: '40px',

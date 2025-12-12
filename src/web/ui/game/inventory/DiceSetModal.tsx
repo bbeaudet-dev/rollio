@@ -20,7 +20,8 @@ export const DiceSetModal: React.FC<DiceSetModalProps> = ({
         minWidth: '500px',
         maxWidth: '700px',
         maxHeight: '600px',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        padding: '0 20px'
       }}>
         {diceSet.length === 0 ? (
           <div style={{
@@ -35,26 +36,30 @@ export const DiceSetModal: React.FC<DiceSetModalProps> = ({
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '24px'
+            gap: '12px'
           }}>
             {diceSet.map((die, index) => (
               <div 
                 key={die.id}
                 style={{
-                  paddingBottom: index < diceSet.length - 1 ? '24px' : '0',
-                  borderBottom: index < diceSet.length - 1 ? '2px solid #e1e5e9' : 'none'
+                  paddingBottom: index < diceSet.length - 1 ? '12px' : '0',
+                  borderBottom: index < diceSet.length - 1 ? '2px solid #e1e5e9' : 'none',
+                  width: '100%',
+                  boxSizing: 'border-box'
                 }}
               >
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))',
-                  gap: '12px'
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))',
+                  gap: '12px',
+                  width: '100%',
+                  boxSizing: 'border-box'
                 }}>
                   {die.allowedValues.map((value) => (
                     <DiceFace
                       key={value}
                       value={value}
-                      size={60}
+                      size={50}
                       material={die.material}
                       pipEffect={die.pipEffects?.[value]}
                     />

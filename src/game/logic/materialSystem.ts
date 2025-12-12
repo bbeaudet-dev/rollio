@@ -60,27 +60,21 @@ export const materialEffects: Record<string, MaterialEffectFn> = {
   /*
    * Flower Material Effect
    * ---------------------
-   * Multiplier based on flowers scored previously in the round.
-   * Effect: +0.20x multiplier for each flower played previously in the round.
+   * Multiplier based on flower dice scored previously in the level.
+   * Effect: +0.5x multiplier for each flower die scored previously in the level (without flopping).
+   * Note: Counter resets when flopping or at the start of a new level.
    */
   flower: (diceHand, selectedIndices, scoringElements, gameState, roundState) => {
     const selectedDice = selectedIndices.map(i => diceHand[i]);
     const flowerCount = selectedDice.filter(die => die.material === 'flower').length;
     
-    // Count flowers scored previously in this round
-    let prevFlowerCount = 0;
-    if (roundState && roundState.rollHistory) {
-      for (const roll of roundState.rollHistory) {
-        if (roll.scoringSelection && roll.scoringSelection.length > 0) {
-          const scoredDice = roll.scoringSelection.map((idx: number) => roll.diceHand[idx]).filter(Boolean);
-          prevFlowerCount += scoredDice.filter((die: any) => die.material === 'flower').length;
-        }
-      }
-    }
+    // Get flower counter from level state (tracks flowers scored in this level, resets on flop)
+    const levelState = gameState?.currentWorld?.currentLevel;
+    const prevFlowerCount = levelState?.flowerCounter || 0;
     
     if (flowerCount > 0 && prevFlowerCount > 0) {
-      // Add to multiplier: +0.20x per flower previously scored
-      return addMultiplier(scoringElements, 0.20 * prevFlowerCount);
+      // Add to multiplier: +0.5x per flower previously scored in the level
+      return addMultiplier(scoringElements, 0.5 * prevFlowerCount);
     }
     return scoringElements;
   },
@@ -103,16 +97,16 @@ export const materialEffects: Record<string, MaterialEffectFn> = {
    * Volcano Material Effect
    * ----------------------
    * Bonus based on hot dice counter.
-   * Effect: Add +0.5x to multiplier per volcano die × hot dice counter.
+   * Effect: Add +100 base points per volcano die × hot dice counter.
    */
   volcano: (diceHand, selectedIndices, scoringElements, gameState, roundState) => {
     const selectedDice = selectedIndices.map(i => diceHand[i]);
     const volcanoCount = selectedDice.filter(die => die.material === 'volcano').length;
     if (volcanoCount > 0 && roundState) {
       const hotDiceCounter = roundState.hotDiceCounter || 0;
-      // Add to multiplier: +0.5x per volcano die × hot dice counter
-      const multiplierBonus = 0.5 * volcanoCount * hotDiceCounter;
-      return addMultiplier(scoringElements, multiplierBonus);
+      // Add to base points: +100 PTS per volcano die × hot dice counter
+      const pointsBonus = 100 * volcanoCount * hotDiceCounter;
+      return addBasePoints(scoringElements, pointsBonus);
     }
     return scoringElements;
   },
@@ -173,6 +167,8 @@ export const materialEffects: Record<string, MaterialEffectFn> = {
         if (gameState && gameState.diceSet) {
           const newDie = { ...die, id: `d${gameState.diceSet.length + 1}` };
           gameState.diceSet.push(newDie);
+          // Track that a new die was added for sound effects
+          (gameState as any).__newDieAdded = true;
           // Notify Rabbit's Foot charm if active
           if (charmManager && typeof charmManager.getCharm === 'function') {
             const rabbitsFoot = charmManager.getCharm('rabbitsFoot');
