@@ -57,6 +57,7 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
           <ShopDisplay
             shopState={shopState}
             playerMoney={gameState.money || 0}
+            shopVouchers={gameState.shopVouchers}
             blessings={gameState.blessings || []}
             currentLevelNumber={gameState.currentWorld?.currentLevel.levelNumber}
             difficulty={gameState.config?.difficulty}
@@ -69,6 +70,7 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
               consumables={inventory.consumables}
               blessings={gameState.blessings || []}
               money={gameState.money}
+              shopVouchers={gameState.shopVouchers}
               charmSlots={gameState.charmSlots}
               consumableSlots={gameState.consumableSlots}
               onConsumableUse={inventoryActions.handleConsumableUse}
@@ -78,22 +80,15 @@ export const GameShopView: React.FC<GameShopViewProps> = ({
               diceSet={gameState.diceSet}
               selectedDiceCount={0}
               charmState={gameState.history?.charmState}
-            />
-          </div>
-          
-          {/* Menu and Settings buttons below shop */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '10px',
-            padding: '10px',
-            backgroundColor: '#f8f9fa',
-            borderTop: '1px solid #dee2e6'
-          }}>
-            <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
-            <SettingsButton 
-              onClick={() => setIsSettingsOpen(true)} 
-              style={{ position: 'relative', top: 'auto', right: 'auto' }}
+              menuButtons={
+                <>
+                  <SettingsButton 
+                    onClick={() => setIsSettingsOpen(true)} 
+                    style={{ position: 'relative', top: 'auto', right: 'auto' }}
+                  />
+                  <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+                </>
+              }
             />
           </div>
             </div>

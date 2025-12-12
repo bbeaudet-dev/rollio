@@ -90,6 +90,23 @@ export const ALL_BLESSINGS: Blessing[] = [
     effect: { type: 'shopDiscount', percentage: 15 }
   },
 
+  // Shop Voucher Blessings
+  {
+    id: 'shopVoucherTier1',
+    tier: 1,
+    effect: { type: 'shopVoucherPreservation', percentage: 30 }
+  },
+  {
+    id: 'shopVoucherTier2',
+    tier: 2,
+    effect: { type: 'shopVoucherBonus', amount: 5 }
+  },
+  {
+    id: 'shopVoucherTier3',
+    tier: 3,
+    effect: { type: 'shopVoucherMultiplier', multiplier: 2 }
+  },
+
   // Flop Subversion Blessings
   {
     id: 'flopSubversionTier1',
@@ -166,7 +183,12 @@ export const BLESSING_TIERS: Record<string, {
   // Money Blessings
   moneyTier1: { unlocks: ['moneyTier2'] },
   moneyTier2: { requires: 'moneyTier1', unlocks: ['moneyTier3'] },
-  moneyTier3: { requires: 'moneyTier2' }
+  moneyTier3: { requires: 'moneyTier2' },
+
+  // Shop Voucher Blessings
+  shopVoucherTier1: { unlocks: ['shopVoucherTier2'] },
+  shopVoucherTier2: { requires: 'shopVoucherTier1', unlocks: ['shopVoucherTier3'] },
+  shopVoucherTier3: { requires: 'shopVoucherTier2' }
 };
 
 /**
@@ -184,7 +206,10 @@ export function getBlessingName(blessing: Blessing): string {
     'shopDiscount': 'Discount Blessing',
     'flopSubversion': 'Flop Subversion Blessing',
     'moneyPerBank': 'Money Blessing',
-    'moneyOnLevelEnd': 'Money Blessing'
+    'moneyOnLevelEnd': 'Money Blessing',
+    'shopVoucherPreservation': 'Shop Voucher Blessing',
+    'shopVoucherBonus': 'Shop Voucher Blessing',
+    'shopVoucherMultiplier': 'Shop Voucher Blessing'
   };
   
   const baseName = typeMap[blessing.effect.type] || 'Blessing';
@@ -197,15 +222,15 @@ export function getBlessingName(blessing: Blessing): string {
 export function getBlessingDescription(blessing: Blessing): string {
   switch (blessing.effect.type) {
     case 'baseLevelRerolls':
-      return `+${blessing.effect.amount} Rerolls per level (permanent)`;
+      return `+${blessing.effect.amount} Reroll per Level`;
     case 'baseLevelBanks':
-      return `+${blessing.effect.amount} Banks per level (permanent)`;
+      return `+${blessing.effect.amount} Banks per Level`;
     case 'rerollOnFlop':
-      return `+${blessing.effect.amount} reroll when flopping`;
-    case 'rerollOnBank':
-      return `+${blessing.effect.amount} reroll when banking points`;
+      return `+${blessing.effect.amount} Reroll when Flopping`;
+    case 'rerollOnBank':  
+      return `+${blessing.effect.amount} Reroll when Banking`;
     case 'moneyOnRerollUsed':
-      return `+$${blessing.effect.amount} for each reroll used`;
+      return `+$${blessing.effect.amount} for each Reroll used`;
     case 'charmSlots':
       return `+${blessing.effect.amount} Charm Slot`;
     case 'consumableSlots':
@@ -213,11 +238,17 @@ export function getBlessingDescription(blessing: Blessing): string {
     case 'shopDiscount':
       return `Everything ${blessing.effect.percentage}% cheaper`;
     case 'flopSubversion':
-      return `${blessing.effect.percentage}% chance to subvert flops`;
+      return `${blessing.effect.percentage}% chance to subvert Flops`;
     case 'moneyPerBank':
-      return `+$${blessing.effect.amount} per unused bank at end of level`;
+      return `+$${blessing.effect.amount} per unused Bank at end of Level`;
     case 'moneyOnLevelEnd':
-      return `+$${blessing.effect.amount} at end of level`;
+      return `+$${blessing.effect.amount} at end of Level`;
+    case 'shopVoucherPreservation':
+      return `${blessing.effect.percentage}% chance a shop voucher is not consumed when refreshing the shop`;
+    case 'shopVoucherBonus':
+      return `Jackpot consumable gives ${blessing.effect.amount} Shop Vouchers instead of 2`;
+    case 'shopVoucherMultiplier':
+      return `Doubles ShopvVoucher rewards after each Level (${blessing.effect.multiplier}, ${blessing.effect.multiplier * 2} miniboss, ${blessing.effect.multiplier * 3} boss)`;
     default:
       return 'Unknown blessing';
   }

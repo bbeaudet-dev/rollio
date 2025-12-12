@@ -107,15 +107,61 @@ export function generateShopInventory(gameState: GameState): ShopState {
   const ownedCharmIds = new Set(gameState.charms.map(c => c.id));
   const ownedConsumableIds = new Set(gameState.consumables.map(c => c.id));
   
-  // Select 4 random charms (excluding owned ones)
+  // Select 4 random charms (excluding owned ones) with weighted rarity
+  // 60% common, 30% uncommon, 9% rare, 1% legendary
   const availableCharms = CHARMS.filter(c => !ownedCharmIds.has(c.id));
+  
+  // Group charms by rarity (using Omit<Charm, 'active'> since active is added later)
+  type CharmWithoutActive = Omit<Charm, 'active'>;
+  const charmsByRarity: {
+    common: CharmWithoutActive[];
+    uncommon: CharmWithoutActive[];
+    rare: CharmWithoutActive[];
+    legendary: CharmWithoutActive[];
+  } = {
+    common: availableCharms.filter(c => (c.rarity || 'common') === 'common'),
+    uncommon: availableCharms.filter(c => (c.rarity || 'common') === 'uncommon'),
+    rare: availableCharms.filter(c => (c.rarity || 'common') === 'rare'),
+    legendary: availableCharms.filter(c => (c.rarity || 'common') === 'legendary')
+  };
+  
   const selectedCharms: Charm[] = [];
-  const charmIndices = new Set<number>();
-  while (selectedCharms.length < 4 && charmIndices.size < availableCharms.length) {
-    const randomIndex = Math.floor(Math.random() * availableCharms.length);
-    if (!charmIndices.has(randomIndex)) {
-      charmIndices.add(randomIndex);
-      selectedCharms.push({ ...availableCharms[randomIndex], active: true });
+  const selectedCharmIds = new Set<string>();
+  
+  while (selectedCharms.length < 4 && selectedCharmIds.size < availableCharms.length) {
+    const rand = Math.random();
+    let pool: CharmWithoutActive[];
+    
+    // Weighted selection: 60% common, 30% uncommon, 9% rare, 1% legendary
+    if (rand < 0.6) {
+      pool = charmsByRarity.common;
+    } else if (rand < 0.9) {
+      pool = charmsByRarity.uncommon;
+    } else if (rand < 0.99) {
+      pool = charmsByRarity.rare;
+    } else {
+      pool = charmsByRarity.legendary;
+    }
+    
+    // If selected pool is empty, try other pools in order of preference
+    if (pool.length === 0) {
+      const fallbackPools = [
+        charmsByRarity.common,
+        charmsByRarity.uncommon,
+        charmsByRarity.rare,
+        charmsByRarity.legendary
+      ].filter(p => p.length > 0);
+      
+      if (fallbackPools.length === 0) break;
+      pool = fallbackPools[Math.floor(Math.random() * fallbackPools.length)];
+    }
+    
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    const charm = pool[randomIndex];
+    
+    if (!selectedCharmIds.has(charm.id)) {
+      selectedCharmIds.add(charm.id);
+      selectedCharms.push({ ...charm, active: true });
     }
   }
   
@@ -437,5 +483,93 @@ export function applyBlessingEffect(gameState: GameState, blessing: Blessing): G
     default:
       return gameState;
   }
+}
+
+/**
+ * Refresh shop - pure function
+ * Returns new game state with shop voucher decremented
+ * Always costs 1 shop voucher (unless preserved by blessing)
+ */
+export function refreshShop(
+  gameState: GameState,
+  shopState: ShopState
+): { success: boolean; message: string; gameState?: GameState } {
+  // Check for blessing that prevents voucher consumption (30% chance)
+  let voucherNotConsumed = false;
+  for (const blessing of gameState.blessings || []) {
+    if (blessing.effect.type === 'shopVoucherPreservation') {
+      if (Math.random() < 0.3) {
+        voucherNotConsumed = true;
+        break;
+      }
+    }
+  }
+  
+  // Check if player has shop vouchers
+  if (gameState.shopVouchers <= 0) {
+    return { 
+      success: false, 
+      message: 'No shop vouchers available. Shop refresh requires 1 shop voucher.' 
+    };
+  }
+  
+  // Use shop voucher (unless preserved by blessing)
+  const newGameState: GameState = {
+    ...gameState,
+    shopVouchers: voucherNotConsumed ? gameState.shopVouchers : gameState.shopVouchers - 1
+  };
+  
+  // Track shop voucher usage for Ticket Eater charm (always count, even if preserved)
+  if (!newGameState.history.charmState) {
+    newGameState.history.charmState = {};
+  }
+  if (!newGameState.history.charmState.ticketEater) {
+    newGameState.history.charmState.ticketEater = { vouchersUsed: 0 };
+  }
+  newGameState.history.charmState.ticketEater.vouchersUsed = 
+    (newGameState.history.charmState.ticketEater.vouchersUsed || 0) + 1;
+  
+  return {
+    success: true,
+    message: voucherNotConsumed 
+      ? 'Shop refreshed (voucher preserved by blessing)' 
+      : 'Shop refreshed using shop voucher',
+    gameState: newGameState
+  };
+}
+
+/**
+ * Reorder a charm in the charms array
+ * Pure function - returns new game state
+ */
+export function reorderCharm(
+  gameState: GameState,
+  charmIndex: number,
+  direction: 'left' | 'right'
+): { success: boolean; message: string; gameState?: GameState } {
+  if (charmIndex < 0 || charmIndex >= gameState.charms.length) {
+    return { success: false, message: 'Invalid charm index' };
+  }
+  
+  const newIndex = direction === 'left' ? charmIndex - 1 : charmIndex + 1;
+  
+  if (newIndex < 0 || newIndex >= gameState.charms.length) {
+    return { success: false, message: 'Cannot move charm in that direction' };
+  }
+  
+  // Create new charms array with swapped positions
+  const newCharms = [...gameState.charms];
+  [newCharms[charmIndex], newCharms[newIndex]] = [newCharms[newIndex], newCharms[charmIndex]];
+  
+  const newGameState: GameState = {
+    ...gameState,
+    charms: newCharms
+  };
+  
+  return {
+    success: true,
+    message: `Moved charm ${direction}`,
+    gameState: newGameState
+  };
 }
 

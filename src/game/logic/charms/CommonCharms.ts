@@ -73,7 +73,7 @@ export class MoneyMagnetCharm extends BaseCharm {
     // +1 point for every $1 you have
     const money = context.gameState.money || 0;
     return {
-      basePointsDelta: money
+      basePointsAdd: money
     };
   }
 }
@@ -133,7 +133,7 @@ export class OddsAndEndsCharm extends BaseCharm {
       }
     }
     return {
-      basePointsDelta: bonus
+      basePointsAdd: bonus
     };
   }
 }
@@ -146,7 +146,7 @@ export class NowWereEvenCharm extends BaseCharm {
       return value && value % 2 === 0;
     });
     return {
-      basePointsDelta: allEven && context.selectedIndices.length > 0 ? 150 : 0
+      basePointsAdd: allEven && context.selectedIndices.length > 0 ? 150 : 0
     };
   }
 }
@@ -163,7 +163,7 @@ export class NinetyEightPercentAPlusCharm extends BaseCharm {
     }
     const hasPair = Object.values(valueCounts).some(count => count >= 2);
     return {
-      basePointsDelta: hasPair ? 10 : 0
+      basePointsAdd: hasPair ? 10 : 0
     };
   }
 }
@@ -202,7 +202,7 @@ export class OddOdysseyCharm extends BaseCharm {
     this.description = charm.description; // Update instance description too
     
     return {
-      basePointsDelta: Math.floor(bonus)
+      basePointsAdd: Math.floor(bonus)
     };
   }
 }
@@ -219,7 +219,7 @@ export class PairUpCharm extends BaseCharm {
     }
     const pairCount = Object.values(valueCounts).reduce((sum, count) => sum + Math.floor(count / 2), 0);
     return {
-      basePointsDelta: pairCount * 50
+      basePointsAdd: pairCount * 50
     };
   }
 }
@@ -236,7 +236,7 @@ export class TripleThreatCharm extends BaseCharm {
     }
     const tripletCount = Object.values(valueCounts).reduce((sum, count) => sum + Math.floor(count / 3), 0);
     return {
-      basePointsDelta: tripletCount * 50
+      basePointsAdd: tripletCount * 50
     };
   }
 }
@@ -279,7 +279,7 @@ export class SandbaggerCharm extends BaseCharm {
     if (flopCount > 0) {
       const bonus = flopCount * 50;
       return {
-        basePointsDelta: bonus
+        basePointsAdd: bonus
       };
     }
     return {};
@@ -306,7 +306,7 @@ export class FlowerPowerCharm extends BaseCharm {
     flowerCount += currentFlowerCount;
     
     return {
-      basePointsDelta: flowerCount * 100
+      basePointsAdd: flowerCount * 100
     };
   }
 }
@@ -318,7 +318,7 @@ export class CrystalClearCharm extends BaseCharm {
       idx => context.roundState.diceHand[idx]?.material === 'crystal'
     ).length;
     return {
-      basePointsDelta: crystalCount * 150
+      basePointsAdd: crystalCount * 150
     };
   }
 }
@@ -343,7 +343,7 @@ export class StraightShooterCharm extends BaseCharm {
       combo => combo.type === 'straight' || combo.type === 'straightOfN'
     );
     return {
-      basePointsDelta: hasStraight ? 500 : 0
+      basePointsAdd: hasStraight ? 500 : 0
     };
   }
 }
@@ -360,7 +360,7 @@ export class LongshotCharm extends BaseCharm {
       return false;
     });
     return {
-      basePointsDelta: hasLongStraight ? 250 : 0
+      basePointsAdd: hasLongStraight ? 250 : 0
     };
   }
 }
@@ -375,7 +375,7 @@ export class GhostWhispererCharm extends BaseCharm {
     const unscoredGhostCount = allGhostDice.length - scoredGhostCount;
     
     return {
-      basePointsDelta: (scoredGhostCount * 50) + (unscoredGhostCount * 250)
+      basePointsAdd: (scoredGhostCount * 50) + (unscoredGhostCount * 250)
     };
   }
 }
@@ -413,7 +413,7 @@ export class MagicEightBallCharm extends BaseCharm {
       idx => (context.roundState.diceHand[idx]?.sides || 0) >= 8
     );
     return {
-      basePointsDelta: hasLargeDie ? 200 : 0
+      basePointsAdd: hasLargeDie ? 200 : 0
     };
   }
 }
@@ -424,7 +424,7 @@ export class HotDiceHeroCharm extends BaseCharm {
     // Track hot dice count from roundState
     const hotDiceCount = context.roundState.hotDiceCounter || 0;
     return {
-      basePointsDelta: hotDiceCount * 100
+      basePointsAdd: hotDiceCount * 100
     };
   }
 }
@@ -443,7 +443,7 @@ export class PipCollectorCharm extends BaseCharm {
       }
     }
     return {
-      basePointsDelta: pipEffectCount * 10
+      basePointsAdd: pipEffectCount * 10
     };
   }
 }
@@ -486,7 +486,7 @@ export class StairstepperCharm extends BaseCharm {
     this.description = charm.description; // Update instance description too
     
     return {
-      basePointsDelta: bonus
+      basePointsAdd: bonus
     };
   }
 }
@@ -519,7 +519,7 @@ export class RerollRangerCharm extends BaseCharm {
     this.description = charm.description; // Update instance description too
     
     return {
-      basePointsDelta: bonus
+      basePointsAdd: bonus
     };
   }
 }
@@ -532,7 +532,7 @@ export class BankBaronCharm extends BaseCharm {
     const bonus = 10 + (bankCount * 10);
     
     return {
-      basePointsDelta: bonus
+      basePointsAdd: bonus
     };
   }
   
@@ -563,11 +563,11 @@ export class PointPirateCharm extends BaseCharm {
     if (isFirstScore) {
       levelState.isFirstScoring = true;
       return {
-        basePointsDelta: 1000
+        basePointsAdd: 1000
       };
     } else {
       return {
-        basePointsDelta: -100
+        basePointsAdd: -100
       };
     }
   }
@@ -644,7 +644,7 @@ export class SureShotCharm extends BaseCharm {
     if (bonus > 0) {
       context.gameState.sureShotBonus = 0; // Reset after applying
       return {
-        basePointsDelta: bonus
+        basePointsAdd: bonus
       };
     }
     return {};
@@ -658,7 +658,7 @@ export class FlopStrategistCharm extends BaseCharm {
     if (bonus > 0) {
       context.gameState.flopStrategistBonus = 0; // Reset after applying
       return {
-        basePointsDelta: bonus
+        basePointsAdd: bonus
       };
     }
     return {};
@@ -685,7 +685,7 @@ export class FlopStrategistCharm extends BaseCharm {
 export class GeneratorCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // Creates a random consumable when scoring the required combination category
-    const requiredCategory = context.roundState.generatorCurrentCategory;
+    const requiredCategory = context.gameState.history.charmState?.generator?.currentCategory;
     if (!requiredCategory || !context.gameState) {
       return {};
     }
@@ -781,7 +781,7 @@ export class RoundRobinCharm extends BaseCharm {
     
     if (!hasRepeats && (combinationTypesSeen.size > 0 || (context.combinations && context.combinations.length > 0))) {
       return {
-        basePointsDelta: 750
+        basePointsAdd: 750
       };
     }
     
@@ -838,11 +838,11 @@ export class FrequentFlyerCharm extends BaseCharm {
 
 export class HoarderCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +100 points for each die in your set
+    // +50 points for each die in your set
     const diceSetSize = context.gameState.diceSet?.length || 0;
     if (diceSetSize > 0) {
       return {
-        basePointsDelta: diceSetSize * 100
+        basePointsAdd: diceSetSize * 50
       };
     }
     return {};
@@ -858,6 +858,16 @@ export class ComebackKidCharm extends BaseCharm {
   getRerollBonus(gameState: any): { add?: number; multiply?: number; override?: number } {
     // +3 rerolls
     return { add: 3 };
+  }
+}
+
+export class TicketEaterCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +0.1 MLT for every shop voucher used (consumed or not)
+    const vouchersUsed = context.gameState.history?.charmState?.ticketEater?.vouchersUsed || 0;
+    return {
+      multiplierAdd: vouchersUsed * 0.1
+    };
   }
 }
 
