@@ -27,12 +27,8 @@ export function updateLastConsumableUsed(gameState: GameState, consumable: any):
  */
 export function getDiceSelectionRequirement(consumableId: string): { requires: boolean; min: number; max: number } {
   // Consumables that require exactly 1 die
-  if (['alchemist', 'emptyAsAPocket', 'moneyPip', 'stallion', 'practice', 'phantom', 'accumulation'].includes(consumableId)) {
+  if (['alchemist', 'midasTouch', 'emptyAsAPocket', 'moneyPip', 'stallion', 'practice', 'phantom', 'accumulation'].includes(consumableId)) {
     return { requires: true, min: 1, max: 1 };
-  }
-  // Consumables that require exactly 2 dice
-  if (['midasTouch'].includes(consumableId)) {
-    return { requires: true, min: 2, max: 2 };
   }
   // Consumables that require 1 or 2 dice
   if (['chisel', 'potteryWheel'].includes(consumableId)) {
@@ -66,27 +62,19 @@ export function determineConsumableInputs(
 
   const diceHand = roundState?.diceHand || [];
 
-  // Check if this consumable needs die selection (chisel, potteryWheel, midasTouch, alchemist)
+  // Check if this consumable needs die selection 
   if (consumable.id === 'chisel' || consumable.id === 'potteryWheel' || consumable.id === 'midasTouch' || consumable.id === 'alchemist') {
-    if (consumable.id === 'midasTouch') {
-      // MidasTouch requires exactly 2 dice selected
-      if (selectedDiceIndices.length === 2) {
-        result.dieSelectionInput = [selectedDiceIndices[0], selectedDiceIndices[1]] as [number, number];
-      }
-      // If not exactly 2 dice, dieSelectionInput remains undefined and will fail
-    } else if (consumable.id === 'alchemist') {
-      // Alchemist requires exactly 1 die selected
+    if (consumable.id === 'midasTouch' || consumable.id === 'alchemist') {
+      // MidasTouch and Alchemist require exactly 1 die selected
       if (selectedDiceIndices.length === 1) {
         result.dieSelectionInput = selectedDiceIndices[0];
       }
-      // If not exactly 1 die, dieSelectionInput remains undefined and will fail
     } else if (selectedDiceIndices.length >= 1 && selectedDiceIndices.length <= 2) {
       // For chisel/potteryWheel, can select 1 or 2 dice (but not more)
       result.dieSelectionInput = selectedDiceIndices.length === 1 
         ? selectedDiceIndices[0] 
         : [selectedDiceIndices[0], selectedDiceIndices[1]] as [number, number];
     }
-    // If more than 2 dice selected for chisel/potteryWheel, dieSelectionInput remains undefined and will fail
   }
 
   // Check if this consumable needs die side selection (pip effect consumables)
@@ -204,8 +192,9 @@ async function trackConsumableUsage(gameState: GameState, consumable: Consumable
       (gameState.history.charmState.consumableUsage.wishUsed || 0) + 1;
   }
   
-  // Update lastConsumableUsed for Echo consumable
-  gameState.lastConsumableUsed = consumable.id;
+  // Update lastConsumableUsed for Echo consumable - store as object so Echo can copy it
+  // This is set here for tracking purposes, but updateLastConsumableUsed will set it properly after successful use
+  // We don't set it here to avoid overwriting the object set by updateLastConsumableUsed
   
   // Check for Whim Whisperer charm (25% chance to not consume whim)
   if (isWhim && charmManager) {
@@ -345,6 +334,7 @@ export async function applyConsumableEffect(
         material: 'plastic' as DiceMaterialType
       };
       newGameState.diceSet = [...newGameState.diceSet, newDie];
+      (newGameState as any).__newDieAdded = true; // Flag for sound effect
       break;
     }
 
@@ -418,7 +408,7 @@ export async function applyConsumableEffect(
     }
 
     case 'echo': {
-      // Get the last consumable used (tracked by GameAPI when other consumables are used)
+      // Get the last consumable used (tracked by updateLastConsumableUsed when other consumables are used)
       const lastConsumable = (newGameState as any).lastConsumableUsed;
       if (!lastConsumable) {
         shouldRemove = false;
@@ -432,7 +422,22 @@ export async function applyConsumableEffect(
         break;
       }
       // Create a copy of the last consumable used (reset uses to 1)
-      const copiedConsumable = { ...lastConsumable, uses: 1 };
+      // Handle both object and string ID formats for backwards compatibility
+      let copiedConsumable: any;
+      if (typeof lastConsumable === 'string') {
+        // If it's just an ID string, try to find the consumable in the available consumables
+        const allConsumables = [...CONSUMABLES, ...WHIMS, ...WISHES, ...COMBINATION_UPGRADES];
+        const foundConsumable = allConsumables.find(c => c.id === lastConsumable);
+        if (!foundConsumable) {
+          shouldRemove = false;
+          wasSuccessfullyUsed = false;
+          break;
+        }
+        copiedConsumable = { ...foundConsumable, uses: 1 };
+      } else {
+        // It's already an object, just copy it
+        copiedConsumable = { ...lastConsumable, uses: 1 };
+      }
       newGameState.consumables = [...newGameState.consumables, copiedConsumable];
       break;
     }
@@ -502,12 +507,12 @@ export async function applyConsumableEffect(
     }
 
     case 'midasTouch': {
-      // Requires user input - return request for two die selection
+      // Requires user input - return request for single die selection
       return {
         success: true,
         shouldRemove: false,
         requiresInput: {
-          type: 'twoDieSelection',
+          type: 'dieSelection',
           consumableId: 'midasTouch',
           diceSet: newGameState.diceSet
         },
@@ -525,6 +530,21 @@ export async function applyConsumableEffect(
         material: 'plastic' as DiceMaterialType
       };
       newGameState.diceSet = [...newGameState.diceSet, newDie];
+      // Track that a new die was added for sound effects
+      (newGameState as any).__newDieAdded = true;
+      break;
+    }
+
+    case 'jackpot': {
+      // Give shop vouchers (2 by default, 5 if blessing tier 2)
+      let vouchersToGive = 2;
+      for (const blessing of newGameState.blessings || []) {
+        if (blessing.effect.type === 'shopVoucherBonus') {
+          vouchersToGive = blessing.effect.amount;
+          break;
+        }
+      }
+      newGameState.shopVouchers = (newGameState.shopVouchers || 0) + vouchersToGive;
       break;
     }
 
@@ -1036,32 +1056,82 @@ export function applyDieSelectionConsumable(
   let shouldRemove = true;
 
   if (consumableId === 'midasTouch') {
-    // Handle two die selection for midasTouch
-    if (!Array.isArray(selectedDieIndex) || selectedDieIndex.length !== 2) {
+    // Handle single die selection for midasTouch
+    // Copy material from a random die in the hand (excluding the selected die) to the selected die
+    if (typeof selectedDieIndex !== 'number') {
       return {
         success: false,
         shouldRemove: false,
         gameState: newGameState
       };
     }
-    const [sourceDieIndex, targetDieIndex] = selectedDieIndex;
-    const sourceDie = newGameState.diceSet[sourceDieIndex];
-    const targetDie = newGameState.diceSet[targetDieIndex];
     
-    if (!sourceDie || !targetDie) {
+    // Find the die in diceHand first
+    const diceHandDie = newRoundState?.diceHand?.[selectedDieIndex];
+    if (!diceHandDie) {
       return {
         success: false,
         shouldRemove: false,
         gameState: newGameState
       };
     }
+    
+    // Find the corresponding die in diceSet by matching ID
+    const targetDiceSetIndex = newGameState.diceSet.findIndex(d => d.id === diceHandDie.id);
+    if (targetDiceSetIndex === -1) {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+    
+    // Get all dice in the hand EXCEPT the selected die
+    const availableDice = (newRoundState?.diceHand || []).filter((_, idx) => idx !== selectedDieIndex);
+    
+    if (availableDice.length === 0) {
+      // No other dice in hand - can't copy, but this shouldn't happen in normal gameplay
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+    
+    // Pick a random die from the available dice (excluding the selected die)
+    const randomSourceDie = availableDice[Math.floor(Math.random() * availableDice.length)];
+    
+    // Find the source die in diceSet by matching ID
+    const sourceDiceSetIndex = newGameState.diceSet.findIndex(d => d.id === randomSourceDie.id);
+    if (sourceDiceSetIndex === -1) {
+      return {
+        success: false,
+        shouldRemove: false,
+        gameState: newGameState
+      };
+    }
+    
+    const sourceDie = newGameState.diceSet[sourceDiceSetIndex];
     
     // Copy material from source to target
+    const copiedMaterial = sourceDie.material;
     newGameState.diceSet = newGameState.diceSet.map((die, i) =>
-      i === targetDieIndex
-        ? { ...die, material: sourceDie.material }
+      i === targetDiceSetIndex
+        ? { ...die, material: copiedMaterial }
         : die
     );
+    
+    // Also update material in diceHand so it shows immediately on the board
+    if (newRoundState && newRoundState.diceHand) {
+      newRoundState.diceHand = newRoundState.diceHand.map((die, i) =>
+        i === selectedDieIndex
+          ? { ...die, material: copiedMaterial }
+          : die
+      );
+    }
+    
+    // Track the material change for sound effects
+    (newGameState as any).__materialChanged = copiedMaterial;
   } else if (consumableId === 'alchemist') {
     // Handle single die selection for alchemist
     // selectedDieIndex is from diceHand, need to find corresponding die in diceSet
@@ -1126,6 +1196,8 @@ export function applyDieSelectionConsumable(
     
     // Track the new material for unlocking (will be handled by WebGameManager)
     (newGameState as any).__unlockMaterial = randomMaterial;
+    // Track the material change for sound effects
+    (newGameState as any).__materialChanged = randomMaterial;
   } else if (consumableId === 'chisel' || consumableId === 'potteryWheel') {
     // Handle up to two die selection for chisel/potteryWheel - modify rolled values in diceHand
     if (!Array.isArray(selectedDieIndex)) {

@@ -6,7 +6,7 @@ import { useUnlocks } from '../../../contexts/UnlockContext';
 import { CHARM_PRICES } from '../../../../game/data/charms';
 import { CHARM_CARD_SIZE } from '../../components/cardSizes';
 
-export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm, maxSlots, charmState }) => {
+export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm, onMoveCharm, maxSlots, charmState }) => {
   const { highlightedCharmIds } = useScoringHighlights();
   const { unlockedItems } = useUnlocks();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -56,7 +56,7 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
                   isInActiveGame={true}
                   charmState={charmState}
                 />
-                {isSelected && onSellCharm && (
+                {isSelected && (
                   <div style={{
                     position: 'absolute',
                     bottom: 0,
@@ -65,32 +65,81 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
                     backgroundColor: 'rgba(0, 0, 0, 0.7)',
                     padding: '8px',
                     borderRadius: '0 0 5px 5px',
-                    zIndex: 10,
+                    zIndex: 1001,
                     display: 'flex',
                     justifyContent: 'center',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    gap: '8px',
+                    pointerEvents: 'auto'
                   }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onSellCharm) {
-                        onSellCharm(index);
-                        }
-                        setSelectedIndex(null);
-                      }}
-                      style={{
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        padding: '6px 16px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      Sell ${sellValue}
-                    </button>
+                    {/* Move Left Button */}
+                    {onMoveCharm && index > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveCharm(index, 'left');
+                        }}
+                        style={{
+                          backgroundColor: '#2196F3',
+                          color: 'white',
+                          border: 'none',
+                          padding: '6px 12px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 'bold'
+                        }}
+                        title="Move left"
+                      >
+                        ←
+                      </button>
+                    )}
+                    
+                    {/* Sell Button */}
+                    {onSellCharm && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSellCharm(index);
+                          setSelectedIndex(null);
+                        }}
+                        style={{
+                          backgroundColor: '#4CAF50',
+                          color: 'white',
+                          border: 'none',
+                          padding: '6px 16px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        Sell ${sellValue}
+                      </button>
+                    )}
+                    
+                    {/* Move Right Button */}
+                    {onMoveCharm && index < charms.length - 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveCharm(index, 'right');
+                        }}
+                        style={{
+                          backgroundColor: '#2196F3',
+                          color: 'white',
+                          border: 'none',
+                          padding: '6px 12px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 'bold'
+                        }}
+                        title="Move right"
+                      >
+                        →
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

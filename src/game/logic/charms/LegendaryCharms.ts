@@ -45,15 +45,15 @@ export class ParanoiaCharm extends BaseCharm {
 
 export class TrumpCardCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +2^n multiplier where n is the highest value scored
+    // +2^n MLT where n is the highest value scored
     const highestValue = Math.max(
       ...context.selectedIndices.map(idx => context.roundState.diceHand[idx]?.rolledValue || 0)
     );
     
     if (highestValue > 0) {
-      const multiplier = Math.pow(2, highestValue);
+      const multiplierToAdd = Math.pow(2, highestValue);
       return {
-        multiplierMultiply: multiplier
+        multiplierAdd: multiplierToAdd  
       };
     }
     
@@ -83,6 +83,15 @@ export class DrumpfCardCharm extends BaseCharm {
     }
     
     return {};
+  }
+}
+
+export class MatterhornCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +3 EXP (adds 3 to exponent)
+    return {
+      exponentAdd: 3
+    };
   }
 }
 

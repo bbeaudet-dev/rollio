@@ -41,6 +41,7 @@ import {
   HoarderCharm,
   ComebackKidCharm,
   GeneratorCharm,
+  TicketEaterCharm,
 } from './CommonCharms';
 
 import {
@@ -101,6 +102,7 @@ import {
   ParanoiaCharm,
   TrumpCardCharm,
   DrumpfCardCharm,
+  MatterhornCharm,
 } from './LegendaryCharms';
 
 /**
@@ -149,6 +151,7 @@ export function registerCharms(): void {
   registry.register(HoarderCharm, 'hoarder');
   registry.register(ComebackKidCharm, 'comebackKid');
   registry.register(GeneratorCharm, 'generator');
+  registry.register(TicketEaterCharm, 'ticketEater');
   
   // Uncommon charms
   registry.register(QuadBoostersCharm, 'quadBoosters');
@@ -206,4 +209,5 @@ export function registerCharms(): void {
   registry.register(ParanoiaCharm, 'paranoia');
   registry.register(TrumpCardCharm, 'trumpCard');
   registry.register(DrumpfCardCharm, 'drumpfCard');
+  registry.register(MatterhornCharm, 'matterhorn');
 } 

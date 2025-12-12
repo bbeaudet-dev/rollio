@@ -38,7 +38,7 @@ export class LuckySevensCharm extends BaseCharm {
       idx => context.roundState.diceHand[idx]?.rolledValue === 7
     );
     return {
-      basePointsDelta: hasSeven ? 777 : 0
+      basePointsAdd: hasSeven ? 777 : 0
     };
   }
 }
@@ -68,7 +68,7 @@ export class TasteTheRainbowCharm extends BaseCharm {
     const uniqueMaterials = new Set(materials);
     const allUnique = materials.length === uniqueMaterials.size;
     return {
-      basePointsDelta: allUnique ? 300 : 0
+      basePointsAdd: allUnique ? 300 : 0
     };
   }
 }
@@ -149,7 +149,7 @@ export class FourForYourFavorCharm extends BaseCharm {
     }
     const hasFourOfAKind = Object.values(valueCounts).some(count => count >= 4);
     return {
-      basePointsDelta: hasFourOfAKind ? 600 : 0
+      basePointsAdd: hasFourOfAKind ? 600 : 0
     };
   }
 }
@@ -166,7 +166,7 @@ export class FiveAliveCharm extends BaseCharm {
     }
     const hasFiveOfAKind = Object.values(valueCounts).some(count => count >= 5);
     return {
-      basePointsDelta: hasFiveOfAKind ? 800 : 0
+      basePointsAdd: hasFiveOfAKind ? 800 : 0
     };
   }
 }
@@ -183,7 +183,7 @@ export class SixShooterCharm extends BaseCharm {
     }
     const hasSixOfAKind = Object.values(valueCounts).some(count => count >= 6);
     return {
-      basePointsDelta: hasSixOfAKind ? 1000 : 0
+      basePointsAdd: hasSixOfAKind ? 1000 : 0
     };
   }
 }
@@ -234,7 +234,7 @@ export class WildCardCharm extends BaseCharm {
       }
     }
     return {
-      basePointsDelta: wildCount * 250
+      basePointsAdd: wildCount * 250
     };
   }
 }

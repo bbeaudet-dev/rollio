@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoginModal, RegisterModal } from './index';
+import { ProfilePicture } from '../components/ProfilePicture';
+import { SettingsButton } from '../components/SettingsButton';
 
-export const AuthSection: React.FC = () => {
+interface AuthSectionProps {
+  onSettingsClick?: () => void;
+}
+
+export const AuthSection: React.FC<AuthSectionProps> = ({ onSettingsClick }) => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, isLoading } = useAuth();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -35,6 +41,8 @@ export const AuthSection: React.FC = () => {
       }}>
         {isAuthenticated && user ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            {/* Profile Picture */}
+            <ProfilePicture profilePictureId={user.profilePicture} size={40} />
             <div style={{ textAlign: 'left', flex: 1 }}>
               <div style={{ fontSize: '14px', fontWeight: '500', color: '#2c3e50' }}>
                 Logged in as: <span style={{ color: '#28a745' }}>{user.username}</span>
@@ -67,6 +75,12 @@ export const AuthSection: React.FC = () => {
             >
               Profile
             </button>
+            {onSettingsClick && (
+              <SettingsButton 
+                onClick={onSettingsClick}
+                style={{ position: 'relative', top: 'auto', right: 'auto' }}
+              />
+            )}
             <button
               onClick={logout}
               style={{
@@ -91,7 +105,7 @@ export const AuthSection: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
             <button
               onClick={() => setIsLoginOpen(true)}
               style={{
@@ -134,6 +148,12 @@ export const AuthSection: React.FC = () => {
             >
               Register
             </button>
+            {onSettingsClick && (
+              <SettingsButton 
+                onClick={onSettingsClick}
+                style={{ position: 'relative', top: 'auto', right: 'auto' }}
+              />
+            )}
           </div>
         )}
       </div>
