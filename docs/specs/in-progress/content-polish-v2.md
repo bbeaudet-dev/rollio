@@ -246,3 +246,15 @@ OTHER
 
 Weird bugs, singles pairs not working after volcano, value adjustment, matieral copying, flower dice, etc.
 Oh and two faced probably is the culprit
+
+Tiers of materials!!!
+- Magma is tier 1, gives +100 PTS for each hot dice counter, stacks with multiple magma dice
+- Volcano is tier 2, gives +0.5 MLT for each hot dice counter, stacks with multiple volcano dice
+- New consumable upgrades tier 1 to tier 2
+- Current consumable for random material is limited to tier 1 materials (maybe small chance for tier 2?)
+- Maybe we could make Golden tier 1 and rainbow tier 2, so golden gives $ when scoring, and then Rainbow would give that same money (or more) when scoring PLUS have a chance for the effects
+- Lead:
+- Ghost: tier 1 same, 
+- Flower: counter is based on round, then level, then world, then game
+- Crystal: 
+- Mirror: 
