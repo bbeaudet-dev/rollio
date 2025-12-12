@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { playClickSound } from '../../utils/sounds';
 
 interface MainMenuReturnButtonProps {
   onClick?: () => void;
@@ -14,19 +15,19 @@ export const MainMenuReturnButton: React.FC<MainMenuReturnButtonProps> = ({ onCl
     top: '10px',
     left: '10px',
     zIndex: 100,
-    padding: '8px 12px',
+    padding: '10px 20px',
     backgroundColor: '#6c757d',
     color: 'white',
     border: 'none',
     borderRadius: '4px',
+    fontSize: '16px',
     cursor: 'pointer',
-    fontSize: '13px',
     fontWeight: '500',
-    minHeight: '44px',
-    minWidth: '44px'
+    whiteSpace: 'nowrap'
   };
 
   const handleClick = () => {
+    playClickSound();
     if (onClick) {
       onClick();
     } else {
@@ -38,8 +39,14 @@ export const MainMenuReturnButton: React.FC<MainMenuReturnButtonProps> = ({ onCl
     <button
       onClick={handleClick}
       style={{ ...defaultStyle, ...style }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#5a6268';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = '#6c757d';
+      }}
     >
-      🏠 Menu
+      Main Menu
     </button>
   );
 };

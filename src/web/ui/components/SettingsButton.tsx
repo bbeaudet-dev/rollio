@@ -1,4 +1,5 @@
 import React from 'react';
+import { playClickSound } from '../../utils/sounds';
 
 interface SettingsButtonProps {
   onClick: () => void;
@@ -11,24 +12,34 @@ export const SettingsButton: React.FC<SettingsButtonProps> = ({ onClick, style }
     top: '10px',
     right: '10px',
     zIndex: 100,
-    padding: '8px 12px',
+    padding: '10px 20px',
     backgroundColor: '#6c757d',
     color: 'white',
     border: 'none',
     borderRadius: '4px',
+    fontSize: '16px',
     cursor: 'pointer',
-    fontSize: '13px',
     fontWeight: '500',
-    minHeight: '44px',
-    minWidth: '44px'
+    whiteSpace: 'nowrap'
+  };
+
+  const handleClick = () => {
+    playClickSound();
+    onClick();
   };
 
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       style={{ ...defaultStyle, ...style }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#5a6268';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = '#6c757d';
+      }}
     >
-      ⚙️ Settings
+      Settings
     </button>
   );
 };

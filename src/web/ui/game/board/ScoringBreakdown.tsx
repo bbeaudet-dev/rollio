@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ScoringBreakdown, ScoringBreakdownStep } from '../../../../game/types';
+import { ScoringBreakdown } from '../../../../game/logic/scoringBreakdown';
+import { ScoringBreakdownStep } from '../../../../game/logic/scoringBreakdown';
 import { ScoringElements, calculateFinalScore } from '../../../../game/logic/scoringElements';
 import { getAnimationSpeed } from '../../../utils/uiSettings';
 import { formatCombinationKey } from '../../../../game/utils/combinationTracking';
 import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
+import { playCrystalSound, playMirrorSound, playGeneralScoreSound, playSellMoneySound, playGenericMaterialSound, playHotDiceSound, playGoldenSound, playFlowerSound, playLeadSound, playGhostSound, playRainbowSound, playVolcanoSound } from '../../../utils/sounds';
 
 interface ScoringBreakdownProps {
   breakdown: ScoringBreakdown & { selectedIndices?: number[] };
@@ -13,7 +15,7 @@ interface ScoringBreakdownProps {
 
 function formatScoreFormula(elements: ScoringElements): string {
   const total = calculateFinalScore(elements);
-  return `${formatNumber(elements.basePoints)} pts × ${formatNumber(elements.multiplier)}x ^ ${formatNumber(elements.exponent)} = ${formatNumber(total)}`;
+  return `${formatNumber(elements.basePoints, 'points')} pts × ${formatNumber(elements.multiplier, 'multiplier')}x ^ ${formatNumber(elements.exponent, 'exponent')} = ${formatNumber(total, 'points')}`;
 }
 
 function formatStepDescription(step: ScoringBreakdownStep): string {
@@ -21,11 +23,22 @@ function formatStepDescription(step: ScoringBreakdownStep): string {
 }
 
 /**
- * Format a number to remove unnecessary decimal places
- * Shows whole numbers without decimals, but keeps decimals when needed
+ * Format a number based on context
+ * - Points: Always whole numbers
+ * - Multiplier/Exponent: Decimals allowed, but stop showing decimals after 10x
  */
-function formatNumber(value: number): string {
-  // Check if it's effectively a whole number (within floating point precision)
+function formatNumber(value: number, type: 'points' | 'multiplier' | 'exponent' = 'points'): string {
+  if (type === 'points') {
+    // Points: Always show as whole number
+    return Math.round(value).toString();
+  }
+  
+  // Multiplier/Exponent: Show decimals, but stop after 10x
+  if (value >= 10) {
+    return Math.round(value).toString();
+  }
+  
+  // Below 10x: Show decimals (up to 2 decimal places, remove trailing zeros)
   const rounded = Math.round(value * 100) / 100;
   if (Math.abs(rounded - Math.round(rounded)) < 0.001) {
     return Math.round(rounded).toString();
@@ -239,6 +252,37 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
         setCurrentElements(step.input);
         previousElementsRef.current = step.input;
         
+        // Play sounds based on step type
+        const stepId = step.step;
+        if (stepId.startsWith('baseCombinations')) {
+          playGeneralScoreSound();
+        } else if (stepId.startsWith('material_crystal')) {
+          playCrystalSound();
+        } else if (stepId.startsWith('material_mirror')) {
+          playMirrorSound();
+        } else if (stepId.startsWith('material_golden')) {
+          playGoldenSound();
+        } else if (stepId.startsWith('material_flower')) {
+          playFlowerSound();
+        } else if (stepId.startsWith('material_lead')) {
+          playLeadSound();
+        } else if (stepId.startsWith('material_ghost')) {
+          playGhostSound();
+        } else if (stepId.startsWith('material_rainbow')) {
+          playRainbowSound();
+        } else if (stepId.startsWith('material_volcano')) {
+          playVolcanoSound();
+        } else if (stepId.startsWith('material_')) {
+          // Play material.wav for other materials
+          playGenericMaterialSound();
+        } else if (stepId.startsWith('hotDiceMultiplier')) {
+          playHotDiceSound();
+        } else if (stepId.startsWith('charm_')) {
+          playGeneralScoreSound();
+        } else if (stepId.includes('money') || (stepId.includes('rainbow') && step.description.includes('$'))) {
+          playSellMoneySound();
+        }
+        
         // Highlight dice for this step (use ref to get current value)
         const diceToHighlight = parseDiceIndicesFromStep(step, selectedIndicesRef.current);
         setHighlightedDice(diceToHighlight);
@@ -326,7 +370,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
   return (
     <div style={{
       position: 'absolute',
-      top: '140px', 
+      top: '90px', 
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 30,
@@ -390,7 +434,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
             whiteSpace: 'nowrap'
           }}>
             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e7d32' }}>
-              {formatNumber(displayElements.basePoints)}
+              {formatNumber(displayElements.basePoints, 'points')}
             </div>
           </div>
 
@@ -414,7 +458,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
           }}>
             <div style={{ fontSize: '16px', color: '#c2185b' }}>
               <span style={{ fontWeight: 'normal' }}>x</span>
-              <span style={{ fontWeight: 'bold' }}>{formatNumber(displayElements.multiplier)}</span>
+              <span style={{ fontWeight: 'bold' }}>{formatNumber(displayElements.multiplier, 'multiplier')}</span>
             </div>
           </div>
 
@@ -438,7 +482,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
           }}>
             <div style={{ fontSize: '16px', color: '#7b1fa2' }}>
               <span style={{ fontWeight: 'normal' }}>^</span>
-              <span style={{ fontWeight: 'bold' }}>{formatNumber(displayElements.exponent)}</span>
+              <span style={{ fontWeight: 'bold' }}>{formatNumber(displayElements.exponent, 'exponent')}</span>
             </div>
           </div>
         </div>
@@ -462,7 +506,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
             color: '#1976d2'
           }}>
             <span style={{ fontWeight: 'normal' }}>+</span>
-            <span style={{ fontWeight: 'bold' }}>{formatNumber(calculateFinalScore(breakdown.final))}</span>
+            <span style={{ fontWeight: 'bold' }}>{formatNumber(calculateFinalScore(breakdown.final), 'points')}</span>
           </div>
         </div>
       )}
