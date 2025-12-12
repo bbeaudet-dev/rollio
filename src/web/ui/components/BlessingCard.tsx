@@ -6,6 +6,7 @@ import { getRarityColor } from '../../utils/rarityColors';
 import { ActionButton } from './ActionButton';
 import { LockIcon } from './LockIcon';
 import { BLESSING_CARD_SIZE } from './cardSizes';
+import { formatDescription } from '../../utils/descriptionFormatter';
 
 /**
  * Convert blessing ID to image filename based on blessing type and tier
@@ -60,6 +61,13 @@ function getBlessingImagePath(blessing: Blessing): string | null {
     if (tier === 1) return '/assets/images/blessings/Remaining_Banks_Tier_1.png';
     if (tier === 2) return '/assets/images/blessings/Remaining_Banks_Tier_2.png';
     if (tier === 3) return '/assets/images/blessings/Remaining_Banks_Tier_3.png'; 
+  }
+  
+  // Shop voucher blessings
+  if (id.startsWith('shopVoucher')) {
+    if (tier === 1) return '/assets/images/blessings/Ticket_Tier_1_2.png';
+    if (tier === 2) return '/assets/images/blessings/Ticket_Tier_2_2.png';
+    if (tier === 3) return '/assets/images/blessings/Ticket_Tier_3_2.png';
   }
   
   return null;
@@ -280,7 +288,7 @@ export const BlessingCard: React.FC<BlessingCardProps> = ({
             )}
           </div>
           <div style={{ fontSize: '11px', lineHeight: '1.4', color: '#ddd' }}>
-            {description}
+            {formatDescription(description)}
           </div>
         </div>
       )}

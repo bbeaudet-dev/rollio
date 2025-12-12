@@ -6,6 +6,7 @@ import { getConsumableColor } from '../../utils/colors';
 import { getRarityColor } from '../../utils/rarityColors';
 import { CONSUMABLE_PRICES } from '../../../game/logic/shop';
 import { CONSUMABLE_CARD_SIZE } from './cardSizes';
+import { formatDescription } from '../../utils/descriptionFormatter';
 
 /**
  * Convert consumable ID to image filename
@@ -37,6 +38,7 @@ function getConsumableImagePath(consumableId: string): string | null {
     'practice': 'Practice.png',
     'phantom': 'Phantom_3.png',
     'accumulation': 'Accumulation.png',
+    'jackpot': 'Jackpot.png',
     // Combination upgrades
     'upgradeSingleN': 'Upgrade_Singles.png',
     'upgradeNPairs': 'Upgrade_Pairs.png',
@@ -268,7 +270,7 @@ export const ConsumableCard: React.FC<ConsumableCardProps> = ({
             )}
           </div>
           <div style={{ fontSize: '11px', lineHeight: '1.4', color: '#ddd' }}>
-            {consumable.description}
+            {formatDescription(consumable.description)}
           </div>
         </div>
       )}
