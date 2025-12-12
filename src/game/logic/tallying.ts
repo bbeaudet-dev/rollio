@@ -118,6 +118,24 @@ export function tallyLevel(gameState: GameState, completedLevelNumber: number, c
   // Apply rewards (add money)
   applyLevelRewards(newGameState, rewards);
   
+  // Award shop vouchers based on level type
+  let shopVouchersToAward = 1; // Default: 1 voucher per level
+  if (currentLevel.isMainBoss) {
+    shopVouchersToAward = 3; // Boss: 3 vouchers
+  } else if (currentLevel.isMiniboss) {
+    shopVouchersToAward = 2; // Miniboss: 2 vouchers
+  }
+  
+  // Check for blessing that doubles shop voucher rewards (Tier 3)
+  for (const blessing of newGameState.blessings || []) {
+    if (blessing.effect.type === 'shopVoucherMultiplier') {
+      shopVouchersToAward *= 2;
+      break;
+    }
+  }
+  
+  newGameState.shopVouchers = (newGameState.shopVouchers || 0) + shopVouchersToAward;
+  
   // Store rewards in current level state (will be moved to history when advancing)
   newGameState.currentWorld = {
     ...newGameState.currentWorld!,

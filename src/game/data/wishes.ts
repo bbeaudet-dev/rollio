@@ -9,7 +9,7 @@ export const WISHES: Wish[] = [
   {
     id: 'midasTouch',
     name: 'Midas Touch',
-    description: 'Copy the material of a selected die to another selected die',
+    description: 'Copy the material of a random die in your hand to a selected die',
     uses: 1
   },
   {
@@ -45,7 +45,7 @@ export const WISHES: Wish[] = [
   {
     id: 'frankenstein',
     name: 'Frankenstein',
-    description: 'Destroy 2 random charms, create a copy of 1 random remaining charm',
+    description: 'Copy 1 random Charm, destroy 2 others',
     uses: 1
   },
 ];

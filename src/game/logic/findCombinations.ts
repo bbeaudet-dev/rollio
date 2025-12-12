@@ -345,9 +345,14 @@ export function findAllPossibleCombinations(
     }
     
     // Generate single combinations (singleN for 1s and 5s, and potentially 3s via charms)
-    if (subsetSize === 1) {
-      const value = subsetExpandedValues[0];
+    // Check if exactly one die is selected (not one expanded value, since two-faced dice expand to 2 values)
+    if (subsetIndices.length === 1) {
       const dieIndex = subsetIndices[0];
+      const die = diceHand[dieIndex];
+      
+      // Get the actual rolled value (not expanded value, since we want the die's face value)
+      const rolledValue = die?.rolledValue;
+      if (rolledValue === undefined) continue;
       
       // Check if this die was already used in a larger combination
       const usedInLargerCombo = combinations.some(combo =>
@@ -357,13 +362,13 @@ export function findAllPossibleCombinations(
       if (!usedInLargerCombo) {
         // Only 1s and 5s are valid singles by default
         // Charms can enable other values (e.g., Low Hanging Fruit for 3s)
-        if (value === 1 || value === 5) {
+        if (rolledValue === 1 || rolledValue === 5) {
           combinations.push({
             type: 'singleN',
             dice: subsetIndices,
             points: 0,
           });
-        } else if (value === 3) {
+        } else if (rolledValue === 3) {
           // Single 3s only valid if Low Hanging Fruit charm is active
           const allowsSingleThrees = (() => {
             if (context?.charmManager) {

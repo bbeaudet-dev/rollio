@@ -10,49 +10,49 @@ export const MATERIALS: DiceMaterial[] = [
   {
     id: 'crystal',
     name: 'Crystal',
-    description: '1.5x roll score per crystal die held in hand',
+    description: '1.5x MLT for each crystal die held in hand (i.e. not scored)',
     abbreviation: 'cr'
   },
   {
     id: 'flower',
     name: 'Flower',
-    description: '1.5x roll score per flower die previously scored in round',
+    description: '+0.5 MLT for each flower die scored during current level without flopping (Current: [+0.0] MLT)',
     abbreviation: 'fl'
   },
   {
     id: 'golden',
     name: 'Golden',
-    description: '+$3 when golden die is banked',
+    description: '+$3 when golden die is scored',
     abbreviation: 'gl'
   },
   {
     id: 'volcano',
     name: 'Volcano',
-    description: 'Score multiplier increases with hot dice counter',
+    description: 'Scoring a volcano die gives +100 PTS for each Hot Dice counter',
     abbreviation: 'vl'
   },
   {
     id: 'mirror',
     name: 'Mirror',
-    description: 'All mirror dice copy a non-mirror die value when rolled',
+    description: 'Mirror dice copy the value of a non-mirror die when rolled',
     abbreviation: 'mr'
   },
   {
     id: 'rainbow',
     name: 'Rainbow',
-    description: 'Lucky die with multiple possible effects: +200 points, +$10, or 1% chance to clone itself',
+    description: 'Multiple possible effects when scored: +200 points, +$10, or clone itself',
     abbreviation: 'rb'
   },
   {
     id: 'ghost',
     name: 'Ghost',
-    description: 'Ghost dice do not need to be scored for hot dice',
+    description: 'Ghost dice do not need to be scored to trigger Hot Dice',
     abbreviation: 'gh'
   },
   {
     id: 'lead',
     name: 'Lead',
-    description: 'Remains in your hand even after being scored',
+    description: 'Lead dice remain in your hand after being scored',
     abbreviation: 'ld'
   },
 ]; 

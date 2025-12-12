@@ -19,7 +19,7 @@ import { debugLog, getDebugMode } from '../utils/debug';
  * Combination hierarchy for tie-breaking (higher number = higher priority)
  * Hierarchy: Straights > nTuplets > nOfAKind > Pyramids > Pairs > Singles
  */
-const COMBINATION_HIERARCHY: Record<string, number> = {
+export const COMBINATION_HIERARCHY: Record<string, number> = {
   // Straights (highest priority)
   'straightOfN': 90,
   

@@ -32,8 +32,8 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
     const positions: NodePosition[] = [];
     const columnWidth = 200;
     const rowHeight = 120;
-    const startX = 100;
-    const baseY = 200; // Base Y position for centering
+    const startX = 50;
+    const baseY = 150; // Base Y position for centering
     
     // Group nodes by column
     const nodesByColumn = new Map<number, MapNode[]>();
@@ -107,26 +107,11 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
     return colorMap[worldId] || '#666';
   };
   
-  // Check if two line segments intersect
-  const doLinesIntersect = (
-    x1: number, y1: number, x2: number, y2: number,
-    x3: number, y3: number, x4: number, y4: number
-  ): boolean => {
-    const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-    if (Math.abs(denom) < 0.001) return false; // Parallel lines
-    
-    const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
-    const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
-    
-    return t > 0 && t < 1 && u > 0 && u < 1;
-  };
-
-  // Calculate curved path to avoid crossings
-  const calculateCurvedPath = (
+  // Simplified path calculation - just use simple curves without complex intersection checking
+  const calculateSimplePath = (
     fromPos: NodePosition,
     toPos: NodePosition,
-    existingPaths: Array<{ from: NodePosition; to: NodePosition; offset: number }>,
-    connectionKey: string
+    pathIndex: number
   ): { path: string; pathLength: number; offset: number } => {
     const dx = toPos.x - fromPos.x;
     const dy = toPos.y - fromPos.y;
@@ -136,78 +121,18 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
       return { path: `M ${fromPos.x} ${fromPos.y} L ${toPos.x} ${toPos.y}`, pathLength: 0, offset: 0 };
     }
     
+    // Simple offset based on path index to avoid overlap (alternate up/down)
+    const offset = (pathIndex % 2 === 0 ? 1 : -1) * 15;
+    
     // Calculate perpendicular vector
     const perpX = -dy / distance;
     const perpY = dx / distance;
     
-    // Check for intersections with existing paths
-    let offset = 0;
-    let bestOffset = 0;
-    let minIntersections = Infinity;
-    const maxOffset = 50;
-    const offsetStep = 8;
-    
-    // Try different offsets and pick the one with fewest intersections
-    for (let testOffset = -maxOffset; testOffset <= maxOffset; testOffset += offsetStep) {
-      const controlX = fromPos.x + dx * 0.5 + perpX * testOffset;
-      const controlY = fromPos.y + dy * 0.5 + perpY * testOffset;
-      
-      let intersections = 0;
-      
-      // Check intersections with existing paths
-      for (const existing of existingPaths) {
-        // Skip if same connection
-        if (existing.from.node.nodeId === fromPos.node.nodeId && 
-            existing.to.node.nodeId === toPos.node.nodeId) continue;
-        
-        const existingDx = existing.to.x - existing.from.x;
-        const existingDy = existing.to.y - existing.from.y;
-        const existingDist = Math.sqrt(existingDx * existingDx + existingDy * existingDy);
-        
-        if (existingDist < 0.001) continue;
-        
-        const existingPerpX = -existingDy / existingDist;
-        const existingPerpY = existingDx / existingDist;
-        const existingControlX = existing.from.x + existingDx * 0.5 + existingPerpX * existing.offset;
-        const existingControlY = existing.from.y + existingDy * 0.5 + existingPerpY * existing.offset;
-        
-        // Check if control points are too close (would cause visual overlap)
-        const controlDist = Math.sqrt(
-          Math.pow(controlX - existingControlX, 2) + 
-          Math.pow(controlY - existingControlY, 2)
-        );
-        
-        if (controlDist < 30) {
-          intersections++;
-        }
-        
-        // Check for line segment intersections (approximate)
-        if (doLinesIntersect(
-          fromPos.x, fromPos.y, controlX, controlY,
-          existing.from.x, existing.from.y, existingControlX, existingControlY
-        ) || doLinesIntersect(
-          controlX, controlY, toPos.x, toPos.y,
-          existingControlX, existingControlY, existing.to.x, existing.to.y
-        )) {
-          intersections += 2;
-        }
-      }
-      
-      if (intersections < minIntersections) {
-        minIntersections = intersections;
-        bestOffset = testOffset;
-      }
-    }
-    
-    offset = bestOffset;
-    
-    // Use quadratic bezier curve
+    // Use simple quadratic bezier curve
     const controlX = fromPos.x + dx * 0.5 + perpX * offset;
     const controlY = fromPos.y + dy * 0.5 + perpY * offset;
     
-    // Better approximation for bezier curve length
-    const pathLength = distance * (1 + Math.abs(offset) / distance * 0.3);
-    
+    const pathLength = distance * 1.1; // Simple approximation
     const path = `M ${fromPos.x} ${fromPos.y} Q ${controlX} ${controlY} ${toPos.x} ${toPos.y}`;
     
     return { path, pathLength, offset };
@@ -218,9 +143,22 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
     const lines: React.ReactElement[] = [];
     const arrows: React.ReactElement[] = [];
     const renderedConnections = new Set<string>();
-    const pathData: Array<{ from: NodePosition; to: NodePosition; offset: number; key: string }> = [];
+    const pathData: Array<{ from: NodePosition; to: NodePosition; offset: number; key: string; index: number }> = [];
     
-    // First pass: collect all paths and calculate offsets
+    // Check if connections exist and is valid
+    if (!gameMap.connections || (!(gameMap.connections instanceof Map) && typeof gameMap.connections !== 'object')) {
+      console.warn('gameMap.connections is missing or invalid');
+      return { lines, arrows };
+    }
+    
+    // Validate nodes array
+    if (!gameMap.nodes || !Array.isArray(gameMap.nodes) || gameMap.nodes.length === 0) {
+      console.warn('gameMap.nodes is missing, empty, or invalid');
+      return { lines, arrows };
+    }
+    
+    // Collect all paths with simple calculation
+    let pathIndex = 0;
     // Handle both Map and plain object (after JSON deserialization)
     if (gameMap.connections instanceof Map) {
       gameMap.connections.forEach((connectedNodeIds, fromNodeId) => {
@@ -235,8 +173,9 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
           if (renderedConnections.has(connectionKey)) return;
           renderedConnections.add(connectionKey);
           
-          const { offset } = calculateCurvedPath(fromPos, toPos, pathData, connectionKey);
-          pathData.push({ from: fromPos, to: toPos, offset, key: connectionKey });
+          const { offset } = calculateSimplePath(fromPos, toPos, pathIndex);
+          pathData.push({ from: fromPos, to: toPos, offset, key: connectionKey, index: pathIndex });
+          pathIndex++;
         });
       });
     } else {
@@ -254,13 +193,14 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
           if (renderedConnections.has(connectionKey)) return;
           renderedConnections.add(connectionKey);
           
-          const { offset } = calculateCurvedPath(fromPos, toPos, pathData, connectionKey);
-          pathData.push({ from: fromPos, to: toPos, offset, key: connectionKey });
+          const { offset } = calculateSimplePath(fromPos, toPos, pathIndex);
+          pathData.push({ from: fromPos, to: toPos, offset, key: connectionKey, index: pathIndex });
+          pathIndex++;
         });
       });
     }
     
-    // Second pass: render paths
+    // Render paths
     pathData.forEach(({ from: fromPos, to: toPos, offset, key: connectionKey }) => {
       const fromNodeId = fromPos.node.nodeId;
       const toNodeId = toPos.node.nodeId;
@@ -360,21 +300,28 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
   const { lines, arrows } = renderConnections();
   
   // Calculate SVG dimensions
-  const maxX = nodePositions.length > 0 ? Math.max(...nodePositions.map(p => p.x)) + 100 : 800;
-  const maxY = nodePositions.length > 0 ? Math.max(...nodePositions.map(p => p.y)) + 100 : 600;
-  const minY = nodePositions.length > 0 ? Math.min(...nodePositions.map(p => p.y)) - 100 : 0;
-  const svgHeight = nodePositions.length > 0 ? maxY - minY + 200 : 600;
+  const maxX = nodePositions.length > 0 ? Math.max(...nodePositions.map(p => p.x)) + 50 : 800;
+  const maxY = nodePositions.length > 0 ? Math.max(...nodePositions.map(p => p.y)) + 50 : 600;
+  const minY = nodePositions.length > 0 ? Math.min(...nodePositions.map(p => p.y)) - 50 : 0;
+  const svgHeight = nodePositions.length > 0 ? maxY - minY + 100 : 600;
   
   return (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '20px',
       backgroundColor: '#f8f9fa',
-      minHeight: '100vh',
-      color: '#212529',
-      position: 'relative'
+      border: '3px solid #6c757d',
+      borderTop: 'none',
+      borderTopLeftRadius: '0',
+      borderTopRightRadius: '0',
+      borderBottomLeftRadius: '0',
+      borderBottomRightRadius: '0',
+      padding: '5px',
+      minHeight: '400px',
+      height: '500px',
+      width: '100%',
+      position: 'relative',
+      overflow: 'hidden',
+      boxSizing: 'border-box',
+      color: '#212529'
     }}>
       {/* Main Menu Button - Top Left */}
       {onReturnToMenu && (
@@ -382,15 +329,15 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
           onClick={onReturnToMenu}
           style={{
             position: 'absolute',
-            top: '20px',
-            left: '20px',
-            padding: '10px 20px',
-            fontSize: '14px',
+            top: '5px',
+            left: '5px',
+            padding: '8px 16px',
+            fontSize: '13px',
             fontWeight: 'bold',
             backgroundColor: '#6c757d',
             color: 'white',
             border: '2px solid black',
-            borderRadius: '8px',
+            borderRadius: '6px',
             cursor: 'pointer',
             zIndex: 100,
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
@@ -406,8 +353,9 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
         </button>
       )}
       <h1 style={{ 
-        marginBottom: '20px', 
-        fontSize: '32px',
+        marginBottom: '4px', 
+        marginTop: '0',
+        fontSize: '18px',
         textAlign: 'center',
         color: '#212529',
         fontWeight: 'bold',
@@ -417,23 +365,29 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
       
       <div style={{
         backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        padding: '20px',
+        borderRadius: '6px',
+        padding: '5px',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         border: '1px solid #dee2e6',
-        overflow: 'auto',
-        maxWidth: '100%',
+        overflow: 'hidden',
+        width: '100%',
+        height: 'calc(100% - 30px)', // Account for smaller title
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column'
       }}>
-        <svg
-          width="100%"
-          height={svgHeight}
-          viewBox={`0 0 ${Math.max(800, maxX)} ${svgHeight}`}
-          preserveAspectRatio="xMidYMid meet"
-          style={{
-            display: 'block',
-            maxWidth: '100%',
-          }}
-        >
+        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          <svg
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${Math.max(800, maxX)} ${svgHeight}`}
+            preserveAspectRatio="xMidYMid meet"
+            style={{
+              display: 'block',
+              maxWidth: '100%',
+              minHeight: '300px'
+            }}
+          >
           <defs>
             {/* Glow filter for available nodes */}
             <filter id="glow">
@@ -532,19 +486,21 @@ export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onR
               </g>
             );
           })}
-        </svg>
+          </svg>
+        </div>
         
         {/* Legend */}
         <div style={{
-          marginTop: '20px',
-          padding: '15px',
+          marginTop: '4px',
+          padding: '4px 8px',
           backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
-          fontSize: '14px',
+          borderRadius: '4px',
+          fontSize: '9px',
           border: '1px solid #dee2e6',
+          flexShrink: 0
         }}>
-          <div style={{ marginBottom: '10px', fontWeight: 'bold', color: '#212529' }}>Legend:</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+          <div style={{ marginBottom: '2px', fontWeight: 'bold', color: '#212529', fontSize: '10px' }}>Legend:</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{
                 width: '16px',
