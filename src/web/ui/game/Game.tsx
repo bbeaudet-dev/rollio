@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Board } from './board/Board';
 import { GameControls } from './GameControls';
 import { Inventory } from './Inventory';
@@ -10,6 +10,7 @@ import { TallyModal } from './TallyModal';
 import { GameOverModal } from './GameOverModal';
 import { DifficultyProvider } from '../../contexts/DifficultyContext';
 import { ScoringHighlightProvider } from '../../contexts/ScoringHighlightContext';
+import { playWorldMapSound, playDrumrollSound, playSuccessSound, playGameOverSound } from '../../utils/sounds';
 
 // Intermediary interfaces for logical groups
 interface RollActions {
@@ -34,6 +35,7 @@ interface InventoryActions {
   handleConsumableUse: (index: number) => void;
   handleSellCharm?: (index: number) => void;
   handleSellConsumable?: (index: number) => void;
+  handleMoveCharm?: (index: number, direction: 'left' | 'right') => void;
 }
 
 interface GameBoardData {
@@ -114,13 +116,95 @@ export const Game: React.FC<GameProps> = ({
   // Check if modals should disable interactions
   const modalOpen = isGameOver || (showTallyModal && pendingRewards);
   
+  // Play world map sound when entering world map
+  const prevIsInMapSelectionRef = React.useRef(false);
+  useEffect(() => {
+    if (isInMapSelection && !prevIsInMapSelectionRef.current) {
+      // Just entered world map
+      playWorldMapSound();
+    }
+    prevIsInMapSelectionRef.current = isInMapSelection;
+  }, [isInMapSelection]);
+
+  // Play win sounds when game is won (drumroll then success)
+  const prevWonRef = React.useRef<boolean | undefined>(undefined);
+  useEffect(() => {
+    if (gameState?.won === true && prevWonRef.current !== true) {
+      // Game just won - play drumroll then success
+      playDrumrollSound();
+      // Play success after drumroll finishes (drumroll is typically ~2-3 seconds)
+      setTimeout(() => {
+        playSuccessSound();
+      }, 2500); // Adjust timing based on actual drumroll.wav length
+    }
+    prevWonRef.current = gameState?.won;
+  }, [gameState?.won]);
+
+  // Play game over sound when game over modal opens
+  const prevIsGameOverRef = React.useRef(false);
+  useEffect(() => {
+    if (isGameOver && !prevIsGameOverRef.current && gameState?.won === false) {
+      // Game over modal just opened (and it's a loss, not a win)
+      playGameOverSound();
+    }
+    prevIsGameOverRef.current = isGameOver;
+  }, [isGameOver, gameState?.won]);
+  
   // Handle map selection phase
   if (isInMapSelection && gameState && onSelectWorld) {
     return (
-      <WorldMap
-        gameState={gameState}
-        onSelectWorld={onSelectWorld}
-      />
+      <>
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
+        <div style={{ 
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0' // No gap between sections
+        }}>
+          <WorldMap
+            gameState={gameState}
+            onSelectWorld={onSelectWorld}
+            onReturnToMenu={onReturnToMenu}
+          />
+          
+          <Inventory 
+            charms={inventory.charms}
+            consumables={inventory.consumables}
+            blessings={gameState.blessings || []}
+            money={gameState.money}
+            shopVouchers={gameState.shopVouchers}
+            charmSlots={gameState.charmSlots}
+            consumableSlots={gameState.consumableSlots}
+            onConsumableUse={inventoryActions.handleConsumableUse}
+            onSellCharm={inventoryActions.handleSellCharm}
+            onSellConsumable={inventoryActions.handleSellConsumable}
+            onMoveCharm={inventoryActions.handleMoveCharm}
+            combinationLevels={gameState.history?.combinationLevels}
+            diceSet={gameState.diceSet}
+            selectedDiceCount={0}
+            charmState={gameState.history?.charmState}
+          />
+          
+          {/* Menu and Settings buttons below inventory */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '10px',
+            padding: '10px',
+            backgroundColor: '#f8f9fa',
+            borderTop: '1px solid #dee2e6'
+          }}>
+            <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+            <SettingsButton 
+              onClick={() => setIsSettingsOpen(true)} 
+              style={{ position: 'relative', top: 'auto', right: 'auto' }}
+            />
+          </div>
+        </div>
+      </>
     );
   }
   
@@ -316,27 +400,21 @@ export const Game: React.FC<GameProps> = ({
         onConsumableUse={inventoryActions.handleConsumableUse}
         onSellCharm={inventoryActions.handleSellCharm}
         onSellConsumable={inventoryActions.handleSellConsumable}
+        onMoveCharm={inventoryActions.handleMoveCharm}
         combinationLevels={gameState.history?.combinationLevels}
         diceSet={gameState.diceSet}
         selectedDiceCount={board.selectedDice.length}
         charmState={gameState.history?.charmState}
+        menuButtons={
+          <>
+            <SettingsButton 
+              onClick={() => setIsSettingsOpen(true)} 
+              style={{ position: 'relative', top: 'auto', right: 'auto' }}
+            />
+            <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+          </>
+        }
       />
-      
-      {/* Menu and Settings buttons below inventory */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '10px',
-        padding: '10px',
-        backgroundColor: '#f8f9fa',
-        borderTop: '1px solid #dee2e6'
-      }}>
-        <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
-        <SettingsButton 
-          onClick={() => setIsSettingsOpen(true)} 
-          style={{ position: 'relative', top: 'auto', right: 'auto' }}
-        />
-      </div>
       
       {/* Modals overlay on top - conditionally rendered */}
       

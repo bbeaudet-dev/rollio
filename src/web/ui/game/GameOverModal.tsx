@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Modal } from '../components/Modal';
 import { ActionButton } from '../components/ActionButton';
+import { playGameOverSound } from '../../utils/sounds';
 
 interface GameOverModalProps {
   isOpen: boolean;
@@ -15,6 +16,12 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   onReturnToMenu,
   onNewGame
 }) => {
+  // Play game over sound when modal opens (only for losses)
+  useEffect(() => {
+    if (isOpen && endReason === 'lost') {
+      playGameOverSound();
+    }
+  }, [isOpen, endReason]);
   const containerStyle: React.CSSProperties = {
     fontFamily: 'Arial, sans-serif',
     padding: '20px',

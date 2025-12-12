@@ -1,4 +1,5 @@
 import React from 'react';
+import { playClickSound } from '../../utils/sounds';
 
 interface ActionButtonProps {
   onClick: () => void;
@@ -48,10 +49,17 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 }) => {
   const backgroundColor = variantColors[variant];
   const sizeStyle = sizeStyles[size];
+  
+  const handleClick = () => {
+    if (!disabled) {
+      playClickSound();
+      onClick();
+    }
+  };
 
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       style={{
         ...sizeStyle,

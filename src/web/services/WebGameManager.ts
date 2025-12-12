@@ -3,7 +3,13 @@ import { resetLevelColors } from '../utils/levelColors';
 import { GameAPI } from '../../game/api';
 import { GameState, RoundState, ShopState, GamePhase, DiceSetConfig } from '../../game/types';
 import type { ScoringBreakdown } from '../../game/logic/scoringBreakdown';
-import { playDiceRollSound, playNewLevelSound, playPurchaseSound, playSellSound } from '../utils/sounds';
+import { playDiceRollSound, playNewLevelSound, playPurchaseSound, playSellSound, playSellMoneySound, playFlopSound, playMaterialSound, playGenericMaterialSound, playNewDieSound, playHotDiceSound, playShopRefreshSound } from '../utils/sounds';
+import { progressApi, gameApi } from './api';
+import { registerStartingCharms } from '../../game/utils/factories';
+import { updateEchoDescription } from '../../game/logic/consumableEffects';
+import { getDiceIndicesToRemove } from '../../game/logic/materialSystem';
+import { hasAnyScoringCombination } from '../../game/logic/findCombinations';
+import { endGame } from '../../game/logic/gameActions';
 
 export interface WebGameState {
   gameState: GameState | null;
@@ -15,7 +21,8 @@ export interface WebGameState {
     isValid: boolean;
     points: number;
     combinations: string[];
-    breakdown?: any; // ScoringBreakdown for detailed view
+    combinationLevels?: { [key: string]: number };
+    breakdown?: any; 
   } | null;
   justBanked: boolean;
   justFlopped: boolean;
@@ -87,7 +94,6 @@ export class WebGameManager {
   private async handleItemGenerated(event: CustomEvent<{ type: 'consumable' | 'charm'; id: string }>): Promise<void> {
     const { type, id } = event.detail;
     try {
-      const { progressApi } = await import('./api');
       await progressApi.unlockItem(type, id);
       window.dispatchEvent(new CustomEvent('unlock:refresh'));
     } catch (error) {
@@ -101,8 +107,6 @@ export class WebGameManager {
   private async saveGameStats(gameState: GameState, endReason: 'win' | 'lost' | 'quit'): Promise<void> {
     try {
       // Import dynamically to avoid circular dependency
-      const { gameApi } = await import('./api');
-      
       // Save completion stats first
       const saveResult = await gameApi.saveGameCompletion(gameState, endReason);
       
@@ -149,6 +153,7 @@ export class WebGameManager {
       isValid: boolean; 
       points: number; 
       combinations: string[];
+      combinationLevels?: { [key: string]: number };
       baseScoringElements?: {
         basePoints: number;
         baseMultiplier: number;
@@ -263,7 +268,6 @@ export class WebGameManager {
     try {
       const token = localStorage.getItem('auth_token');
       if (token) {
-        const { gameApi } = await import('./api');
         // Call a new endpoint to mark in_progress games as quit
         await gameApi.markInProgressGamesAsQuit();
       }
@@ -333,7 +337,6 @@ export class WebGameManager {
     resetLevelColors();
     
     // Import dynamically to avoid circular dependency
-    const { gameApi } = await import('./api');
     const result = await gameApi.loadGame();
     
     if (!result.success) {
@@ -348,19 +351,18 @@ export class WebGameManager {
     
     // Register charms with the charm manager
     // The backend already deserialized and rebuilt charm instances, so we just need to register them
-    const { registerStartingCharms } = await import('../../game/utils/factories');
     registerStartingCharms(gameState, (this.gameAPI as any).charmManager);
     
     // Update echo consumable description with last consumable was used
-    const { updateEchoDescription } = await import('../../game/logic/consumableEffects');
     updateEchoDescription(gameState);
 
     // The gameState should already have the current level and round state
     const roundState = gameState.currentWorld?.currentLevel?.currentRound || null;
     
     // Check if game is in shop state (shop is stored in gameState.shop)
+    // Shop can have nulls for purchased items, so check if shop exists and has any items (including nulls)
     const shop = gameState.shop;
-    const isInShop = !!(shop && shop.availableCharms.length > 0);
+    const isInShop = !!(shop && (shop.availableCharms.length > 0 || shop.availableConsumables.length > 0 || shop.availableBlessings.length > 0));
     const shopState = isInShop ? shop : null;
     const isInMapSelection = false; // This will be set by exitShop when at world boundary
     
@@ -411,7 +413,6 @@ export class WebGameManager {
     const scoredDiceSnapshot = state.selectedDice.map(idx => state.roundState!.diceHand[idx]).filter(Boolean);
     
     // Determine which dice will actually be removed (lead dice stay in hand)
-    const { getDiceIndicesToRemove } = await import('../../game/logic/materialSystem');
     const indicesToRemove = getDiceIndicesToRemove(state.roundState!.diceHand, state.selectedDice);
     
     // Snapshot of only dice that will actually be removed (not lead dice)
@@ -485,6 +486,11 @@ export class WebGameManager {
         return state;
       }
       
+      // Play hot dice sound when hot dice is triggered
+      if (result.hotDice) {
+        playHotDiceSound();
+      }
+            
       const roundState = result.gameState.currentWorld?.currentLevel.currentRound || null;
       const diceToReroll = roundState?.diceHand.length || 0;
       this.gameInterface.askForBankOrRoll(diceToReroll);
@@ -512,6 +518,17 @@ export class WebGameManager {
     );
     if (!result.success) {
       return state;
+    }
+    
+    // Check if a new die was added (for rainbow clone) - only check once here
+    if ((result.gameState as any).__newDieAdded) {
+      delete (result.gameState as any).__newDieAdded; // Clean up
+      playNewDieSound();
+    }
+
+    // Play hot dice sound when hot dice is triggered
+    if (result.hotDice) {
+      playHotDiceSound();
     }
 
     const roundState = result.gameState.currentWorld?.currentLevel.currentRound || null;
@@ -613,7 +630,6 @@ export class WebGameManager {
     // isFlop() returns false when shield is available, so we need to check shield separately
     if (result.flopShieldAvailable) {
       // Check if there are actually no scoring combinations (would be a flop without shield)
-      const { hasAnyScoringCombination } = await import('../../game/logic/findCombinations');
       const difficulty = finalGameState.config.difficulty;
       const hasScoringCombinations = hasAnyScoringCombination(newRoundState.diceHand, difficulty);
       
@@ -659,7 +675,6 @@ export class WebGameManager {
       // Check for flop shield availability first (even if isFlop is false, shield might be available)
       if (result.flopShieldAvailable) {
         // Check if there are actually no scoring combinations (would be a flop without shield)
-        const { hasAnyScoringCombination } = await import('../../game/logic/findCombinations');
         const difficulty = gameState.config.difficulty;
         const hasScoringCombinations = hasAnyScoringCombination(roundState.diceHand, difficulty);
         
@@ -723,7 +738,6 @@ export class WebGameManager {
     // No more rerolls - check for flop shield availability first
     if (result.flopShieldAvailable) {
       // Check if there are actually no scoring combinations (would be a flop without shield)
-      const { hasAnyScoringCombination } = await import('../../game/logic/findCombinations');
       const difficulty = gameState.config.difficulty;
       const hasScoringCombinations = hasAnyScoringCombination(roundState.diceHand, difficulty);
       
@@ -776,6 +790,7 @@ export class WebGameManager {
 
   private async handleFlop(gameState: GameState, roundState: RoundState): Promise<WebGameState> {
     // Process the flop (ends the round, increments consecutive flops, etc.)
+    playFlopSound();
     const result = await this.gameAPI.handleFlop(gameState);
     const newGameState = result.gameState;
 
@@ -800,7 +815,6 @@ export class WebGameManager {
     }
     
     if (index < 0 || index >= (state.gameState.consumables?.length || 0)) {
-      console.error('[useConsumable] Invalid index:', index);
       return state;
     }
     
@@ -808,29 +822,54 @@ export class WebGameManager {
     const selectedDiceIndices = state.selectedDice || [];
     
     // Use GameAPI for consumable effects
+    const consumable = state.gameState.consumables[index];
     const result = await this.gameAPI.useConsumable(state.gameState, index, selectedDiceIndices);
     
     if (!result.success) {
       return state;
     }
     
+    // Check if a new die was added (for freebie or rainbow clone)
+    if ((result.gameState as any).__newDieAdded) {
+      delete (result.gameState as any).__newDieAdded; // Clean up
+      playNewDieSound();
+    }
+    
     const gameState = result.gameState;
     const roundState = result.roundState !== undefined ? result.roundState : state.roundState;
     
+    // Play appropriate sounds based on consumable type
+    if (consumable) {
+      // Check if a material was changed and play material-specific sound
+      const materialChanged = (result.gameState as any).__materialChanged;
+      if (materialChanged) {
+        delete (result.gameState as any).__materialChanged; // Clean up
+        const materialId = materialChanged;
+        // Play material-specific sound
+        playMaterialSound(materialId);
+      } else if (['liquidation', 'garagesale', 'moneyPip', 'rainbow', 'golden', 'sellValue', 'doubleMoney'].some(id => consumable.id.includes(id))) {
+        // Money-related consumables
+        playSellMoneySound();
+      } else {
+        // Play material.wav for consumables that don't have specific sounds
+        playGenericMaterialSound();
+      }
+    }
+    
     // Handle unlocks if the consumable effect returned unlock info
     if (result.unlockInfo) {
-      const { progressApi } = await import('./api');
       progressApi.unlockItem(result.unlockInfo.type, result.unlockInfo.id).then(() => {
-        window.dispatchEvent(new CustomEvent('unlock:refresh'));
+          window.dispatchEvent(new CustomEvent('unlock:refresh'));
       }).catch((error) => {
         console.debug(`Failed to unlock ${result.unlockInfo!.type}:`, error);
       });
     }
     
     // Keep selected dice after using consumable
+    // Preserve pendingAction and other state to avoid phase changes
     const newState = this.createWebGameState(gameState, roundState, state.selectedDice, state.previewScoring, state.justBanked, state.justFlopped, state.isProcessing);
     
-    // Preserve shop state - don't switch views when using consumables from shop
+    // Preserve shop state and pendingAction - don't switch views or phases when using consumables
     return {
       ...newState,
       isInShop: state.isInShop,
@@ -838,6 +877,7 @@ export class WebGameManager {
       levelRewards: state.levelRewards,
       showTallyModal: state.showTallyModal,
       pendingRewards: state.pendingRewards,
+      pendingAction: state.pendingAction, // Preserve the current action/phase
     };
   }
 
@@ -856,7 +896,6 @@ export class WebGameManager {
     if (result.success) {
       playPurchaseSound();
       // Unlock the item in the user's collection (if authenticated) - fire and forget for instant response
-      const { progressApi } = await import('./api');
       progressApi.unlockItem('charm', charm.id).then(() => {
         window.dispatchEvent(new CustomEvent('unlock:refresh'));
       }).catch((error) => {
@@ -870,7 +909,12 @@ export class WebGameManager {
           idx === charmIndex ? null : charm
         ) as (typeof state.shopState.availableCharms[0] | null)[]
       };
-      const webState = this.createWebGameState(result.gameState, null, [], null, false, false, false);
+      // Update gameState.shop so it's saved with the nulls
+      const updatedGameState = {
+        ...result.gameState,
+        shop: newShopState
+      };
+      const webState = this.createWebGameState(updatedGameState, null, [], null, false, false, false);
       return {
         ...webState,
         isInShop: true,
@@ -897,7 +941,6 @@ export class WebGameManager {
     if (result.success) {
       playPurchaseSound();
       // Unlock the item in the user's collection (if authenticated) - fire and forget for instant response
-      const { progressApi } = await import('./api');
       progressApi.unlockItem('consumable', consumable.id).then(() => {
         window.dispatchEvent(new CustomEvent('unlock:refresh'));
       }).catch((error) => {
@@ -911,7 +954,12 @@ export class WebGameManager {
           idx === consumableIndex ? null : consumable
         ) as (typeof state.shopState.availableConsumables[0] | null)[]
       };
-      const webState = this.createWebGameState(result.gameState, null, [], null, false, false, false);
+      // Update gameState.shop so it's saved with the nulls
+      const updatedGameState = {
+        ...result.gameState,
+        shop: newShopState
+      };
+      const webState = this.createWebGameState(updatedGameState, null, [], null, false, false, false);
       return {
         ...webState,
         isInShop: true,
@@ -938,7 +986,6 @@ export class WebGameManager {
     if (result.success) {
       playPurchaseSound();
       // Unlock the item in the user's collection (if authenticated) - fire and forget for instant response
-      const { progressApi } = await import('./api');
       progressApi.unlockItem('blessing', blessing.id).then(() => {
         window.dispatchEvent(new CustomEvent('unlock:refresh'));
       }).catch((error) => {
@@ -952,7 +999,12 @@ export class WebGameManager {
           idx === blessingIndex ? null : blessing
         ) as (typeof state.shopState.availableBlessings[0] | null)[]
       };
-      const webState = this.createWebGameState(result.gameState, null, [], null, false, false, false);
+      // Update gameState.shop so it's saved with the nulls
+      const updatedGameState = {
+        ...result.gameState,
+        shop: newShopState
+      };
+      const webState = this.createWebGameState(updatedGameState, null, [], null, false, false, false);
       return {
         ...webState,
         isInShop: true,
@@ -965,11 +1017,28 @@ export class WebGameManager {
   }
 
   async refreshShop(state: WebGameState): Promise<WebGameState> {
-    if (!state.gameState || !state.isInShop) return state;
+    if (!state.gameState || !state.isInShop || !state.shopState) return state;
     
-    // Regenerate the entire shop
-    const newShopState = this.gameAPI.generateShop(state.gameState);
-    const webState = this.createWebGameState(state.gameState, null, [], null, false, false, false);
+    // Refresh shop (handles voucher logic)
+    const result = await this.gameAPI.refreshShop(state.gameState, state.shopState);
+    
+    if (!result.success || !result.gameState) {
+      // Show error message if refresh failed
+      this.gameInterface.log(result.message);
+      return state;
+    }
+    
+    // Play refresh sound
+    playShopRefreshSound();
+    
+    // Regenerate the entire shop with new game state 
+    const newShopState = this.gameAPI.generateShop(result.gameState);
+    // Update gameState.shop so it's saved with the new shop
+    const updatedGameState = {
+      ...result.gameState,
+      shop: newShopState
+    };
+    const webState = this.createWebGameState(updatedGameState, null, [], null, false, false, false);
     return {
       ...webState,
       isInShop: true,
@@ -1032,6 +1101,33 @@ export class WebGameManager {
     };
   }
 
+  async moveCharm(state: WebGameState, charmIndex: number, direction: 'left' | 'right'): Promise<WebGameState> {
+    if (!state.gameState) return state;
+    
+    if (charmIndex < 0 || charmIndex >= (state.gameState.charms?.length || 0)) {
+      return state;
+    }
+    
+    const result = await this.gameAPI.reorderCharm(state.gameState, charmIndex, direction);
+    if (result.success && result.gameState) {
+      // Sync charm manager with new order
+      this.gameAPI.getCharmManager().syncFromGameState(result.gameState);
+      const gameState = result.gameState;
+      const roundState = gameState.currentWorld?.currentLevel?.currentRound || null;
+      
+      const webState = this.createWebGameState(gameState, roundState, state.selectedDice, null, state.justBanked, state.justFlopped, false);
+      return {
+        ...webState,
+        isInShop: state.isInShop,
+        isInMapSelection: state.isInMapSelection,
+        shopState: state.shopState,
+        levelRewards: state.levelRewards,
+      };
+    }
+    
+    return state;
+  }
+
   async confirmTally(state: WebGameState): Promise<WebGameState> {
     if (!state.gameState || !state.pendingRewards) return state;
     
@@ -1062,6 +1158,16 @@ export class WebGameManager {
 
   async exitShop(state: WebGameState): Promise<WebGameState> {
     if (!state.gameState || !state.isInShop) return state;
+    
+    const completedLevelNumber = state.gameState.currentWorld?.currentLevel.levelNumber || 0;
+    
+    // Check if player won (completed level 25) before advancing
+    if (completedLevelNumber >= 25) {
+      // Player won - end the game
+      const wonGameState = endGame(state.gameState, true);
+      const finalRoundState = wonGameState.currentWorld?.currentLevel.currentRound || null;
+      return this.createWebGameState(wonGameState, finalRoundState, [], null, false, false, false);
+    }
     
     // Advance to next level using GameAPI (moves completed level to history, sets gamePhase appropriately)
     const advanceResult = await this.gameAPI.advanceToNextLevel(state.gameState);
@@ -1180,7 +1286,6 @@ export class WebGameManager {
       }
       
       // Save game (import dynamically to avoid circular dependency)
-      const { gameApi } = await import('./api');
       const result = await gameApi.saveGame(gameState);
       if (result.success) {
         console.log('Game auto-saved successfully');

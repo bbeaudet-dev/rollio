@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { WebGameManager, WebGameState } from '../services/WebGameManager';
 import { DiceSetConfig } from '../../game/types';
+import { playScoreSound, playGeneralScoreSound, playBellSound } from '../utils/sounds';
 
 export function useGameState() {
   const [webState, setWebState] = useState<WebGameState | null>(null);
@@ -76,6 +77,7 @@ export function useGameState() {
 
   // Handle select all dice
   const handleSelectAllDice = useCallback(() => {
+    playScoreSound();
     if (!webState || !gameManagerRef.current || !webState.roundState) return;
     
     // Get all dice that are currently in the dice hand (rolled dice)
@@ -90,6 +92,7 @@ export function useGameState() {
 
   // Handle deselect all dice
   const handleDeselectAllDice = useCallback(() => {
+    playScoreSound();
     if (!webState || !gameManagerRef.current) return;
     
     const newState = gameManagerRef.current.updateDiceSelection(webState, []);
@@ -98,6 +101,7 @@ export function useGameState() {
 
   // Unified roll/reroll action
   const handleRollDice = useCallback(async () => {
+    playScoreSound();
     if (!webState || !gameManagerRef.current) return;
     
     // If breakdown is showing, complete it first
@@ -143,6 +147,7 @@ export function useGameState() {
 
   // Handle reroll selection (BEFORE scoring - selecting dice to reroll)
   const handleRerollSelection = useCallback(async (selectedIndices: number[]) => {
+    playScoreSound();
     if (!webState || !gameManagerRef.current) return;
     
     if (webState.pendingAction.type === 'reroll') {
@@ -152,6 +157,7 @@ export function useGameState() {
   }, [webState]);
 
   const scoreSelectedDice = useCallback(async () => {
+    playGeneralScoreSound();
     if (!webState || !gameManagerRef.current) return;
     
     // If there's a pending diceSelection action, resolve it first
@@ -178,6 +184,7 @@ export function useGameState() {
   }, [webState]);
 
   const handleBank = useCallback(async () => {
+    playBellSound();
     if (!webState || !gameManagerRef.current) return;
     
     // If there's a pending bankOrRoll action, resolve it first
@@ -255,6 +262,11 @@ export function useGameState() {
       handleSellConsumable: useCallback(async (index: number) => {
         if (!webState || !gameManagerRef.current) return;
         const newState = await gameManagerRef.current.sellConsumable(webState, index);
+        setWebState(newState);
+      }, [webState]),
+      handleMoveCharm: useCallback(async (index: number, direction: 'left' | 'right') => {
+        if (!webState || !gameManagerRef.current) return;
+        const newState = await gameManagerRef.current.moveCharm(webState, index, direction);
         setWebState(newState);
       }, [webState]),
     },

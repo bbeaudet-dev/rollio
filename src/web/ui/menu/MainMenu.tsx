@@ -5,6 +5,7 @@ import { AuthSection } from '../auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { gameApi } from '../../services/api';
 import { ActionButton } from '../components/ActionButton';
+import { playClickSound } from '../../utils/sounds';
 
 export const MainMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export const MainMenu: React.FC = () => {
     });
   }, [isAuthenticated]);
   return (
+    <>
     <div style={{
       fontFamily: 'Arial, sans-serif',
       maxWidth: '600px',
@@ -159,14 +161,6 @@ export const MainMenu: React.FC = () => {
           </ActionButton>
         </div>
         
-        <ActionButton
-          variant="secondary"
-          onClick={() => setIsSettingsOpen(true)}
-          size="large"
-        >
-          Settings
-        </ActionButton>
-
         <SettingsModal 
           isOpen={isSettingsOpen} 
           onClose={() => setIsSettingsOpen(false)} 
@@ -175,14 +169,40 @@ export const MainMenu: React.FC = () => {
       
       {/* Auth Section - Below buttons */}
       <div style={{ marginTop: '30px' }}>
-        <AuthSection />
-      </div>
-      
-      {/* Self-plug */}
-      <div style={{ marginTop: '20px', fontSize: '12px', color: '#6c757d' }}>
-        a game by <a href="https://benbeaudet.com" target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'none' }}>ben</a>
+        <AuthSection onSettingsClick={() => setIsSettingsOpen(true)} />
       </div>
       
     </div>
+    
+    {/* Self-plug and Report bugs - Outside the white section */}
+    <div style={{
+      fontFamily: 'Arial, sans-serif',
+      maxWidth: '600px',
+      margin: '20px auto',
+      padding: '0 30px',
+      textAlign: 'center',
+      fontSize: '12px',
+      color: '#6c757d'
+    }}>
+      <div style={{ marginBottom: '8px' }}>
+        a game by <a 
+          href="https://benbeaudet.com" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          style={{ color: '#007bff', textDecoration: 'none' }}
+        >ben</a>
+      </div>
+      <div>
+        <a 
+          href="https://github.com/bbeaudet-dev/rollio/issues" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          style={{ color: '#007bff', textDecoration: 'none' }}
+        >
+          Report bugs
+        </a>
+      </div>
+    </div>
+    </>
   );
 }; 

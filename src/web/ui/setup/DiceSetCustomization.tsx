@@ -15,6 +15,7 @@ import { SideValueEditor } from './DiceSetCustomization/SideValueEditor';
 import { PipEffectSelector } from './DiceSetCustomization/PipEffectSelector';
 import { ConfigOptions } from './DiceSetCustomization/ConfigOptions';
 import { useUnlocks } from '../../contexts/UnlockContext';
+import { playMaterialSound, playNewDieSound } from '../../utils/sounds';
 
 interface DiceSetCustomizationProps {
   difficulty: DifficultyLevel;
@@ -184,6 +185,7 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
     };
 
     setDiceSet(prev => [...prev, newDie]);
+    playNewDieSound();
     // Track original values for the new die
     setOriginalSideValues(prev => ({
       ...prev,
@@ -299,6 +301,9 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
     setDiceSet(prev => prev.map((d, i) =>
       i === dieIndex ? { ...d, material: newMaterial } : d
     ));
+    
+    // Play material-specific sound
+    playMaterialSound(newMaterial);
   };
 
   // Change side value (increment/decrement)
@@ -636,24 +641,36 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
           marginTop: '12px',
           paddingTop: '12px'
         }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '16px',
+            alignItems: 'flex-start'
+          }}>
+            {/* Left column: Dice sides and pip effects */}
+            <div>
+              <SideValueEditor
+                die={selectedDie}
+                dieIndex={selectedDieIndex}
+                originalSideValues={originalSideValues}
+                onValueChange={handleChangeSideValue}
+                onPipEffectClick={(dieIndex, sideValue) => setSelectedSideForPipEffect({ dieIndex, sideValue })}
+                onRemovePipEffect={(dieIndex, sideValue) => handlePipEffectChange(dieIndex, sideValue, 'none')}
+                creditsRemaining={creditsRemaining}
+                costPerChange={COST_CHANGE_SIDE_VALUE}
+              />
+            </div>
 
-          <MaterialSelector
-            selectedMaterial={selectedDie.material}
-            onMaterialChange={(material) => handleChangeMaterial(selectedDieIndex, material)}
-            materialCost={(material) => getMaterialCost(material, diceSet)}
-            creditsRemaining={creditsRemaining}
-          />
-
-          <SideValueEditor
-            die={selectedDie}
-            dieIndex={selectedDieIndex}
-            originalSideValues={originalSideValues}
-            onValueChange={handleChangeSideValue}
-            onPipEffectClick={(dieIndex, sideValue) => setSelectedSideForPipEffect({ dieIndex, sideValue })}
-            onRemovePipEffect={(dieIndex, sideValue) => handlePipEffectChange(dieIndex, sideValue, 'none')}
-            creditsRemaining={creditsRemaining}
-            costPerChange={COST_CHANGE_SIDE_VALUE}
-          />
+            {/* Right column: Material selection */}
+            <div>
+              <MaterialSelector
+                selectedMaterial={selectedDie.material}
+                onMaterialChange={(material) => handleChangeMaterial(selectedDieIndex, material)}
+                materialCost={(material) => getMaterialCost(material, diceSet)}
+                creditsRemaining={creditsRemaining}
+              />
+            </div>
+          </div>
 
           {selectedSideForPipEffect && selectedSideForPipEffect.dieIndex === selectedDieIndex && (
             <PipEffectSelector
