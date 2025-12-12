@@ -1,5 +1,6 @@
 import React from 'react';
 import { User } from '../../contexts/AuthContext';
+import { ProfilePicture } from '../components/ProfilePicture';
 
 interface UserStats {
   gamesPlayed: number;
@@ -59,44 +60,13 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({ stats, user, onPictu
         marginBottom: '20px'
       }}>
         {/* Profile Picture */}
-        <div
-          onClick={onPictureClick}
-          style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            backgroundColor: '#007bff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            cursor: 'pointer',
-            border: '3px solid #0056b3',
-            flexShrink: 0
-          }}
-        >
-          {user?.profilePicture && user.profilePicture !== 'default' ? (
-            <img
-              src={`/assets/images/charms/${user.profilePicture.replace(/-/g, '_')}.jpeg`}
-              alt="Profile"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                borderRadius: '50%'
-              }}
-              onError={(e) => {
-                // If image fails to load, show fallback
-                (e.target as HTMLImageElement).style.display = 'none';
-                const parent = (e.target as HTMLImageElement).parentElement;
-                if (parent) {
-                  parent.innerHTML = '<span style="font-size: 32px;">🎲</span>';
-                }
-              }}
-            />
-          ) : (
-            <span>🎲</span>
-          )}
+        <div onClick={onPictureClick} style={{ cursor: 'pointer' }}>
+          <ProfilePicture 
+            key={user?.profilePicture || 'default'} 
+            profilePictureId={user?.profilePicture} 
+            size={80} 
+            style={{ border: '3px solid #0056b3' }} 
+          />
         </div>
 
         {/* Name and Stats */}

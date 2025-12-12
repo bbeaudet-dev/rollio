@@ -247,27 +247,126 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
 });
 
 /**
+ * Get charm usage statistics
+ * GET /api/stats/charms
+ */
+router.get('/charms', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    const result = await query(
+      `SELECT charm_id, times_purchased, times_generated, times_copied,
+              first_purchased_at, last_purchased_at
+       FROM charm_usage
+       WHERE user_id = $1
+       ORDER BY (times_purchased + times_generated + times_copied) DESC`,
+      [userId]
+    );
+
+    const charms = result.rows.map(row => ({
+      charmId: row.charm_id,
+      timesPurchased: row.times_purchased || 0,
+      timesGenerated: row.times_generated || 0,
+      timesCopied: row.times_copied || 0,
+      totalUsage: (row.times_purchased || 0) + (row.times_generated || 0) + (row.times_copied || 0),
+      firstPurchasedAt: row.first_purchased_at,
+      lastPurchasedAt: row.last_purchased_at,
+    }));
+
+    return res.json({
+      success: true,
+      charms
+    });
+  } catch (error) {
+    console.error('Get charm usage error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get charm usage'
+    });
+  }
+});
+
+/**
+ * Get consumable usage statistics
+ * GET /api/stats/consumables
+ */
+router.get('/consumables', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    const result = await query(
+      `SELECT consumable_id, times_used, first_used_at, last_used_at
+       FROM consumable_usage
+       WHERE user_id = $1
+       ORDER BY times_used DESC`,
+      [userId]
+    );
+
+    const consumables = result.rows.map(row => ({
+      consumableId: row.consumable_id,
+      timesUsed: row.times_used || 0,
+      firstUsedAt: row.first_used_at,
+      lastUsedAt: row.last_used_at,
+    }));
+
+    return res.json({
+      success: true,
+      consumables
+    });
+  } catch (error) {
+    console.error('Get consumable usage error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get consumable usage'
+    });
+  }
+});
+
+/**
  * Get available profile pictures
  * GET /api/stats/profile-pictures
+ * Returns all images from charms, consumables, and blessings directories
  */
 router.get('/profile-pictures', async (req: Request, res: Response) => {
   try {
-    const charmsDir = path.join(process.cwd(), 'public', 'assets', 'images', 'charms');
+    const pictures: Array<{ id: string; name: string; imagePath: string }> = [];
+    const basePath = path.join(process.cwd(), 'public', 'assets', 'images');
     
-    // Read directory and filter for .jpeg/.jpg files
-    const files = fs.readdirSync(charmsDir).filter(file => 
-      file.toLowerCase().endsWith('.jpeg') || file.toLowerCase().endsWith('.jpg')
-    );
+    // Helper function to read directory and add pictures
+    const addPicturesFromDir = (dir: string, category: 'charms' | 'consumables' | 'blessings') => {
+      try {
+        const fullPath = path.join(basePath, dir);
+        if (!fs.existsSync(fullPath)) {
+          return; // Directory doesn't exist, skip
+        }
+        
+        const files = fs.readdirSync(fullPath).filter(file => {
+          const ext = path.extname(file).toLowerCase();
+          return ext === '.png' || ext === '.jpeg' || ext === '.jpg';
+        });
+        
+        files.forEach(filename => {
+          const id = filename.replace(/\.(png|jpeg|jpg)$/i, '').toLowerCase().replace(/_/g, '-');
+          const name = filename.replace(/\.(png|jpeg|jpg)$/i, '').replace(/_/g, ' ');
+          pictures.push({
+            id: `${category}-${id}`, // Prefix with category to avoid conflicts
+            name,
+            imagePath: `/assets/images/${dir}/${filename}`
+          });
+        });
+      } catch (error) {
+        // Silently skip if directory doesn't exist or can't be read
+        console.warn(`Could not read ${dir} directory:`, error);
+      }
+    };
     
-    const pictures = files.map(filename => {
-      const id = filename.replace(/\.(jpeg|jpg)$/i, '').toLowerCase().replace(/_/g, '-');
-      const name = filename.replace(/\.(jpeg|jpg)$/i, '').replace(/_/g, ' ');
-      return {
-        id,
-        name,
-        imagePath: `/assets/images/charms/${filename}`
-      };
-    });
+    // Add pictures from all three directories
+    addPicturesFromDir('charms', 'charms');
+    addPicturesFromDir('consumables', 'consumables');
+    addPicturesFromDir('blessings', 'blessings');
+    
+    // Sort by name for better UX
+    pictures.sort((a, b) => a.name.localeCompare(b.name));
     
     return res.json({
       success: true,

@@ -18,6 +18,7 @@ export interface GameState {
   currentWorld?: WorldState; // Current world state (includes currentLevel)
   
   money: number;
+  shopVouchers: number; // Shop vouchers for shop refreshes
   diceSet: Die[];
   charms: Charm[];
   consumables: Consumable[];
@@ -53,6 +54,7 @@ export interface LevelState {
   banksRemaining?: number;
   flopsThisLevel: number; // Track total flops in this level (for progressive penalty)
   banksThisLevel?: number;  // For OneSongGlory charm - tracks banks used in this level
+  flowerCounter?: number;  // Tracks flower dice scored in this level (for Flower material and Bloom charm)
   isFirstScoring?: boolean;  // Tracks if first scoring of level has occurred (for PointPirate and other charms)
   isFirstFlop?: boolean;  // Tracks if first flop of level has occurred
   isFirstRoll?: boolean;  // Tracks if first roll of level has occurred
@@ -76,9 +78,7 @@ export interface RoundState {
   roundPoints: number; 
   diceHand: Die[];  // Current dice available to roll (changes as you score)
   hotDiceCounter: number; 
-  forfeitedPoints: number;
-  flowerCounter?: number;  // tracks flower dice scored
-  generatorCurrentCategory?: CombinationCategory; 
+  forfeitedPoints: number; 
 }
 
 
@@ -225,7 +225,10 @@ export type BlessingEffect =
   | { type: "flopSubversion"; percentage: number }
   | { type: "moneyPerBank"; amount: number }
   | { type: "moneyOnLevelEnd"; amount: number }
-  | { type: "moneyOnRerollUsed"; amount: number };
+  | { type: "moneyOnRerollUsed"; amount: number }
+  | { type: "shopVoucherPreservation"; percentage: number }
+  | { type: "shopVoucherBonus"; amount: number }
+  | { type: "shopVoucherMultiplier"; multiplier: number };
 
 
 export type CombinationCounters = Record<string, number>;

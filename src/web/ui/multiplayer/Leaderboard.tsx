@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { statsApi } from '../../services/api';
+import { ProfilePicture } from '../components/ProfilePicture';
 
 interface LeaderboardEntry {
   userId: string;
@@ -134,9 +135,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBack }) => {
                       marginLeft: '12px',
                       fontSize: '16px',
                       fontWeight: '500',
-                      color: '#2c3e50'
+                      color: '#2c3e50',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
-                      {entry.username}
+                      <ProfilePicture profilePictureId={entry.profilePictureId} size={32} />
+                      <span>{entry.username}</span>
                     </div>
                     <div style={{
                       fontSize: '16px',
@@ -196,9 +201,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ onBack }) => {
                       marginLeft: '12px',
                       fontSize: '16px',
                       fontWeight: '500',
-                      color: '#2c3e50'
+                      color: '#2c3e50',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
-                      {entry.username}
+                      <ProfilePicture profilePictureId={entry.profilePictureId} size={32} />
+                      <span>{entry.username}</span>
                     </div>
                     <div style={{
                       fontSize: '16px',

@@ -27,7 +27,7 @@ import { isGameOver, isFlop, isHotDice, isLevelCompleted, canBankPoints as canBa
 import { endGame, advanceToNextLevel, selectNextWorld } from '../logic/gameActions';
 import { getAvailableWorldChoices, getWorldIdForNode } from '../logic/mapGeneration';
 import { tallyLevel as tallyLevelFunction, calculateLevelRewards, LevelRewards } from '../logic/tallying';
-import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, sellCharm as sellCharmLogic, sellConsumable as sellConsumableLogic } from '../logic/shop';
+import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, sellCharm as sellCharmLogic, sellConsumable as sellConsumableLogic, reorderCharm as reorderCharmLogic } from '../logic/shop';
 import { validateRerollSelection } from '../logic/rerollLogic';
 import { applyConsumableEffect, updateLastConsumableUsed, determineConsumableInputs } from '../logic/consumableEffects';
 import { calculateScoringBreakdown } from '../logic/scoring';
@@ -46,6 +46,8 @@ import {
 import { createInitialGameState, createInitialLevelState, registerStartingCharms } from '../utils/factories';
 import { registerCharms } from '../logic/charms/index';
 import { checkFlopShieldAvailable } from '../logic/charms/CommonCharms';
+import { resetFlowerCounter } from '../logic/gameActions';
+
 
 /**
  * GameAPI
@@ -457,9 +459,17 @@ export class GameAPI {
     
     const forfeitedPoints = roundState.roundPoints;
     
+    // Call onFlop for all charms to allow tracking (e.g., Sandbagger)
+    // This happens before state updates so charms can see the current state
+    this.charmManager.callAllOnFlop({
+      gameState,
+      roundState
+    });
+    
     let newGameState = incrementConsecutiveFlops(gameState);
     newGameState = resetConsecutiveBanks(newGameState);
     newGameState = setForfeitedPoints(newGameState, forfeitedPoints);
+    newGameState = resetFlowerCounter(newGameState);
     newGameState = endRound(newGameState, 'flop');
     newGameState = applyFlopPenalty(newGameState);
     newGameState = checkMaxFlopsPerLevel(newGameState);
@@ -639,6 +649,14 @@ export class GameAPI {
    */
   generateShop(gameState: GameState): ShopState {
     return generateShopInventory(gameState);
+  }
+
+  /**
+   * Refresh shop - handles voucher logic
+   */
+  async refreshShop(gameState: GameState, shopState: ShopState): Promise<{ success: boolean; message: string; gameState?: GameState }> {
+    const { refreshShop: refreshShopFn } = await import('../logic/shop');
+    return refreshShopFn(gameState, shopState);
   }
 
   /**
@@ -1003,6 +1021,21 @@ export class GameAPI {
    */
   async sellConsumable(gameState: GameState, consumableIndex: number): Promise<{ success: boolean; message: string; gameState: GameState }> {
     const result = sellConsumableLogic(gameState, consumableIndex);
+    if (result.success && result.gameState) {
+      this.emit('stateChanged', { gameState: result.gameState });
+    }
+    return {
+      success: result.success,
+      message: result.message,
+      gameState: result.gameState || gameState
+    };
+  }
+
+  /**
+   * Reorder a charm (move left or right in the charms array)
+   */
+  async reorderCharm(gameState: GameState, charmIndex: number, direction: 'left' | 'right'): Promise<{ success: boolean; message: string; gameState: GameState }> {
+    const result = reorderCharmLogic(gameState, charmIndex, direction);
     if (result.success && result.gameState) {
       this.emit('stateChanged', { gameState: result.gameState });
     }

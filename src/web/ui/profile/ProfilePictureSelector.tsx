@@ -51,15 +51,20 @@ export const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
     try {
       const result = await statsApi.updateProfilePicture(selected);
       if (result.success) {
+        // Refresh user data to get updated profile picture
         await refreshUser();
-        onSelect(selected);
+        // Wait a bit for context to update, then call onSelect
+        setTimeout(() => {
+          onSelect(selected);
+          onClose();
+        }, 100);
       } else {
         alert('Failed to update profile picture');
+        setSaving(false);
       }
     } catch (error) {
       console.error('Failed to update profile picture:', error);
       alert('Failed to update profile picture');
-    } finally {
       setSaving(false);
     }
   };
@@ -84,10 +89,12 @@ export const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
           backgroundColor: '#ffffff',
           borderRadius: '8px',
           padding: '30px',
-          maxWidth: '600px',
+          maxWidth: '800px',
           width: '90%',
-          maxHeight: '80vh',
-          overflow: 'auto',
+          maxHeight: '85vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
         }}
         onClick={(e) => e.stopPropagation()}
@@ -125,43 +132,59 @@ export const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
           </div>
         ) : (
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-            gap: '15px',
-            marginBottom: '20px'
+            maxHeight: '60vh',
+            overflowY: 'auto',
+            paddingRight: '10px'
           }}>
-            {pictures.map((pic) => (
-            <div
-              key={pic.id}
-              onClick={() => setSelected(pic.id)}
-              style={{
-                width: '100px',
-                height: '100px',
-                borderRadius: '50%',
-                backgroundColor: selected === pic.id ? '#007bff' : '#f8f9fa',
-                border: selected === pic.id ? '3px solid #0056b3' : '3px solid #e1e5e9',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                overflow: 'hidden',
-                position: 'relative'
-              }}
-              title={pic.name}
-            >
-              <img
-                src={pic.imagePath}
-                alt={pic.name}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  opacity: selected === pic.id ? 1 : 0.7
-                }}
-              />
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+              gap: '12px',
+              marginBottom: '20px'
+            }}>
+              {pictures.map((pic) => (
+                <div
+                  key={pic.id}
+                  onClick={() => setSelected(pic.id)}
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    backgroundColor: selected === pic.id ? '#007bff' : '#f8f9fa',
+                    border: selected === pic.id ? '3px solid #0056b3' : '3px solid #e1e5e9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    flexShrink: 0
+                  }}
+                  title={pic.name}
+                >
+                  <img
+                    src={pic.imagePath}
+                    alt={pic.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      opacity: selected === pic.id ? 1 : 0.7
+                    }}
+                    onError={(e) => {
+                      // Try alternative extensions if first fails
+                      const img = e.target as HTMLImageElement;
+                      if (pic.imagePath.endsWith('.png')) {
+                        img.src = pic.imagePath.replace('.png', '.jpeg');
+                      } else if (pic.imagePath.endsWith('.jpeg')) {
+                        img.src = pic.imagePath.replace('.jpeg', '.jpg');
+                      }
+                    }}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
           </div>
         )}
 

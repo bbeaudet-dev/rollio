@@ -6,6 +6,8 @@ import { ProfilePictureSelector } from './ProfilePictureSelector';
 import { ProfileStats } from './ProfileStats';
 import { RecentGames, GameHistory } from './RecentGames';
 import { CombinationStats } from './CombinationStats';
+import { CharmStats } from './CharmStats';
+import { ConsumableStats } from './ConsumableStats';
 import { MainMenuReturnButton } from '../components/MenuButton';
 
 interface UserStats {
@@ -115,16 +117,22 @@ export const ProfilePage: React.FC = () => {
         <CombinationStats />
       </div>
 
+      {/* Charm Usage Statistics */}
+      <CharmStats />
+
+      {/* Consumable Usage Statistics */}
+      <ConsumableStats />
+
       {/* Game History */}
       <RecentGames games={history} />
 
       {/* Profile Picture Selector Modal */}
-      {showPictureSelector && (
+      {showPictureSelector && user && (
         <ProfilePictureSelector
-          currentPicture={user?.profilePicture || 'default'}
+          currentPicture={user.profilePicture || 'default'}
           onSelect={(pictureId: string) => {
+            // Picture will be updated via AuthContext refreshUser
             setShowPictureSelector(false);
-            // Update will be handled by AuthContext
           }}
           onClose={() => setShowPictureSelector(false)}
         />
