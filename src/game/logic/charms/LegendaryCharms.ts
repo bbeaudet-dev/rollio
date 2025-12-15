@@ -1,4 +1,4 @@
-import { BaseCharm, CharmScoringContext, ScoringValueModification } from '../charmSystem';
+import { BaseCharm, CharmScoringContext, ScoringValueModification, ScoringValueModificationWithContext } from '../charmSystem';
 
 /**
  * Legendary Charms Implementation
@@ -62,27 +62,34 @@ export class TrumpCardCharm extends BaseCharm {
 }
 
 export class DrumpfCardCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
     // 50/50 chance per score: either +1.5x or -1.5x multiplier for each other charm
-    // Can become negative and lose points
+    // Can become negative and lose points - return one modification per other charm
+    const modifications: ScoringValueModificationWithContext[] = [];
+    
     if (context.charmManager) {
-        const allActiveCharms = context.charmManager.getActiveCharms();
-        // Count other charms (excluding this one)
-        const otherCharmsCount = allActiveCharms.filter((c: any) => c.id !== this.id).length;
+      const allActiveCharms = context.charmManager.getActiveCharms();
+      // Get other charms (excluding this one)
+      const otherCharms = allActiveCharms.filter((c: any) => c.id !== this.id);
       
-      if (otherCharmsCount > 0) {
-        // 50/50 chance per scoring event
+      if (otherCharms.length > 0) {
+        // 50/50 chance per scoring event (same for all charms in this scoring event)
         const isGood = Math.random() < 0.5;
         const multiplierPerCharm = isGood ? 1.5 : -1.5;
-        const totalMultiplier = otherCharmsCount * multiplierPerCharm;
         
-        return {
-          multiplierAdd: totalMultiplier
-        };
+        for (let i = 0; i < otherCharms.length; i++) {
+          const charm = otherCharms[i];
+          modifications.push({
+            multiplierAdd: multiplierPerCharm,
+            triggerContext: {
+              description: `Drumpf Card (${charm.name}: ${multiplierPerCharm > 0 ? '+' : ''}${multiplierPerCharm}x MLT)`
+            }
+          });
+        }
       }
     }
     
-    return {};
+    return modifications;
   }
 }
 

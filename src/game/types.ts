@@ -52,6 +52,8 @@ export interface LevelState {
   pointsBanked: number; 
   rerollsRemaining?: number;
   banksRemaining?: number;
+  maxRerollsAfterBonuses?: number;  // Maximum rerolls after all bonuses (for Mulligan wish)
+  maxBanksAfterBonuses?: number;  // Maximum banks after all bonuses (for Interest wish)
   flopsThisLevel: number; // Track total flops in this level (for progressive penalty)
   banksThisLevel?: number;  // For OneSongGlory charm - tracks banks used in this level
   flowerCounter?: number;  // Tracks flower dice scored in this level (for Flower material and Bloom charm)
@@ -79,6 +81,7 @@ export interface RoundState {
   diceHand: Die[];  // Current dice available to roll (changes as you score)
   hotDiceCounter: number; 
   forfeitedPoints: number; 
+  scoredValuesInRound?: number[];  // Track which values have been scored this round 
 }
 
 

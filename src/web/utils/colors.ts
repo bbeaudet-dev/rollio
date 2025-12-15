@@ -130,20 +130,54 @@ export const SCORING_ELEMENT_COLORS = {
     background: '#ce93d8' // Light purple
   },
   MONEY: {
-    text: '#f57c00',      // Dark orange
-    background: '#ffe0b2' // Light orange
+    text: '#f57c00',      // Dark yellow/orange
+    background: '#fff9c4' // Light yellow
   }
 } as const;
 
 // Game concept colors (for formatted descriptions)
 export const GAME_CONCEPT_COLORS = {
-  combination: '#4A90E2',  // Light blue
-  round: '#FF8C42',        // Orange
-  level: '#FFD700',        // Gold
-  world: '#9B59B6',        // Purple
-  bank: '#4caf50',         // Green
-  flop: '#f44336',         // Red
-  reroll: '#007bff',       // Blue 
+  // Blue: combinations, Hot Dice,
+  combination: '#4A90E2',
+  combinations: '#4A90E2',
+  hotDice: '#4A90E2',
+  hot: '#4A90E2',
+  // Green: Reroll, Bank, Level, Round, World
+  reroll: '#4caf50',
+  rerolls: '#4caf50',
+  bank: '#4caf50',
+  banks: '#4caf50',
+  level: '#4caf50',
+  levels: '#4caf50',
+  round: '#4caf50',
+  rounds: '#4caf50',
+  world: '#4caf50',
+  worlds: '#4caf50',
+  // Red: Flop
+  flop: '#f44336',
+  flops: '#f44336',
+  // Orange: Consumable, Charm, Blessing, Materials, pip effects
+  consumable: '#ff9800',
+  consumables: '#ff9800',
+  charm: '#ff9800',
+  charms: '#ff9800',
+  blessing: '#ff9800',
+  blessings: '#ff9800',
+  material: '#ff9800',
+  materials: '#ff9800',
+  pip: '#ff9800',
+  pipEffect: '#ff9800',
+  pipEffects: '#ff9800',
+  // Material names (orange)
+  plastic: '#ff9800',
+  crystal: '#ff9800',
+  flower: '#ff9800',
+  golden: '#ff9800',
+  volcano: '#ff9800',
+  mirror: '#ff9800',
+  rainbow: '#ff9800',
+  ghost: '#ff9800',
+  lead: '#ff9800',
 } as const;
 
 /**

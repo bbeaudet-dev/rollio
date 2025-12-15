@@ -5,136 +5,7 @@ import { LockIcon } from './LockIcon';
 import { RarityDot, getRarityColor } from '../../utils/rarityColors';
 import { CHARM_CARD_SIZE } from './cardSizes';
 import { formatDescription } from '../../utils/descriptionFormatter';
-
-/**
- * Convert charm ID to image filename
- * Maps charm IDs to their corresponding image filenames (using first version, not _2 or _3)
- * For Sleeper Agent, checks if activated (100+ dice scored) to use activated image
- */
-function getCharmImagePath(charmId: string, charmState?: Record<string, any> | null): string | null {
-  // Handle copied charms from Frankenstein - extract original charm ID
-  // Copied charms have IDs like "originalCharmId_copy_1234567890"
-  let originalCharmId = charmId;
-  if (charmId.includes('_copy_')) {
-    originalCharmId = charmId.split('_copy_')[0];
-  }
-  
-  // Map of charm IDs to their image filenames
-  const imageMap: Record<string, string> = {
-    'almostCertain': 'Almost_Certain.png',
-    'angelInvestor': 'Angel_Investor.png',
-    'armadilloArmor': 'Armadillo_Armor.png',
-    'bankBaron': 'Bank_Baron.png',
-    'blankSlate': 'Blank_Slate.png',
-    'blessYou': 'Bless_You.png',
-    'blessed': 'Blessed.png',
-    'bloom': 'Bloom.png',
-    'bodyDouble': 'Body_Double.png',
-    'comebackKid': 'Comeback_Kid.png',
-    'crystalClear': 'Crystal_Clear_2.png',
-    'digitalNomad': 'World_Traveler_2.png',
-    'dimeADozen': 'Dime_A_Dozen.png',
-    'doubleAgent': 'Double_Agent.png',
-    'doubleDown': 'Double_Down.png',
-    'dukeOfDice': 'Duke_Of_Dice.png',
-    'eyeOfHorus': 'Eye_Of_Horus.png',
-    'ferrisEuler': 'Ferris_Euler_2.png',
-    'flopShield': 'Flop_Shield_3.png',
-    'flopStrategist': 'Flop_Strategist.png',
-    'flowerPower': 'Flower_Power.png',
-    'ghostWhisperer': 'Ghost_Whisperer.png',
-    'goldenTouch': 'Golden_Touch.png',
-    'hedgeFund': 'Hedge_Fund.png',
-    'frequentFlyer': 'Frequent_Flyer.png',
-    'hoarder': 'Hoarder.png',
-    'holyGrail': 'Holy_Grail_2.png',
-    'hotDiceHero': 'Hot_Dice_Hero.png',
-    'hotPocket': 'Hot_Pocket.png',
-    'inheritance': 'Inheritance.png',
-    'ironFortress': 'Iron_Fortress.png',
-    'irrational': 'Irrational_2.png',
-    'kingslayer': 'Kingslayer.png',
-    'leadTitan': 'Lead_Titan.png',
-    'longshot': 'Longshot.png',
-    'lowHangingFruit': 'Low_Hanging_Fruit_2.png',
-    'luckyLeprechaun': 'Lucky_Leprechaun.png',
-    'luckyLotus': 'Lucky_Lotus_2.png',
-    'luckySevens': 'Lucky_Sevens.png',
-    'magicEightBall': 'Magic_Eight_Ball.png',
-    'moneyMagnet': 'Money_Magnet_2.png',
-    'mustBeThisTallToRide': 'Must_Be_This_Tall_To_Ride_2.png',
-    'ninetyEightPercentAPlus': 'Almost_Certain.png',
-    'nowWereEven': 'Now_Were_Even_2.png',
-    'oddsAndEnds': 'Odds_And_Ends_2.png',
-    'oddOdyssey': 'Odd_Oddyssey_2.png',
-    'oneSongGlory': 'One_Song_Glory.png',
-    'pairUp': 'Pair_Up.png',
-    'secondChance': 'Second_Chance.png',
-    'sureShot': 'Sure_Shot.png',
-    'sixShooter': 'Six_Shooter.png',
-    'whimWhisperer': 'Whim_Whisperer.png',
-    'shootingStar': 'Whim_Whisperer_2.png',
-    'highStakes': 'High_Stakes.png',
-    'generator': 'Generator.png',
-    'snowball': 'Snowball.png',
-    'russianRoulette': 'Russian_Roulette.png',
-    'fourForYourFavor': 'Five_Alive.png',
-    'fiveAlive': 'Five_Alive_2.png',
-    'divineIntervention': 'Divine_Intervention.png',
-    'divineFavor': 'Divine_Favor_2.png',
-    'paranoia': 'Paranoia.png',
-    'perfectionist': 'Perfectionist.png',
-    'pipCollector': 'Pip_Collector.png',
-    'pointPirate': 'Point_Pirate.png',
-    'primeTime': 'Prime_Time.png',
-    'purist': 'Purist.png',
-    'quadBoosters': 'Quad_Boosters_3.png',
-    'queensGambit': 'Queens_Gambit.png',
-    'rabbitsFoot': 'Rabbits_Foot_2.png',
-    'refinery': 'Refinery.png',
-    'rerollRanger': 'Reroll_Ranger.png',
-    'resonance': 'Resonance.png',
-    'roundRobin': 'Round_Robin.png',
-    'sandbagger': 'Sandbagger.png',
-    'savingGrace': 'Saving_Grace.png',
-    'sizeMatters': 'Size_Matters.png',
-    'solitary': 'Solitary.png',
-    'stairstepper': 'Stairstepper_2.png',
-    'straightShooter': 'Straight_Shooter.png',
-    'swordInTheStone': 'Sword_In_The_Stone.png',
-    'tasteTheRainbow': 'Taste_The_Rainbow_2.png',
-    'tripleThreat': 'Triple_Threat.png',
-    'vesuvius': 'Vesuvius.png',
-    'weightedDice': 'Weighted_Dice.png',
-    'wildCard': 'Wild_Card.png',
-    'brotherhood': 'Brotherhood.png',
-    'sleeperAgent': 'Sleeper_Agent.png',
-    'sleeperAgentActivated': 'Sleep_Agent_Left_2.png',
-    'matterhorn': 'Matterhorn.png',
-    'trumpCard': 'Trump_Card_3.png',
-    'drumpfCard': 'Drumpf_Card.png', 
-    'assassin': 'Assassin.png',
-    'againstTheGrain': 'Against_The_Grain_2.png',
-    'jefferson': 'Jefferson.png',
-    'botox': 'Botox_3.png',
-    'ticketEater': 'Ticket_Eater.png',
-  };
-
-  // Special handling for Sleeper Agent - check if activated
-  if (originalCharmId === 'sleeperAgent' && charmState?.sleeperAgent?.totalDiceScored >= 100) {
-    const activatedFilename = imageMap['sleeperAgentActivated'];
-    if (activatedFilename) {
-      return `/assets/images/charms/${activatedFilename}`;
-    }
-  }
-  
-  const filename = imageMap[originalCharmId];
-  if (!filename) {
-    return null;
-  }
-
-  return `/assets/images/charms/${filename}`;
-}
+import { getCharmImagePath } from '../../utils/imagePaths';
 
 interface CharmCardProps {
   charm: Charm;
@@ -377,9 +248,12 @@ export const CharmCard: React.FC<CharmCardProps> = ({
               } else if (charm.id === 'assassin' && charmState?.assassin?.destroyedDice !== undefined) {
                 values.currentValue = charmState.assassin.destroyedDice;
               } else if (charm.id === 'sleeperAgent' && charmState?.sleeperAgent?.totalDiceScored !== undefined) {
-                // Calculate remaining dice needed (100 - totalDiceScored)
                 const totalDiceScored = charmState.sleeperAgent.totalDiceScored;
                 values.remaining = Math.max(0, 100 - totalDiceScored);
+              } else if (charm.id === 'flopShield') {
+                const charmAny = charm as any;
+                const uses = charmAny.uses;
+                values.remaining = uses === '∞' || uses === undefined ? '∞' : uses;
               }
               
               // Handle Generator charm category

@@ -48,5 +48,17 @@ export const WISHES: Wish[] = [
     description: 'Copy 1 random Charm, destroy 2 others',
     uses: 1
   },
+  {
+    id: 'interest',
+    name: 'Interest',
+    description: 'Restore banks to maximum (after bonuses)',
+    uses: 1
+  },
+  {
+    id: 'mulligan',
+    name: 'Mulligan',
+    description: 'Restore rerolls to maximum (after bonuses)',
+    uses: 1
+  },
 ];
 

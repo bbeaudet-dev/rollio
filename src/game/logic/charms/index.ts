@@ -69,6 +69,14 @@ import {
   PuristCharm,
   RussianRouletteCharm,
   AssassinCharm,
+  AceInTheHoleCharm,
+  RuleOfThreeCharm,
+  QuarterbackCharm,
+  CincoDeRollioCharm,
+  HexCharm,
+  BattingTheCycleCharm,
+  BotoxCharm,
+  AgainstTheGrainCharm,
 } from './UncommonCharms';
 
 import {
@@ -143,10 +151,10 @@ export function registerCharms(): void {
   registry.register(RoundRobinCharm, 'roundRobin');
   registry.register(OneSongGloryCharm, 'oneSongGlory');
   registry.register(DigitalNomadCharm, 'digitalNomad');
-  registry.register(FlopShieldCharm, 'flopShield'); // legacy charm, might be duplicate
-  registry.register(MoneyMagnetCharm, 'moneyMagnet'); // legacy charm, might be duplicate
-  registry.register(HighStakesCharm, 'highStakes'); // legacy charm, might be duplicate
-  registry.register(LowHangingFruitCharm, 'lowHangingFruit'); // legacy charm, might be duplicate
+  registry.register(FlopShieldCharm, 'flopShield'); 
+  registry.register(MoneyMagnetCharm, 'moneyMagnet'); 
+  registry.register(HighStakesCharm, 'highStakes'); 
+  registry.register(LowHangingFruitCharm, 'lowHangingFruit'); 
   registry.register(FrequentFlyerCharm, 'frequentFlyer');
   registry.register(HoarderCharm, 'hoarder');
   registry.register(ComebackKidCharm, 'comebackKid');
@@ -178,6 +186,14 @@ export function registerCharms(): void {
   registry.register(PuristCharm, 'purist');
   registry.register(RussianRouletteCharm, 'russianRoulette');
   registry.register(AssassinCharm, 'assassin');
+  registry.register(AceInTheHoleCharm, 'aceInTheHole');
+  registry.register(RuleOfThreeCharm, 'ruleOfThree');
+  registry.register(QuarterbackCharm, 'quarterback');
+  registry.register(CincoDeRollioCharm, 'cincoDeRollio');
+  registry.register(BattingTheCycleCharm, 'battingTheCycle');
+  registry.register(HexCharm, 'hex');
+  registry.register(BotoxCharm, 'botox');
+  registry.register(AgainstTheGrainCharm, 'againstTheGrain');
   
   // Rare charms
   registry.register(KingslayerCharm, 'kingslayer');
@@ -199,8 +215,8 @@ export function registerCharms(): void {
   registry.register(BloomCharm, 'bloom');
   registry.register(MustBeThisTallToRideCharm, 'mustBeThisTallToRide');
   registry.register(QueensGambitCharm, 'queensGambit');
-  registry.register(FlopCollectorCharm, 'flopCollector'); // legacy charm, might be duplicate
-  registry.register(SizeMattersCharm, 'sizeMatters'); // legacy charm, might be duplicate
+  registry.register(FlopCollectorCharm, 'flopCollector'); 
+  registry.register(SizeMattersCharm, 'sizeMatters'); 
   registry.register(RefineryCharm, 'refinery');
   registry.register(BrotherhoodCharm, 'brotherhood');
   registry.register(SleeperAgentCharm, 'sleeperAgent');
