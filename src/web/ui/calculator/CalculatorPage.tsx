@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { calculateAllSpecificProbabilities, SpecificCombinationProbability, CombinationCategory } from '../../../game/logic/probability';
 import { CalculatorConfig } from './CalculatorConfig';
 import { ProbabilityTable } from './ProbabilityTable';
 import { ManualProbabilityTables } from './ManualProbabilityTables';
 import { MainMenuReturnButton } from '../components';
+import { playBackgroundMusic } from '../../utils/music';
 
 // Timeout for calculations (5 minutes)
 const COMPUTE_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -25,6 +26,11 @@ export const CalculatorPage: React.FC = () => {
   const [progress, setProgress] = useState<{ currentRoll: number; totalRolls: number } | null>(null);
   const cancelFlagRef = useRef(false);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Play main menu music
+  useEffect(() => {
+    playBackgroundMusic('main-title.mp3');
+  }, []);
 
   // Always calculate total outcomes for the time indicator
   const totalOutcomes = useMemo(() => {

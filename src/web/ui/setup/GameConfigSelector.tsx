@@ -14,6 +14,7 @@ import { Die, DiceSetConfig } from '../../../game/types';
 import { PipEffectType } from '../../../game/data/pipEffects';
 import { createDiceSetConfigFromCustomization } from './diceSetCustomizationUtils';
 import { useAuth } from '../../contexts/AuthContext';
+import { playBackgroundMusic } from '../../utils/music';
 
 interface GameConfigSelectorProps {
   onConfigComplete: (config: {
@@ -65,6 +66,11 @@ export const GameConfigSelector: React.FC<GameConfigSelectorProps> = ({ onConfig
   const [charms, setCharms] = useState<any[]>([]);
   const [consumables, setConsumables] = useState<any[]>([]);
   const [blessings, setBlessings] = useState<any[]>([]);
+
+  // Play game config music when component mounts
+  useEffect(() => {
+    playBackgroundMusic('game-config.mp3');
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {

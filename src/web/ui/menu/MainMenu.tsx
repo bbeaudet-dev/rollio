@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { gameApi } from '../../services/api';
 import { ActionButton } from '../components/ActionButton';
 import { playClickSound } from '../../utils/sounds';
+import { playBackgroundMusic } from '../../utils/music';
 
 export const MainMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +14,14 @@ export const MainMenu: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hasSavedGame, setHasSavedGame] = useState(false);
   const [gameInfo, setGameInfo] = useState<{ worldNumber: number; levelNumber: number } | null>(null);
+
+  // Play main menu music
+  useEffect(() => {
+    playBackgroundMusic('main-title.mp3');
+    return () => {
+      // Music will be stopped when navigating away
+    };
+  }, []);
 
   // Check for saved game in the background (non-blocking)
   useEffect(() => {

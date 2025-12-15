@@ -85,25 +85,33 @@ function parseDiceIndicesFromStep(step: ScoringBreakdownStep, selectedIndices: n
     return selectedIndices;
   }
   
-  // material_*_die* or pipEffect_*_die* - extract die index
-  // The die number in the step ID is 1-indexed position in the selectedIndices array
+  // Extract die index from step ID
   const dieMatch = stepId.match(/die(\d+)/);
   if (dieMatch) {
     const dieNumber = parseInt(dieMatch[1], 10);
-    // dieNumber is 1-indexed position in selectedIndices array
-    // e.g., die1 = first selected die = selectedIndices[0]
-    if (dieNumber > 0 && dieNumber <= selectedIndices.length) {
-      const actualIndex = selectedIndices[dieNumber - 1];
-      return [actualIndex];
+    
+    if (stepId.startsWith('charm_')) {
+      // For charm steps, dieNumber is the actual die index in diceHand
+      // Check if this index is in selectedIndices (for scored dice) or valid (for unscored dice like Ghost Whisperer)
+      if (selectedIndices.includes(dieNumber)) {
+        // This is a scored die
+        return [dieNumber];
+      } else {
+        // This might be an unscored die (like unscored ghost dice)
+        // Still return it so it can be highlighted if needed
+        return [dieNumber];
+      }
+    } else {
+      // For material/pipEffect steps, dieNumber is 1-indexed position in selectedIndices array
+      // e.g., die1 = first selected die = selectedIndices[0]
+      if (dieNumber > 0 && dieNumber <= selectedIndices.length) {
+        const actualIndex = selectedIndices[dieNumber - 1];
+        return [actualIndex];
+      }
     }
   }
   
-  // material_crystal_global - highlight all crystal dice
-  if (stepId === 'material_crystal_global') {
-    return selectedIndices;
-  }
-  
-  // charm_* - no specific dice to highlight
+  // charm_* without die number - no specific dice to highlight
   if (stepId.startsWith('charm_')) {
     return [];
   }

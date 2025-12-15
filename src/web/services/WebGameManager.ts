@@ -3,11 +3,12 @@ import { resetLevelColors } from '../utils/levelColors';
 import { GameAPI } from '../../game/api';
 import { GameState, RoundState, ShopState, GamePhase, DiceSetConfig } from '../../game/types';
 import type { ScoringBreakdown } from '../../game/logic/scoringBreakdown';
-import { playDiceRollSound, playNewLevelSound, playPurchaseSound, playSellSound, playSellMoneySound, playFlopSound, playMaterialSound, playGenericMaterialSound, playNewDieSound, playHotDiceSound, playShopRefreshSound } from '../utils/sounds';
+import { playDiceRollSound, playNewLevelSound, playPurchaseSound, playSellSound, playSellMoneySound, playFlopSound, playMaterialSound, playGenericMaterialSound, playNewDieSound, playHotDiceSound, playShopRefreshSound, playBossSound, playConsumableSound, playCombinationUpgradeSound } from '../utils/sounds';
 import { progressApi, gameApi } from './api';
 import { registerStartingCharms } from '../../game/utils/factories';
 import { updateEchoDescription } from '../../game/logic/consumableEffects';
 import { getDiceIndicesToRemove } from '../../game/logic/materialSystem';
+import { isMinibossLevel, isMainBossLevel } from '../../game/data/worlds';
 import { hasAnyScoringCombination } from '../../game/logic/findCombinations';
 import { endGame } from '../../game/logic/gameActions';
 
@@ -486,6 +487,18 @@ export class WebGameManager {
         return state;
       }
       
+      // Check for consumable generation flag (from Generator charm)
+      if ((result.gameState as any).__consumableGenerated) {
+        delete (result.gameState as any).__consumableGenerated; // Clean up
+        playConsumableSound();
+      }
+      
+      // Check for combination upgrade flag (from pip effects)
+      if ((result.gameState as any).__combinationUpgraded) {
+        delete (result.gameState as any).__combinationUpgraded; // Clean up
+        playCombinationUpgradeSound();
+      }
+      
       // Play hot dice sound when hot dice is triggered
       if (result.hotDice) {
         playHotDiceSound();
@@ -524,6 +537,18 @@ export class WebGameManager {
     if ((result.gameState as any).__newDieAdded) {
       delete (result.gameState as any).__newDieAdded; // Clean up
       playNewDieSound();
+    }
+    
+    // Check for consumable generation flag (from Generator charm)
+    if ((result.gameState as any).__consumableGenerated) {
+      delete (result.gameState as any).__consumableGenerated; // Clean up
+      playConsumableSound();
+    }
+    
+    // Check for combination upgrade flag (from pip effects)
+    if ((result.gameState as any).__combinationUpgraded) {
+      delete (result.gameState as any).__combinationUpgraded; // Clean up
+      playCombinationUpgradeSound();
     }
 
     // Play hot dice sound when hot dice is triggered
@@ -837,6 +862,18 @@ export class WebGameManager {
     
     const gameState = result.gameState;
     const roundState = result.roundState !== undefined ? result.roundState : state.roundState;
+    
+    // Check for consumable generation flag
+    if ((result.gameState as any).__consumableGenerated) {
+      delete (result.gameState as any).__consumableGenerated; // Clean up
+      playConsumableSound();
+    }
+    
+    // Check for combination upgrade flag
+    if ((result.gameState as any).__combinationUpgraded) {
+      delete (result.gameState as any).__combinationUpgraded; // Clean up
+      playCombinationUpgradeSound();
+    }
     
     // Play appropriate sounds based on consumable type
     if (consumable) {
@@ -1213,6 +1250,12 @@ export class WebGameManager {
     // Play new level sound
     playNewLevelSound();
     
+    // Play boss sound for miniboss and boss levels
+    const levelNumber = newGameState.currentWorld?.currentLevel.levelNumber || 0;
+    if (isMinibossLevel(levelNumber) || isMainBossLevel(levelNumber)) {
+      playBossSound();
+    }
+    
     const webState = this.createWebGameState(newGameState, roundState, [], null, false, false, false);
     return {
       ...webState,
@@ -1262,6 +1305,12 @@ export class WebGameManager {
     
     // Play new level sound
     playNewLevelSound();
+    
+    // Play boss sound for miniboss and boss levels
+    const levelNumber = gameState.currentWorld?.currentLevel.levelNumber || 0;
+    if (isMinibossLevel(levelNumber) || isMainBossLevel(levelNumber)) {
+      playBossSound();
+    }
     
     const webState = this.createWebGameState(gameState, roundState, [], null, false, false, false);
     return {

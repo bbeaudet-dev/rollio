@@ -2,7 +2,7 @@
  * Simple sound effect utility
  */
 
-import { getSoundEffectsVolume } from './uiSettings';
+import { getSoundEffectsVolume, getSoundEffectsEnabled } from './uiSettings';
 
 const SOUND_BASE_PATH = '/assets/sounds';
 
@@ -16,39 +16,45 @@ let preloadPromise: Promise<void> | null = null;
 
 // List of all sound files to preload with their folder paths
 const SOUND_FILES = [
+  // Board sounds
+  'board/roll1.mov',
+  'board/roll2.mp3',
+  'board/roll3.mp3',
+  'board/flop.wav',
+  'board/hot-dice.wav',
+  // Inventory sounds
+  'inventory/coin1.mp3',
+  'inventory/coin2.mp3',
+  'inventory/coin3.mp3',
+  'inventory/combination-upgrade.wav',
+  'inventory/consumable.wav',
+  'inventory/material.wav',
+  'inventory/new-die.wav',
+  'inventory/purchase.mp3',
+  'inventory/sell.mp3',
+  'inventory/shop-refresh.wav',
   // UI sounds
-  'ui/roll1.mov',
-  'ui/roll2.mp3',
-  'ui/roll3.mp3',
-  'ui/level-complete.wav',
-  'ui/new-level.mp3',
-  'ui/purchase.mp3',
-  'ui/coin1.mp3',
-  'ui/coin2.mp3',
-  'ui/coin3.mp3',
-  'ui/material.wav',
-  'ui/click.wav',
-  'ui/sell.mp3',
-  'ui/general-score.wav',
-  'ui/flop.wav',
-  'ui/score.wav',
   'ui/bell.wav',
-  'ui/hot-dice.wav',
-  'ui/world-map.wav',
-  'ui/new-die.wav',
-  'ui/shop-refresh.wav',
+  'ui/click.wav',
   'ui/drumroll.wav',
+  'ui/general-score.wav',
+  'ui/score.wav',
   'ui/success.wav',
-  'ui/game-over.wav',
   // Material sounds
   'materials/crystal.wav',
-  'materials/mirror.wav',
-  'materials/golden.wav',
   'materials/flower.wav',
-  'materials/lead.wav',
   'materials/ghost.wav',
+  'materials/golden.wav',
+  'materials/lead.wav',
+  'materials/mirror.wav',
   'materials/rainbow.wav',
-  'materials/volcano.wav'
+  'materials/volcano.wav',
+  // World sounds
+  'world/boss.wav',
+  'world/game-over.wav',
+  'world/level-complete.wav',
+  'world/new-level.mp3',
+  'world/world-map.wav'
 ];
 
 /**
@@ -145,11 +151,11 @@ export function playDiceRollSound(numDice: number): void {
   let soundFile: string;
   
   if (numDice <= 2) {
-    soundFile = 'ui/roll1.mov';
+    soundFile = 'board/roll1.mov';
   } else if (numDice <= 3) {
-    soundFile = 'ui/roll2.mp3';
+    soundFile = 'board/roll2.mp3';
   } else {
-    soundFile = 'ui/roll3.mp3';
+    soundFile = 'board/roll3.mp3';
   }
   
   playSound(soundFile);
@@ -159,28 +165,28 @@ export function playDiceRollSound(numDice: number): void {
  * Play the level complete sound
  */
 export function playLevelCompleteSound(): void {
-  playSound('ui/level-complete.wav');
+  playSound('world/level-complete.wav');
 }
 
 /**
  * Play the new level sound
  */
 export function playNewLevelSound(): void {
-  playSound('ui/new-level.mp3');
+  playSound('world/new-level.mp3');
 }
 
 /**
  * Play purchase sound
  */
 export function playPurchaseSound(): void {
-  playSound('ui/purchase.mp3');
+  playSound('inventory/purchase.mp3');
 }
 
 /**
  * Play sell sound
  */
 export function playSellSound(): void {
-  const coinSounds = ['ui/coin1.mp3', 'ui/coin2.mp3', 'ui/coin3.mp3'];
+  const coinSounds = ['inventory/coin1.mp3', 'inventory/coin2.mp3', 'inventory/coin3.mp3'];
   const randomSound = coinSounds[Math.floor(Math.random() * coinSounds.length)];
   playSound(randomSound);
 }
@@ -189,7 +195,7 @@ export function playSellSound(): void {
  * Play material change sound (generic fallback)
  */
 export function playGenericMaterialSound(): void {
-  playSound('ui/material.wav');
+  playSound('inventory/material.wav');
 }
 
 /**
@@ -203,7 +209,7 @@ export function playClickSound(): void {
  * Play sell/money sound
  */
 export function playSellMoneySound(): void {
-  playSound('ui/sell.mp3');
+  playSound('inventory/sell.mp3');
 }
 
 /**
@@ -231,7 +237,7 @@ export function playGeneralScoreSound(): void {
  * Play flop sound
  */
 export function playFlopSound(): void {
-  playSound('ui/flop.wav');
+  playSound('board/flop.wav');
 }
 
 /**
@@ -252,14 +258,14 @@ export function playBellSound(): void {
  * Play hot dice sound
  */
 export function playHotDiceSound(): void {
-  playSound('ui/hot-dice.wav');
+  playSound('board/hot-dice.wav');
 }
 
 /**
  * Play world map sound
  */
 export function playWorldMapSound(): void {
-  playSound('ui/world-map.wav');
+  playSound('world/world-map.wav');
 }
 
 /**
@@ -308,14 +314,14 @@ export function playVolcanoSound(): void {
  * Play new die sound (when a die is added to the set)
  */
 export function playNewDieSound(): void {
-  playSound('ui/new-die.wav');
+  playSound('inventory/new-die.wav');
 }
 
 /**
  * Play shop refresh sound
  */
 export function playShopRefreshSound(): void {
-  playSound('ui/shop-refresh.wav');
+  playSound('inventory/shop-refresh.wav');
 }
 
 /**
@@ -336,7 +342,28 @@ export function playSuccessSound(): void {
  * Play game over sound
  */
 export function playGameOverSound(): void {
-  playSound('ui/game-over.wav');
+  playSound('world/game-over.wav');
+}
+
+/**
+ * Play boss sound (for miniboss and boss levels)
+ */
+export function playBossSound(): void {
+  playSound('world/boss.wav');
+}
+
+/**
+ * Play consumable generated sound
+ */
+export function playConsumableSound(): void {
+  playSound('inventory/consumable.wav');
+}
+
+/**
+ * Play combination upgrade sound
+ */
+export function playCombinationUpgradeSound(): void {
+  playSound('inventory/combination-upgrade.wav');
 }
 
 /**
@@ -398,6 +425,11 @@ export function updateSoundEffectsVolume(): void {
  * Uses preloaded audio if available, otherwise creates a new one
  */
 function playSound(filename: string): void {
+  // Check if sound effects are enabled
+  if (!getSoundEffectsEnabled()) {
+    return;
+  }
+  
   const volume = getSoundEffectsVolume();
   
   try {
