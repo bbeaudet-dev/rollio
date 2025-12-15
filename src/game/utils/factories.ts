@@ -190,6 +190,8 @@ export function createInitialLevelState(
     isMainBoss,
     rerollsRemaining: finalRerolls,
     banksRemaining: finalBanks,
+    maxRerollsAfterBonuses: finalRerolls,  // Store maximum for Mulligan wish
+    maxBanksAfterBonuses: finalBanks,  // Store maximum for Interest wish
     flopsThisLevel: 0, 
     pointsBanked: 0, 
     currentRound: firstRound,

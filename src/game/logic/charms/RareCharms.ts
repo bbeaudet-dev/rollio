@@ -1,7 +1,8 @@
-import { BaseCharm, CharmScoringContext, CharmFlopContext, CharmBankContext, ScoringValueModification } from '../charmSystem';
+import { BaseCharm, CharmScoringContext, CharmFlopContext, CharmBankContext, ScoringValueModification, ScoringValueModificationWithContext } from '../charmSystem';
 import { getPipEffectForDie } from '../pipEffectSystem';
 import { getSizeMultiplier } from '../../utils/dieSizeUtils';
 import { getPyramidLayers } from '../../data/combinations';
+import { CHARMS } from '../../data/charms';
 
 /**
  * Rare Charms Implementation
@@ -24,33 +25,38 @@ import { getPyramidLayers } from '../../data/combinations';
 
 export class KingslayerCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // 3x multiplier during miniboss and boss levels
+    // ^3 MLT (multiplier^3) during miniboss and boss levels
     const isBoss = context.gameState.currentLevel?.isMiniboss || context.gameState.currentLevel?.isMainBoss;
     return {
-      multiplierMultiply: isBoss ? 3 : 1
+      multiplierExponent: isBoss ? 3 : 1
     };
   }
 }
 
 export class DoubleDownCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // 2x MLT for each two-faced effect scored
-    // Count how many two-faced effects are scored
-    let twoFacedCount = 0;
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // 2x MLT for each two-faced effect scored - return one modification per two-faced die
+    const modifications: ScoringValueModificationWithContext[] = [];
+    
+    let twoFacedNumber = 1;
     for (const idx of context.selectedIndices) {
       const die = context.roundState.diceHand[idx];
       if (die) {
         const pipEffect = getPipEffectForDie(die);
         if (pipEffect === 'twoFaced') {
-          twoFacedCount++;
+          modifications.push({
+            multiplierMultiply: 2,
+            triggerContext: {
+              dieIndex: idx,
+              description: `Double Down (Two-Faced Die #${twoFacedNumber}: ×2 MLT)`
+            }
+          });
+          twoFacedNumber++;
         }
       }
     }
-    // Multiply by 2 for each two-faced effect (2^count)
-    const multiplier = twoFacedCount > 0 ? Math.pow(2, twoFacedCount) : 1;
-    return {
-      multiplierMultiply: multiplier
-    };
+    
+    return modifications;
   }
 }
 
@@ -80,6 +86,17 @@ export class PerfectionistCharm extends BaseCharm {
     const consecutiveCount = context.gameState.history.charmState.perfectionist.consecutiveAllDiceScored || 0;
     const multiplierBonus = consecutiveCount * 0.25;
     
+    // Update description with current value
+    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
+    if (charm) {
+      const originalCharm = CHARMS.find((c: any) => c.id === this.id);
+      const baseDescription = originalCharm?.description || charm.description;
+      // Remove existing (Current: ...) if present, then add new one
+      const descWithoutCurrent = baseDescription.replace(/\s*\(Current:.*?\)/, '');
+      charm.description = `${descWithoutCurrent} (Current: +[${multiplierBonus.toFixed(2)}] MLT)`;
+      this.description = charm.description;
+    }
+    
     return {
       multiplierAdd: multiplierBonus
     };
@@ -105,15 +122,23 @@ export class DivineInterventionCharm extends BaseCharm {
 }
 
 export class HolyGrailCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +2x multiplier for each Tier 3 Blessing you own
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // +2x multiplier for each Tier 3 Blessing you own - return one modification per blessing
+    const modifications: ScoringValueModificationWithContext[] = [];
     const tier3Blessings = (context.gameState.blessings || []).filter(
       (b: any) => b.tier === 3
     );
-    const tier3Count = tier3Blessings.length;
-    return {
-      multiplierAdd: tier3Count * 2
-    };
+    
+    for (let i = 0; i < tier3Blessings.length; i++) {
+      modifications.push({
+        multiplierAdd: 2,
+        triggerContext: {
+          description: `Holy Grail (Tier 3 Blessing #${i + 1}: +2x MLT)`
+        }
+      });
+    }
+    
+    return modifications;
   }
 }
 
@@ -186,26 +211,48 @@ export class EyeOfHorusCharm extends BaseCharm {
 }
 
 export class ArmadilloArmorCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +1x multiplier for each reroll remaining
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // +1x multiplier for each reroll remaining - return one modification per reroll
+    const modifications: ScoringValueModificationWithContext[] = [];
     const rerollsRemaining = context.gameState.currentLevel?.rerollsRemaining || 0;
-    return {
-      multiplierAdd: rerollsRemaining
-    };
+    
+    for (let i = 0; i < rerollsRemaining; i++) {
+      modifications.push({
+        multiplierAdd: 1,
+        triggerContext: {
+          description: `Armadillo Armor (Reroll #${i + 1} remaining: +1x MLT)`
+        }
+      });
+    }
+    
+    return modifications;
   }
 }
 
 export class VesuviusCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +0.25x multiplier per volcano die × hot dice counter
-    const volcanoCount = context.selectedIndices.filter(
-      idx => context.roundState.diceHand[idx]?.material === 'volcano'
-    ).length;
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // +0.25x multiplier per volcano die × hot dice counter - return one modification per volcano die
+    const modifications: ScoringValueModificationWithContext[] = [];
     const hotDiceCounter = context.roundState.hotDiceCounter || 0;
-    const multiplierBonus = 0.25 * volcanoCount * hotDiceCounter;
-    return {
-      multiplierAdd: multiplierBonus
-    };
+    
+    let volcanoDieNumber = 1;
+    for (const idx of context.selectedIndices) {
+      const die = context.roundState.diceHand[idx];
+      if (die?.material === 'volcano') {
+        const multiplierPerDie = 0.25 * hotDiceCounter;
+        modifications.push({
+          multiplierAdd: multiplierPerDie,
+          triggerContext: {
+            dieIndex: idx,
+            material: 'volcano',
+            description: `Vesuvius (Volcano Die #${volcanoDieNumber}: +${multiplierPerDie.toFixed(2)}x MLT)`
+          }
+        });
+        volcanoDieNumber++;
+      }
+    }
+    
+    return modifications;
   }
 }
 
@@ -227,22 +274,27 @@ export class BlankSlateCharm extends BaseCharm {
 }
 
 export class LeadTitanCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Each scored Lead die gives ^1.1 EXP (exponent multiplication)
-    const leadCount = context.selectedIndices.filter(
-      idx => context.roundState.diceHand[idx]?.material === 'lead'
-    ).length;
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // Each scored Lead die gives ^1.1 EXP (exponent multiplication) - return one modification per lead die
+    const modifications: ScoringValueModificationWithContext[] = [];
     
-    if (leadCount > 0) {
-      // Multiply exponent by 1.1 for each lead die
-      // If we have 2 lead dice, that's 1.1 * 1.1 = 1.21x exponent
-      const exponentMultiplier = Math.pow(1.1, leadCount);
-      return {
-        exponentMultiply: exponentMultiplier
-      };
+    let leadDieNumber = 1;
+    for (const idx of context.selectedIndices) {
+      const die = context.roundState.diceHand[idx];
+      if (die?.material === 'lead') {
+        modifications.push({
+          exponentMultiply: 1.1,
+          triggerContext: {
+            dieIndex: idx,
+            material: 'lead',
+            description: `Lead Titan (Lead Die #${leadDieNumber}: ^1.1 EXP)`
+          }
+        });
+        leadDieNumber++;
+      }
     }
     
-    return {};
+    return modifications;
   }
 }
 
@@ -265,37 +317,87 @@ export class InheritanceCharm extends BaseCharm {
 }
 
 export class ResonanceCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
     // 1 in 3 chance for crystal dice to bounce off of each other, repeating effect until failure
-    // TODO: Needs crystal bounce effect system
-    // This would need to modify how crystal material effects are applied
-    return {};
+    // Return one modification per crystal die that successfully bounces
+    const modifications: ScoringValueModificationWithContext[] = [];
+    
+    // Find all crystal dice in the selection
+    const crystalDice: number[] = [];
+    for (const idx of context.selectedIndices) {
+      const die = context.roundState.diceHand[idx];
+      if (die && die.material === 'crystal') {
+        crystalDice.push(idx);
+      }
+    }
+    
+    // For each crystal die, 1 in 3 chance to bounce (repeat crystal effect)
+    // Each bounce applies the crystal multiplier (1.5x)
+    let bounceNumber = 1;
+    for (const idx of crystalDice) {
+      const roll = Math.random();
+      if (roll < 1/3) {
+        // Bounce successful - apply crystal effect again
+        modifications.push({
+          multiplierMultiply: 1.5,
+          triggerContext: {
+            dieIndex: idx,
+            material: 'crystal',
+            description: `Resonance (Crystal Bounce #${bounceNumber})`
+          }
+        });
+        bounceNumber++;
+        
+        // Keep bouncing until failure (recursive chance)
+        let continueBouncing = true;
+        let bounceCount = 1;
+        while (continueBouncing && bounceCount < 10) { // Limit to prevent infinite loops
+          const nextRoll = Math.random();
+          if (nextRoll < 1/3) {
+            modifications.push({
+              multiplierMultiply: 1.5,
+              triggerContext: {
+                dieIndex: idx,
+                material: 'crystal',
+                description: `Resonance (Crystal Bounce #${bounceNumber}, Chain ${bounceCount + 1})`
+              }
+            });
+            bounceNumber++;
+            bounceCount++;
+          } else {
+            continueBouncing = false;
+          }
+        }
+      }
+    }
+    
+    return modifications;
   }
 }
 
 export class BloomCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Each flower die scored adds 3 to flower dice counter
-    // Track in levelState (resets when banking or flopping)
-    const levelState = context.gameState.currentWorld?.currentLevel;
-    const currentFlowerCounter = levelState?.flowerCounter || 0;
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // Each flower die scored adds 3 to flower dice counter - return one modification per flower die
+    const modifications: ScoringValueModificationWithContext[] = [];
     
-    // Count flower dice in this scoring selection
-    const flowerDiceScored = context.selectedIndices.filter(idx => {
+    let flowerDieNumber = 1;
+    for (const idx of context.selectedIndices) {
       const die = context.roundState.diceHand[idx];
-      return die && die.material === 'flower';
-    }).length;
+      if (die?.material === 'flower') {
+        // Each flower die adds 3 to counter (handled elsewhere)
+        // For now, just create a step for visibility
+        modifications.push({
+          triggerContext: {
+            dieIndex: idx,
+            material: 'flower',
+            description: `Bloom (Flower Die #${flowerDieNumber}: +3 to counter)`
+          }
+        });
+        flowerDieNumber++;
+      }
+    }
     
-    // Calculate new counter value (will be persisted by the caller)
-    const newFlowerCounter = currentFlowerCounter + (flowerDiceScored * 3);
-    
-    // Update levelState immutably (this will be handled by the scoring system)
-    // For now, we just track it - the actual state update happens in the scoring flow
-    // TODO: Apply multiplier based on newFlowerCounter
-    // The multiplier should be based on the counter value after this scoring
-    // For now, just track the counter - multiplier logic can be added later
-    
-    return {};
+    return modifications;
   }
 }
 
@@ -400,6 +502,17 @@ export class BrotherhoodCharm extends BaseCharm {
     // +1.5 MLT for each consecutive level without rerolling or flopping
     // Track in charmState
     const consecutiveLevels = context.gameState.history.charmState?.brotherhood?.consecutiveLevels || 0;
+    
+    // Update description with current value
+    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
+    if (charm) {
+      const originalCharm = CHARMS.find((c: any) => c.id === this.id);
+      const baseDescription = originalCharm?.description || charm.description;
+      // Remove existing (Current: ...) if present, then add new one
+      const descWithoutCurrent = baseDescription.replace(/\s*\(Current:.*?\)/, '');
+      charm.description = `${descWithoutCurrent} (Current: +[${(consecutiveLevels * 1.5).toFixed(1)}] MLT)`;
+      this.description = charm.description;
+    }
     
     return {
       multiplierAdd: consecutiveLevels * 1.5

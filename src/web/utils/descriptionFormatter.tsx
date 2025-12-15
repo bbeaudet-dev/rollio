@@ -163,6 +163,36 @@ export function formatDescription(
     }
   }
   
+  // Find material names in descriptions (case-insensitive, whole word)
+  // Materials: Plastic, Crystal, Flower, Golden, Volcano, Mirror, Rainbow, Ghost, Lead
+  const materialNames = ['plastic', 'crystal', 'flower', 'golden', 'volcano', 'mirror', 'rainbow', 'ghost', 'lead'];
+  const materialPattern = new RegExp(`\\b(${materialNames.join('|')})\\b`, 'gi');
+  match = null;
+  while ((match = materialPattern.exec(description)) !== null) {
+    const materialText = match[1];
+    const lowerMaterial = materialText.toLowerCase();
+    
+    // Check if already matched
+    const overlaps = matches.some(m => 
+      match!.index < m.end && match!.index + match![0].length > m.start
+    );
+    
+    if (overlaps) continue;
+    
+    // Check if it's inside a {Concept} pattern (if so, skip - it will be handled by concept pattern)
+    const before = description.substring(Math.max(0, match.index - 1), match.index);
+    const after = description.substring(match.index + match[0].length, Math.min(description.length, match.index + match[0].length + 1));
+    if (before === '{' && after === '}') continue;
+    
+    matches.push({
+      type: 'concept',
+      start: match.index,
+      end: match.index + match[0].length,
+      originalText: materialText, // Preserve original capitalization
+      key: lowerMaterial // Use lowercase for color lookup
+    });
+  }
+  
   // Find game concepts: {Concept} - only format if it's a known concept
   const conceptPattern = /\{([A-Z][a-z]+(?:s|ing)?)\}/g;
   match = null;
@@ -177,10 +207,21 @@ export function formatDescription(
     
     if (overlaps) continue;
     
-    // Check if it's a known concept - just check if lowercase matches a key
-    const conceptKey = Object.keys(GAME_CONCEPT_COLORS).find(key => 
-      lowerConcept === key || lowerConcept.startsWith(key) || key.startsWith(lowerConcept.split(/s|ing/)[0])
-    );
+    // Check if it's a known concept - use stem-based matching for better word variation handling
+    // Remove common suffixes (s, es, ing, ed) to find the base word
+    const stem = lowerConcept.replace(/(s|es|ing|ed)$/, '');
+    const conceptKey = Object.keys(GAME_CONCEPT_COLORS).find(key => {
+      const keyStem = key.replace(/(s|es|ing|ed)$/, '');
+      // Direct match, stem match, or if one is a prefix of the other
+      return lowerConcept === key || 
+             stem === key || 
+             stem === keyStem || 
+             keyStem === stem ||
+             lowerConcept.startsWith(key) ||
+             key.startsWith(lowerConcept) ||
+             stem.startsWith(keyStem) ||
+             keyStem.startsWith(stem);
+    });
     
     if (conceptKey) {
       matches.push({

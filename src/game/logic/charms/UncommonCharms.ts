@@ -1,4 +1,4 @@
-import { BaseCharm, CharmScoringContext, CharmFlopContext, CharmBankContext, ScoringValueModification } from '../charmSystem';
+import { BaseCharm, CharmScoringContext, CharmFlopContext, CharmBankContext, CharmRoundStartContext, ScoringValueModification, ScoringValueModificationWithContext } from '../charmSystem';
 import { Die } from '../../types';
 import { getPipEffectForDie } from '../pipEffectSystem';
 import { calculateFinalScore } from '../scoringElements';
@@ -63,12 +63,14 @@ export class SavingGraceCharm extends BaseCharm {
 
 export class TasteTheRainbowCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +300 points if all rolled dice have unique materials
+    // +500 PTS, +5 MLT, +0.5 EXP if all rolled dice have unique materials
     const materials = context.roundState.diceHand.map((die: Die) => die.material);
     const uniqueMaterials = new Set(materials);
     const allUnique = materials.length === uniqueMaterials.size;
     return {
-      basePointsAdd: allUnique ? 300 : 0
+      basePointsAdd: allUnique ? 500 : 0,
+      multiplierAdd: allUnique ? 5 : 0,
+      exponentAdd: allUnique ? 0.5 : 0
     };
   }
 }
@@ -190,11 +192,12 @@ export class SixShooterCharm extends BaseCharm {
 
 export class HedgeFundCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +1x multiplier for every $100 owned
+    // +1 EXP for every $100 owned
     const money = context.gameState.money || 0;
-    const multiplierBonus = Math.floor(money / 100);
+    const expCount = Math.floor(money / 100);
+    
     return {
-      multiplierAdd: multiplierBonus
+      exponentAdd: expCount
     };
   }
 }
@@ -212,30 +215,38 @@ export class LuckyLotusCharm extends BaseCharm {
 
 export class HotPocketCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // 2x multiplier when hot dice counter is 2 or higher
+    // +0.5 EXP when hot dice counter is 2 or higher
     const hotDiceCounter = context.roundState.hotDiceCounter || 0;
     return {
-      multiplierMultiply: hotDiceCounter >= 2 ? 2 : 1
+      exponentAdd: hotDiceCounter >= 2 ? 0.5 : 0
     };
   }
 }
 
 export class WildCardCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +250 points for each wild pip effect in the scoring selection
-    let wildCount = 0;
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // +250 points for each wild pip effect in the scoring selection - return one modification per wild die
+    const modifications: ScoringValueModificationWithContext[] = [];
+    
+    let wildDieNumber = 1;
     for (const idx of context.selectedIndices) {
       const die = context.roundState.diceHand[idx];
       if (die) {
         const pipEffect = getPipEffectForDie(die);
         if (pipEffect === 'wild') {
-          wildCount++;
+          modifications.push({
+            multiplierAdd: 1,
+            triggerContext: {
+              dieIndex: idx,
+              description: `Wild Card (Wild Die #${wildDieNumber})`
+            }
+          });
+          wildDieNumber++;
         }
       }
     }
-    return {
-      basePointsAdd: wildCount * 250
-    };
+    
+    return modifications;
   }
 }
 
@@ -350,7 +361,7 @@ export class WeightedDiceCharm extends BaseCharm {
 
 export class RussianRouletteCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // ^1.25 exponent
+    // ^EXP (exponent exponent - raises exponent to the power of exponent)
     // 1 in 6 chance of automatically flopping (roll 1-6, if 1 then flop)
     const roll = Math.floor(Math.random() * 6) + 1; // 1-6
     if (roll === 1) {
@@ -360,7 +371,7 @@ export class RussianRouletteCharm extends BaseCharm {
     }
     
     return {
-      exponentMultiply: 1.25
+      exponentExponent: 1 // This means exponent^exponent
     };
   }
 }
@@ -386,5 +397,232 @@ export function incrementAssassinDestroyedDice(gameState: any) {
     gameState.history.charmState.assassin = { destroyedDice: 0 };
   }
   gameState.history.charmState.assassin.destroyedDice = (gameState.history.charmState.assassin.destroyedDice || 0) + 1;
+}
+
+export class AceInTheHoleCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // +1 MLT for each scored 1 - return one modification per 1
+    const modifications: ScoringValueModificationWithContext[] = [];
+    
+    let oneNumber = 1;
+    for (const idx of context.selectedIndices) {
+      const die = context.roundState.diceHand[idx];
+      if (die && die.rolledValue === 1) {
+        modifications.push({
+          multiplierAdd: 1,
+          triggerContext: {
+            dieIndex: idx,
+            value: 1,
+            description: `Ace in the Hole (Die #${oneNumber}: Value 1)`
+          }
+        });
+        oneNumber++;
+      }
+    }
+    
+    return modifications;
+  }
+}
+
+export class RuleOfThreeCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // +300 PTS for each scored 3 - return one modification per 3
+    const modifications: ScoringValueModificationWithContext[] = [];
+    
+    let threeNumber = 1;
+    for (const idx of context.selectedIndices) {
+      const die = context.roundState.diceHand[idx];
+      if (die && die.rolledValue === 3) {
+        modifications.push({
+          basePointsAdd: 300,
+          triggerContext: {
+            dieIndex: idx,
+            value: 3,
+            description: `Rule of Three (Die #${threeNumber}: Value 3)`
+          }
+        });
+        threeNumber++;
+      }
+    }
+    
+    return modifications;
+  }
+}
+
+export class QuarterbackCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // +0.25 EXP for each scored 4 - return one modification per 4
+    const modifications: ScoringValueModificationWithContext[] = [];
+    
+    let fourNumber = 1;
+    for (const idx of context.selectedIndices) {
+      const die = context.roundState.diceHand[idx];
+      if (die && die.rolledValue === 4) {
+        modifications.push({
+          exponentAdd: 0.25,
+          triggerContext: {
+            dieIndex: idx,
+            value: 4,
+            description: `Quarterback (Die #${fourNumber}: Value 4)`
+          }
+        });
+        fourNumber++;
+      }
+    }
+    
+    return modifications;
+  }
+}
+
+export class CincoDeRollioCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // +55 PTS, +0.5 MLT, and +0.05 EXP for each scored 5 - return one modification per 5
+    const modifications: ScoringValueModificationWithContext[] = [];
+    
+    let fiveNumber = 1;
+    for (const idx of context.selectedIndices) {
+      const die = context.roundState.diceHand[idx];
+      if (die && die.rolledValue === 5) {
+        modifications.push({
+          basePointsAdd: 55,
+          multiplierAdd: 0.5,
+          exponentAdd: 0.05,
+          triggerContext: {
+            dieIndex: idx,
+            value: 5,
+            description: `Cinco de Rollio (Die #${fiveNumber}: Value 5)`
+          }
+        });
+        fiveNumber++;
+      }
+    }
+    
+    return modifications;
+  }
+}
+
+export class HexCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
+    // +666 PTS for each scored 6, but 50% chance each is -666 PTS instead
+    const modifications: ScoringValueModificationWithContext[] = [];
+    
+    let sixNumber = 1;
+    for (const idx of context.selectedIndices) {
+      const die = context.roundState.diceHand[idx];
+      if (die && die.rolledValue === 6) {
+        // 50% chance for positive, 50% for negative
+        const isPositive = Math.random() < 0.5;
+        const points = isPositive ? 666 : -666;
+        
+        modifications.push({
+          basePointsAdd: points,
+          triggerContext: {
+            dieIndex: idx,
+            value: 6,
+            description: `Hex (Die #${sixNumber}: Value 6, ${isPositive ? '+' : '-'}666 PTS)`
+          }
+        });
+        sixNumber++;
+      }
+    }
+    
+    return modifications;
+  }
+}
+
+export class BotoxCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +2 MLT when scoring only Plastic dice
+    const allPlastic = context.selectedIndices.every(idx => {
+      const die = context.roundState.diceHand[idx];
+      return die && die.material === 'plastic';
+    });
+    return {
+      multiplierAdd: allPlastic && context.selectedIndices.length > 0 ? 2 : 0
+    };
+  }
+}
+
+export class BattingTheCycleCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +4 MLT when scoring, once a 1, 2, 3, and 4 have been scored in the Round
+    // Track scored values in round state
+    if (!context.roundState.scoredValuesInRound) {
+      context.roundState.scoredValuesInRound = [];
+    }
+    
+    // Collect unique values from this scoring
+    const valuesScoredThisTime = new Set<number>();
+    for (const idx of context.selectedIndices) {
+      const die = context.roundState.diceHand[idx];
+      if (die && die.rolledValue !== undefined) {
+        valuesScoredThisTime.add(die.rolledValue);
+      }
+    }
+    
+    // Add new values to the tracked list (before checking if cycle is complete)
+    for (const value of valuesScoredThisTime) {
+      if (!context.roundState.scoredValuesInRound.includes(value)) {
+        context.roundState.scoredValuesInRound.push(value);
+      }
+    }
+    
+    // Check if we have 1, 2, 3, and 4 all scored
+    const hasOne = context.roundState.scoredValuesInRound.includes(1);
+    const hasTwo = context.roundState.scoredValuesInRound.includes(2);
+    const hasThree = context.roundState.scoredValuesInRound.includes(3);
+    const hasFour = context.roundState.scoredValuesInRound.includes(4);
+    
+    // Check if cycle is complete (all four are present)
+    const cycleComplete = hasOne && hasTwo && hasThree && hasFour;
+    
+    // Give bonus every time you score once the cycle is complete
+    if (cycleComplete) {
+      return {
+        multiplierAdd: 4
+      };
+    }
+    
+    return {};
+  }
+  
+  onRoundStart(context: CharmRoundStartContext): void {
+    // Reset tracking at the start of each round
+    if (context.roundState) {
+      context.roundState.scoredValuesInRound = [];
+    }
+  }
+}
+
+export class AgainstTheGrainCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +750 PTS when scoring a Straight, Pyramid, or n=3+ Pairs with a mirror die
+    const hasMirror = context.selectedIndices.some(idx => {
+      const die = context.roundState.diceHand[idx];
+      return die && die.material === 'mirror';
+    });
+    
+    if (!hasMirror) return {};
+    
+    // Check for Straight
+    const hasStraight = context.combinations.some(
+      combo => combo.type === 'straight' || combo.type === 'straightOfN'
+    );
+    
+    // Check for Pyramid
+    const hasPyramid = context.combinations.some(
+      combo => combo.type === 'pyramid'
+    );
+    
+    // Check for n=3+ Pairs
+    const hasThreePlusPairs = context.combinations.some(
+      combo => combo.type === 'nPairs' && (combo.n || 0) >= 3
+    );
+    
+    const qualifies = hasStraight || hasPyramid || hasThreePlusPairs;
+    return {
+      basePointsAdd: qualifies ? 750 : 0
+    };
+  }
 }
 

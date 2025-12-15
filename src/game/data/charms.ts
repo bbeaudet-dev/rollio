@@ -116,7 +116,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'stairstepper',
     name: 'Stairstepper',
-    description: 'Increment +20 PTS per {Straight} played (Current: +[20] PTS)',
+    description: 'Increment +40 PTS per {Straight} played (Current: +[40] PTS)',
     rarity: 'common'
   },
   {
@@ -128,19 +128,19 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'oddsAndEnds',
     name: 'Odds and Ends',
-    description: '+25 PTS per odd value scored',
+    description: '+50 PTS per odd value scored',
     rarity: 'common'
   },
   {
     id: 'nowWereEven',
     name: 'Now We\'re Even',
-    description: '+200 PTS if all selected dice are even',
+    description: '+300 PTS if all selected dice are even',
     rarity: 'common'
   },
   {
     id: 'moneyMagnet',
     name: 'Money Magnet',
-    description: '+2 PTS for every $1 you have (Current: +[] PTS)',
+    description: '+5 PTS for every $1 you have (Current: +[] PTS)',
     rarity: 'common'
   },
   {
@@ -158,25 +158,25 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'ninetyEightPercentAPlus',
     name: '98% A+',
-    description: '+10 PTS if scored dice includes a {Pair}',
+    description: '+98 PTS if scored dice includes a {Pair}',
     rarity: 'common'
   },
   {
     id: 'oddOdyssey',
     name: 'Odd Odyssey',
-    description: 'Increment +0.25 PTS for each odd value scored (Current: +[0.25] PTS)',
+    description: 'Increment +5 PTS for each odd value scored (Current: +[5] PTS)',
     rarity: 'common'
   },
   {
     id: 'pairUp',
     name: 'Pair Up',
-    description: '+50 PTS for each {Pair} scored',
+    description: '+0.5 MLT for each {Pair} scored',
     rarity: 'common'
   },
   {
     id: 'tripleThreat',
     name: 'Triple Play',
-    description: '+50 PTS for each 3 of a Kind scored',
+    description: '+250 PTS for each 3 of a Kind scored',
     rarity: 'common'
   },
   {
@@ -212,13 +212,13 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'straightShooter',
     name: 'Straight Shooter',
-    description: '+500 PTS when scoring a {Straight}',
+    description: '+2 MLT when scoring a {Straight}',
     rarity: 'common'
   },
   {
     id: 'longshot',
     name: 'Longshot',
-    description: '+250 PTS when scoring a {Straight} of 6 or longer',
+    description: '+1000 PTS when scoring a {Straight} of 6 or longer',
     rarity: 'common'
   },
   {
@@ -242,19 +242,19 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'rerollRanger',
     name: 'Reroll Ranger',
-    description: 'Increment +5 PTS for each {Reroll} used (Current: +[5] PTS)',
+    description: 'Increment +0.05 MLT for each {Reroll} used (Current: +[0.05] MLT)',
     rarity: 'common'
   },
   {
     id: 'bankBaron',
     name: 'Bank Baron',
-    description: 'Increment +10 PTS for each {Bank} (Current: +[10] PTS)',
+    description: 'Increment +0.1 MLT for each {Bank} (Current: +[0.1] MLT)',
     rarity: 'common'
   },
   {
     id: 'pointPirate',
     name: 'Point Pirate',
-    description: '+1000 PTS on first score of the {Level}, -100 PTS on all other scores',
+    description: '+2000 PTS on first score of the {Level}, -100 PTS on all other scores',
     rarity: 'common'
   },
   {
@@ -380,13 +380,13 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'hotPocket',
     name: 'Hot Pocket',
-    description: '2x MLT when Hot Dice counter is 2 or higher',
+    description: '+0.5 EXP when Hot Dice counter is 2 or higher',
     rarity: 'common'
   },
   {
     id: 'wildCard',
     name: 'Wild Card',
-    description: '+250 PTS for each Wild pip effect in the scoring selection',
+    description: '+1 MLT for each Wild pip effect in the scoring selection',
     rarity: 'common'
   },
   {
@@ -398,7 +398,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'botox',
     name: 'Botox',
-    description: '+0.5 MLT when scoring only Plastic dice',
+    description: '+2 MLT when scoring only Plastic dice',
     rarity: 'common'
   },
 
@@ -438,7 +438,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'tasteTheRainbow',
     name: 'Taste the Rainbow',
-    description: '+300 PTS if all rolled dice have unique materials',
+    description: '+500 PTS, +5 MLT, and +0.5 EXP if all rolled dice have unique materials',
     rarity: 'uncommon'
   },
   {
@@ -450,13 +450,13 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'irrational',
     name: 'Irrational',
-    description: '3.1415 MLT if scored hand contains 1,3,4,5',
+    description: '3.1415x MLT if scored hand contains 1,3,4,5',
     rarity: 'uncommon'
   },
   {
     id: 'hedgeFund',
     name: 'Hedge Fund',
-    description: '+1 MLT for every $100 owned',
+    description: '+1 EXP for every $100 owned',
     rarity: 'uncommon'
   },
   {
@@ -484,9 +484,9 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'uncommon'
   },
   {
-    id: '',
-    name: '',
-    description: 'for each scored 1',
+    id: 'aceInTheHole',
+    name: 'Ace in the Hole',
+    description: '+1 MLT for each scored 1',
     rarity: 'uncommon'
   },
   {
@@ -496,27 +496,33 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'uncommon'
   },
   {
-    id: '',
-    name: '',
-    description: 'for each scored 3',
+    id: 'ruleOfThree',
+    name: 'Rule of Three',
+    description: '+300 PTS for each scored 3',
     rarity: 'uncommon'
   },
   {
-    id: '',
-    name: '',
-    description: 'for each scored 4',
+    id: 'quarterback',
+    name: 'Quarterback',
+    description: '+0.25 EXP for each scored 4',
     rarity: 'uncommon'
   },
   {
-    id: '',
-    name: '',
-    description: 'for each scored 5',
+    id: 'cincoDeRollio',
+    name: 'Cinco de Rollio',
+    description: '+55 PTS, +0.5 MLT, and +0.05 EXP for each scored 5',
     rarity: 'uncommon'
   },
   {
-    id: '',
-    name: '',
-    description: 'for each scored 6',
+    id: 'hex',
+    name: 'Hex',
+    description: '50/50 chance for each scored 6 to give +666 PTS or -666 PTS',
+    rarity: 'uncommon'
+  },
+  {
+    id: 'battingTheCycle',
+    name: 'Batting the Cycle',
+    description: '+4 MLT once a 1, 2, 3, and 4 have been scored in the Round',
     rarity: 'uncommon'
   },
   {
@@ -558,13 +564,13 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'russianRoulette',
     name: 'Russian Roulette',
-    description: '^1.25 EXP, but 1 in 6 chance of automatically {Flopping}',
+    description: '^EXP, but 1 in 6 chance of automatically {Flopping}',
     rarity: 'uncommon'
   },
   {
     id: 'brotherhood',
     name: 'Brotherhood',
-    description: '+1.5 MLT for each consecutive {Level} without {Rerolling} or {Flopping}',
+    description: '+1.5 MLT for each consecutive {Level} without {Rerolling} or {Flopping} (Current: +[0.0] MLT)',
     rarity: 'uncommon'
   },
   {
@@ -586,7 +592,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'kingslayer',
     name: 'Kingslayer',
-    description: '3x MLT during miniboss and boss {Levels}',
+    description: '^3 MLT during miniboss and boss {Levels}',
     rarity: 'rare'
   },
   {
@@ -598,7 +604,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'perfectionist',
     name: 'Perfectionist',
-    description: '+0.25 MLT for each consecutive time all dice are scored',
+    description: '+0.25 MLT for each consecutive time all dice are scored (Current: +[0.00] MLT)',
     rarity: 'rare'
   },
   { // probably remove, kinda boring

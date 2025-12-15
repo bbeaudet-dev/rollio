@@ -3,78 +3,10 @@ import { Blessing } from '../../../game/types';
 import { getBlessingName, getBlessingDescription } from '../../../game/data/blessings';
 import { getItemTypeColor } from '../../utils/colors';
 import { getRarityColor } from '../../utils/rarityColors';
-import { ActionButton } from './ActionButton';
 import { LockIcon } from './LockIcon';
 import { BLESSING_CARD_SIZE } from './cardSizes';
 import { formatDescription } from '../../utils/descriptionFormatter';
-
-/**
- * Convert blessing ID to image filename based on blessing type and tier
- */
-function getBlessingImagePath(blessing: Blessing): string | null {
-  const { id, tier, effect } = blessing;
-  
-  // Slot blessings
-  if (id.startsWith('slot')) {
-    if (tier === 1) return '/assets/images/blessings/Extra_Charm_Slot.png';
-    if (tier === 2) return '/assets/images/blessings/Extra_Consumable_Slot.png';
-    if (tier === 3) return '/assets/images/blessings/ExtraExtra_Charm_Slot.png';
-  }
-  
-  // Discount blessings
-  if (id.startsWith('discount')) {
-    if (tier === 1) return '/assets/images/blessings/Discount_Tier_1.png';
-    if (tier === 2) return '/assets/images/blessings/Discount_Tier_2.png';
-    if (tier === 3) return '/assets/images/blessings/Discount_Tier_3.png';
-  }
-  
-  // Banks blessings (baseLevelBanks)
-  if (id.startsWith('banks')) {
-    if (tier === 1) return '/assets/images/blessings/Gun_Hand_Tier_1.png';
-    if (tier === 2) return '/assets/images/blessings/Gun_Hand_Tier_2.png';
-    if (tier === 3) return '/assets/images/blessings/Gun_Hand_Tier_3.png';
-  }
-  
-  // Reroll ability blessings
-  if (id.startsWith('rerollAbility')) {
-    if (effect.type === 'rerollOnFlop') return '/assets/images/blessings/Reroll_Flop.png';
-    if (effect.type === 'rerollOnBank') return '/assets/images/blessings/Reroll_Bank.png';
-    if (effect.type === 'moneyOnRerollUsed') return '/assets/images/blessings/Reroll_Money.png';
-  }
-  
-  // Reroll blessings (baseLevelRerolls)
-  if (id.startsWith('reroll') && !id.startsWith('rerollAbility')) {
-    if (tier === 1) return '/assets/images/blessings/Hand_Tier_1.png';
-    if (tier === 2) return '/assets/images/blessings/Hand_Tier_2_2.png';
-    if (tier === 3) return '/assets/images/blessings/Hand_Tier_3_2.png';
-  }
-  
-  // Flop subversion blessings
-  if (id.startsWith('flopSubversion')) {
-    if (tier === 1) return '/assets/images/blessings/Holy_Hand_Tier_1.png';
-    if (tier === 2) return '/assets/images/blessings/Holy_Hand_Tier_2.png';
-    if (tier === 3) return '/assets/images/blessings/Holy_Hand_Tier_3.png';
-  }
-  
-  // Money blessings (moneyPerBank)
-  if (id.startsWith('money')) {
-    if (tier === 1) return '/assets/images/blessings/Remaining_Banks_Tier_1.png';
-    if (tier === 2) return '/assets/images/blessings/Remaining_Banks_Tier_2.png';
-    if (tier === 3) return '/assets/images/blessings/Remaining_Banks_Tier_3.png'; 
-  }
-  
-  // Shop voucher blessings
-  if (id.startsWith('shopVoucher')) {
-    if (tier === 1) return '/assets/images/blessings/Ticket_Tier_1_2.png';
-    if (tier === 2) return '/assets/images/blessings/Ticket_Tier_2_2.png';
-    if (tier === 3) return '/assets/images/blessings/Ticket_Tier_3_2.png';
-  }
-  
-  return null;
-}
-
-const BLESSING_PRICE = 5;
-const BLESSING_SELL_VALUE = 5; // Same as buy price
+import { getBlessingImagePath } from '../../utils/imagePaths';
 
 interface BlessingCardProps {
   blessing: Blessing;

@@ -23,6 +23,21 @@ export interface ScoringValueModification {
 }
 
 /**
+ * Scoring value modification with context about what triggered it
+ * Used for multiple trigger support - each trigger can include context about which die/material/value caused it
+ */
+export interface ScoringValueModificationWithContext extends ScoringValueModification {
+  triggerContext?: {
+    dieIndex?: number;           // Index of die that triggered this (in selectedIndices)
+    material?: string;            // Material of die that triggered this
+    value?: number;               // Value that triggered this
+    description?: string;         // Custom description for this trigger
+    isScored?: boolean;           // Whether the die was scored (for Ghost Whisperer unscored dice)
+    [key: string]: any;           // Allow additional context fields
+  };
+}
+
+/**
  * Base class for all charms
  */
 export abstract class BaseCharm implements Charm {
@@ -44,9 +59,12 @@ export abstract class BaseCharm implements Charm {
 
   /**
    * Called during scoring to modify scoring values
-   * Returns a modification object that will be applied to the current scoring values
+   * Returns either:
+   * - A single modification object (backward compatible)
+   * - An array of modifications with context (for multiple triggers)
+   * Each modification in the array will create a separate breakdown step
    */
-  abstract onScoring(context: CharmScoringContext): ScoringValueModification;
+  abstract onScoring(context: CharmScoringContext): ScoringValueModification | ScoringValueModificationWithContext[];
 
   /**
    * Called per-die during pip effect processing (before each die's pip effect is applied)
@@ -280,10 +298,17 @@ export class CharmManager {
         charmManager: this
       });
       
-      // Apply modifications for this charm in order: ADD → MULTIPLY → EXPONENT
-      if (result) {
-        const mod = result as ScoringValueModification;
+      // Check if result is an array (multiple triggers) or single modification
+      const modifications: ScoringValueModificationWithContext[] = Array.isArray(result) 
+        ? result 
+        : (result ? [result as ScoringValueModificationWithContext] : []);
+      
+      // Apply each modification sequentially, creating separate breakdown steps
+      for (let i = 0; i < modifications.length; i++) {
+        const mod = modifications[i];
+        const beforeMod = { ...values };
         
+        // Apply modifications in order: ADD → MULTIPLY → EXPONENT
         // Points: ADD → MULTIPLY → EXPONENT
         if (mod.basePointsAdd !== undefined) {
           values.basePoints += mod.basePointsAdd;
@@ -316,18 +341,73 @@ export class CharmManager {
         if (mod.exponentExponent !== undefined) {
           values.exponent = Math.pow(values.exponent, mod.exponentExponent);
         }
+        
+        // Track in breakdown if builder provided (TODO I think we should start removing text like this)
+        if (breakdownBuilder) {
+          const changed = JSON.stringify(beforeMod) !== JSON.stringify(values);
+          if (changed || modifications.length > 1) {
+            // Generate step ID and description
+            let stepId: string;
+            let description: string;
+            
+            if (mod.triggerContext) {
+              const ctx = mod.triggerContext;
+              // Use custom description if provided
+              if (ctx.description) {
+                description = ctx.description;
+              } else {
+                // Generate description from context
+                const parts: string[] = [charm.name];
+                
+                if (ctx.material) {
+                  const materialName = ctx.material.charAt(0).toUpperCase() + ctx.material.slice(1);
+                  if (ctx.dieIndex !== undefined) {
+                    parts.push(`(${materialName} Die #${ctx.dieIndex + 1})`);
+                  } else {
+                    parts.push(`(${materialName} Die)`);
+                  }
+                } else if (ctx.value !== undefined) {
+                  if (ctx.dieIndex !== undefined) {
+                    parts.push(`(Value: ${ctx.value}, Die #${ctx.dieIndex + 1})`);
+                  } else {
+                    parts.push(`(Value: ${ctx.value})`);
+                  }
+                } else if (ctx.dieIndex !== undefined) {
+                  parts.push(`(Die #${ctx.dieIndex + 1})`);
+                } else if (ctx.isScored !== undefined) {
+                  parts.push(`(${ctx.isScored ? 'Scored' : 'Unscored'} Ghost Die)`);
+                }
+                
+                description = parts.join(' ');
+              }
+              
+              // Generate step ID
+              if (ctx.dieIndex !== undefined) {
+                stepId = `charm_${charm.id}_die${ctx.dieIndex}`;
+              } else {
+                stepId = `charm_${charm.id}_${i}`;
+              }
+            } else {
+              // No context - use default format
+              if (modifications.length > 1) {
+                stepId = `charm_${charm.id}_${i}`;
+                description = `${charm.name} (Trigger ${i + 1})`;
+              } else {
+                stepId = `charm_${charm.id}`;
+                description = `Charm ${charm.name}`;
+              }
+            }
+            
+            breakdownBuilder.addStep(stepId, values, description);
+          }
+        }
       }
       
-      // Track in breakdown if builder provided
-      if (breakdownBuilder) {
+      // For backward compatibility: if single modification and no breakdown builder,
+      // or if no modifications were applied, check if we should add a step
+      if (breakdownBuilder && modifications.length === 1 && !modifications[0].triggerContext) {
         const changed = JSON.stringify(beforeCharm) !== JSON.stringify(values);
-        if (changed) {
-          breakdownBuilder.addStep(
-            `charm_${charm.id}`,
-            values,
-            `Charm ${charm.name}`
-          );
-        } else {
+        if (!changed) {
           // Still track charms that didn't modify values for visibility
           breakdownBuilder.addStep(
             `charm_${charm.id}`,

@@ -283,7 +283,9 @@ export class GameAPI {
     currentGameState = addPointsToRound(currentGameState, finalPoints);
     
     if (wasHotDice) {
-      currentGameState = processHotDice(currentGameState);
+      // Get remaining dice before hot dice reset for Body Double check
+      const remainingDiceBeforeReset = currentGameState.currentWorld!.currentLevel.currentRound!.diceHand;
+      currentGameState = processHotDice(currentGameState, remainingDiceBeforeReset, this.charmManager);
     }
     
     // Update roll history 

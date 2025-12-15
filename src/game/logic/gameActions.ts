@@ -562,9 +562,25 @@ export function advanceToNextLevel(gameState: GameState, charmManager?: any): Ga
 /**
  * Process hot dice - resets dice hand to full set and increments hot dice counter
  * Should be called when hot dice occurs (diceHand is empty)
+ * @param remainingDice - The dice that remained after scoring (before hot dice reset)
+ * @param charmManager - Charm manager to check for Body Double charm
  */
-export function processHotDice(gameState: GameState): GameState {
+export function processHotDice(gameState: GameState, remainingDice?: any[], charmManager?: any): GameState {
   let newGameState = incrementHotDiceCounter(gameState);
+  
+  // Check for Body Double charm: +1 to hot dice counter when hot dice triggered with unscored ghost die
+  if (remainingDice && charmManager) {
+    const allGhost = remainingDice.length > 0 && remainingDice.every((die: any) => die.material === 'ghost');
+    if (allGhost) {
+      const activeCharms = charmManager.getActiveCharms?.() || [];
+      const hasBodyDouble = activeCharms.some((c: any) => c.id === 'bodyDouble');
+      if (hasBodyDouble) {
+        // Increment hot dice counter again for Body Double
+        newGameState = incrementHotDiceCounter(newGameState);
+      }
+    }
+  }
+  
   newGameState = resetDiceHandToFullSet(newGameState);
   return newGameState;
 }

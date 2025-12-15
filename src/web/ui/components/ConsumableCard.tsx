@@ -7,54 +7,7 @@ import { getRarityColor } from '../../utils/rarityColors';
 import { CONSUMABLE_PRICES } from '../../../game/logic/shop';
 import { CONSUMABLE_CARD_SIZE } from './cardSizes';
 import { formatDescription } from '../../utils/descriptionFormatter';
-
-/**
- * Convert consumable ID to image filename
- * Maps consumable IDs to their corresponding image filenames (using first version, not _2 or _3)
- */
-function getConsumableImagePath(consumableId: string): string | null {
-  // Map of consumable IDs to their image filenames
-  const imageMap: Record<string, string> = {
-    'alchemist': 'Alchemist.png',
-    'chisel': 'Chisel.png',
-    'distortion': 'Distortion_3.png',
-    'echo': 'Echo.png',
-    'frankenstein': 'Frankenstein.png',
-    'freebie': 'Freebie.png',
-    'garagesale': 'Garage_Sale.png',
-    'grabBag': 'Grab_Bag.png',
-    'groceryList': 'Grocery_List.png',
-    'hospital': 'Hospital.png',
-    'liquidation': 'Liquidation.png',
-    'midasTouch': 'Midas_Touch.png',
-    'origin': 'Origin.png',
-    'potteryWheel': 'Pottery_Wheel.png',
-    'sacrifice': 'Sacrifice.png',
-    'welfare': 'Welfare.png',
-    'youGetACharm': 'You_Get_A_Charm.png',
-    'emptyAsAPocket': 'Empty_As_A_Pocket.png',
-    'moneyPip': 'Midas_Touch_3.png',
-    'stallion': 'Stallion.png',
-    'practice': 'Practice.png',
-    'phantom': 'Phantom_3.png',
-    'accumulation': 'Accumulation.png',
-    'jackpot': 'Jackpot.png',
-    // Combination upgrades
-    'upgradeSingleN': 'Upgrade_Singles.png',
-    'upgradeNPairs': 'Upgrade_Pairs.png',
-    'upgradeNOfAKind': 'Upgrade_N_Of_A_Kind.png',
-    'upgradeStraightOfN': 'Upgrade_Straights.png',
-    'upgradePyramidOfN': 'Upgrade_Pyramids.png',
-    'upgradeNTuplets': 'Upgrade_N_Tuplets.png',
-  };
-
-  const filename = imageMap[consumableId];
-  if (!filename) {
-    return null;
-  }
-
-  return `/assets/images/consumables/${filename}`;
-}
+import { getConsumableImagePath } from '../../utils/imagePaths';
 
 interface ConsumableCardProps {
   consumable: Consumable;
