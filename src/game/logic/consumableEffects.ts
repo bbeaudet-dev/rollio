@@ -396,6 +396,8 @@ export async function applyConsumableEffect(
       // Create consumable objects with uses property
       const consumablesToAdd = selected.slice(0, toAdd).map(c => ({ ...c, uses: 1 }));
       newGameState.consumables = [...newGameState.consumables, ...consumablesToAdd];
+      // Flag for sound effect
+      (newGameState as any).__consumableGenerated = true;
       // Dispatch events to unlock each generated consumable
       if (typeof window !== 'undefined') {
         consumablesToAdd.forEach(consumable => {
@@ -635,6 +637,9 @@ export async function applyConsumableEffect(
         combinationLevels[key] = (combinationLevels[key] || 1) + 1;
       }
       
+      // Flag for sound effect
+      (newGameState as any).__combinationUpgraded = true;
+      
       newGameState.history = {
         ...newGameState.history,
         combinationLevels
@@ -652,6 +657,9 @@ export async function applyConsumableEffect(
           combinationLevels[key] = combinationLevels[key] + 1;
         }
       }
+      
+      // Flag for sound effect
+      (newGameState as any).__combinationUpgraded = true;
       
       newGameState.history = {
         ...newGameState.history,
@@ -901,6 +909,42 @@ export async function applyConsumableEffect(
         // Store instant bank flag in round state
         (newRoundState as any).instantBank = true;
       }
+      break;
+    }
+
+    case 'interest': {
+      // Restore banks to maximum (after bonuses)
+      if (!newGameState.currentWorld?.currentLevel) {
+        shouldRemove = false;
+        wasSuccessfullyUsed = false;
+        break;
+      }
+      const maxBanks = newGameState.currentWorld.currentLevel.maxBanksAfterBonuses ?? 0;
+      newGameState.currentWorld = {
+        ...newGameState.currentWorld,
+        currentLevel: {
+          ...newGameState.currentWorld.currentLevel,
+          banksRemaining: maxBanks
+        }
+      };
+      break;
+    }
+
+    case 'mulligan': {
+      // Restore rerolls to maximum (after bonuses)
+      if (!newGameState.currentWorld?.currentLevel) {
+        shouldRemove = false;
+        wasSuccessfullyUsed = false;
+        break;
+      }
+      const maxRerolls = newGameState.currentWorld.currentLevel.maxRerollsAfterBonuses ?? 0;
+      newGameState.currentWorld = {
+        ...newGameState.currentWorld,
+        currentLevel: {
+          ...newGameState.currentWorld.currentLevel,
+          rerollsRemaining: maxRerolls
+        }
+      };
       break;
     }
 

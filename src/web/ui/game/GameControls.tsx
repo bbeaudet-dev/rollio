@@ -207,51 +207,29 @@ export const GameControls: React.FC<GameControlsProps> = ({
             </div>
           )}
 
-          {/* Select All / Deselect buttons - above Roll/Score button */}
+          {/* Select All / Deselect button - above Roll/Score button */}
           {canSelectDice && onSelectAll && onDeselect && totalDiceCount > 0 && breakdownState !== 'animating' && (
             <div style={{
               display: 'flex',
-              gap: '8px',
               justifyContent: 'center',
               marginBottom: '4px'
             }}>
               <button
-                onClick={onSelectAll}
-                disabled={selectedDiceCount === totalDiceCount}
+                onClick={selectedDiceCount === totalDiceCount ? onDeselect : onSelectAll}
                 style={{
                   padding: '6px 12px',
                   fontSize: '11px',
                   fontWeight: 'bold',
-                  backgroundColor: selectedDiceCount === totalDiceCount ? '#6c757d' : '#6c757d',
+                  backgroundColor: '#6c757d',
                   color: 'white',
                   border: '2px solid black',
                   borderRadius: '8px',
-                  cursor: selectedDiceCount === totalDiceCount ? 'not-allowed' : 'pointer',
-                  opacity: selectedDiceCount === totalDiceCount ? 0.6 : 1,
+                  cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   minWidth: '80px'
                 }}
               >
-                Select All
-              </button>
-              <button
-                onClick={onDeselect}
-                disabled={selectedDiceCount === 0}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  backgroundColor: selectedDiceCount === 0 ? '#6c757d' : '#6c757d',
-                  color: 'white',
-                  border: '2px solid black',
-                  borderRadius: '8px',
-                  cursor: selectedDiceCount === 0 ? 'not-allowed' : 'pointer',
-                  opacity: selectedDiceCount === 0 ? 0.6 : 1,
-                  whiteSpace: 'nowrap',
-                  minWidth: '80px'
-                }}
-              >
-                Deselect
+                {selectedDiceCount === totalDiceCount ? 'Deselect' : 'Select All'}
               </button>
             </div>
           )}

@@ -11,6 +11,7 @@ import { GameOverModal } from './GameOverModal';
 import { DifficultyProvider } from '../../contexts/DifficultyContext';
 import { ScoringHighlightProvider } from '../../contexts/ScoringHighlightContext';
 import { playWorldMapSound, playDrumrollSound, playSuccessSound, playGameOverSound } from '../../utils/sounds';
+import { playBackgroundMusic } from '../../utils/music';
 
 // Intermediary interfaces for logical groups
 interface RollActions {
@@ -149,6 +150,24 @@ export const Game: React.FC<GameProps> = ({
     }
     prevIsGameOverRef.current = isGameOver;
   }, [isGameOver, gameState?.won]);
+
+  // Cycle through game music (game-1 to game-5) based on level number
+  const prevLevelNumberRef = React.useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (gameState?.currentWorld?.currentLevel?.levelNumber) {
+      const levelNumber = gameState.currentWorld.currentLevel.levelNumber;
+      if (levelNumber !== prevLevelNumberRef.current) {
+        // Level changed - cycle through game-1 to game-5
+        // Use modulo to cycle: level 1 = game-1, level 2 = game-2, ..., level 5 = game-5, level 6 = game-1, etc.
+        const musicIndex = ((levelNumber - 1) % 5) + 1;
+        playBackgroundMusic(`game-${musicIndex}.mp3`);
+        prevLevelNumberRef.current = levelNumber;
+      }
+    } else if (gameState && !gameState.currentWorld?.currentLevel) {
+      // Game just started but level not initialized yet - play game-1
+      playBackgroundMusic('game-1.mp3');
+    }
+  }, [gameState?.currentWorld?.currentLevel?.levelNumber]);
   
   // Handle map selection phase
   if (isInMapSelection && gameState && onSelectWorld) {

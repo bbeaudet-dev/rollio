@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../components/Modal';
 import { getUISettings, saveUISettings, UISettings } from '../../utils/uiSettings';
-import { updateMusicVolume } from '../../utils/music';
+import { updateMusicVolume, updateMusicEnabled } from '../../utils/music';
 import { updateSoundEffectsVolume } from '../../utils/sounds';
+import { ArrowSelector } from '../components/ArrowSelector';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -38,17 +39,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     updateMusicVolume(); // Update currently playing music
   };
 
+  const VolumeBars: React.FC<{ volume: number; enabled: boolean; onChange: (volume: number) => void }> = ({ volume, enabled, onChange }) => {
+    const bars = 10; // 10 bars = 10% increments
+    const barWidth = 16;
+    const barHeight = 20;
+    
+    return (
+      <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+        {Array.from({ length: bars }, (_, index) => {
+          const barVolume = (index + 1) / bars; // 0.1, 0.2, ..., 1.0
+          const isFilled = barVolume <= volume;
+          
+          return (
+            <div
+              key={index}
+              onClick={() => enabled && onChange(barVolume)}
+              style={{
+                width: `${barWidth}px`,
+                height: `${barHeight}px`,
+                backgroundColor: isFilled ? (enabled ? '#28a745' : '#adb5bd') : 'transparent',
+                border: `2px solid ${enabled ? (isFilled ? '#28a745' : '#dee2e6') : '#adb5bd'}`,
+                borderRadius: '3px',
+                cursor: enabled ? 'pointer' : 'not-allowed',
+                transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                boxSizing: 'border-box'
+              }}
+              title={`${Math.round(barVolume * 100)}%`}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   const containerStyle: React.CSSProperties = {
     fontFamily: 'Arial, sans-serif',
-    padding: '20px'
+    padding: '20px',
+    maxWidth: '100%',
+    overflow: 'hidden'
   };
 
   const sectionStyle: React.CSSProperties = {
-    marginBottom: '30px',
-    padding: '20px',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '6px',
-    border: '1px solid #e1e5e9'
+    marginBottom: '30px'
   };
 
   const sectionTitleStyle: React.CSSProperties = {
@@ -62,44 +94,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: '16px',
-    padding: '12px',
-    backgroundColor: '#ffffff',
-    borderRadius: '6px',
-    border: '1px solid #dee2e6'
+    marginBottom: '16px'
   };
 
   const labelStyle: React.CSSProperties = {
-    fontSize: '14px',
+    fontSize: '12px',
     fontWeight: '500',
     color: '#2c3e50',
     marginRight: '16px',
-    minWidth: '150px'
-  };
-
-  const sliderContainerStyle: React.CSSProperties = {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  };
-
-  const sliderStyle: React.CSSProperties = {
-    flex: 1,
-    height: '6px',
-    borderRadius: '3px',
-    outline: 'none',
-    cursor: 'pointer',
-    WebkitAppearance: 'none',
-    appearance: 'none',
-    backgroundColor: '#dee2e6'
+    minWidth: '100px'
   };
 
   const valueStyle: React.CSSProperties = {
-    fontSize: '14px',
+    fontSize: '12px',
     fontWeight: '600',
     color: '#007bff',
-    minWidth: '50px',
+    minWidth: '35px',
     textAlign: 'right'
   };
 
@@ -107,95 +117,117 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     <Modal isOpen={isOpen} onClose={onClose} title="Settings">
       <div style={containerStyle}>
         <div style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>Display Settings</h2>
+          <h2 style={sectionTitleStyle}>Display</h2>
           
           <div style={settingRowStyle}>
             <label style={labelStyle}>Animation Speed</label>
-            <div style={sliderContainerStyle}>
-              <input
-                type="range"
-                min="0.1"
-                max="2.0"
-                step="0.1"
-                value={settings.animationSpeed}
-                onChange={(e) => handleAnimationSpeedChange(parseFloat(e.target.value))}
-                style={sliderStyle}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ArrowSelector
+                direction="left"
+                onClick={() => {
+                  const speeds = [2.0, 1.5, 1.0, 0.5, 0.2, 0.1];
+                  const currentIndex = speeds.indexOf(settings.animationSpeed);
+                  if (currentIndex > 0) {
+                    handleAnimationSpeedChange(speeds[currentIndex - 1]);
+                  }
+                }}
+                disabled={settings.animationSpeed === 2.0}
+                size={35}
               />
-              <span style={valueStyle}>{settings.animationSpeed.toFixed(1)}s</span>
+              <span style={{ 
+                fontSize: '14px', 
+                fontWeight: '600', 
+                color: '#2c3e50',
+                minWidth: '120px',
+                textAlign: 'center'
+              }}>
+                {settings.animationSpeed === 2.0 ? 'Very Slow' :
+                 settings.animationSpeed === 1.5 ? 'Slow' :
+                 settings.animationSpeed === 1.0 ? 'Normal' :
+                 settings.animationSpeed === 0.5 ? 'Fast' :
+                 settings.animationSpeed === 0.2 ? 'Very Fast' :
+                 'Speedrunner'}
+              </span>
+              <ArrowSelector
+                direction="right"
+                onClick={() => {
+                  const speeds = [2.0, 1.5, 1.0, 0.5, 0.2, 0.1];
+                  const currentIndex = speeds.indexOf(settings.animationSpeed);
+                  if (currentIndex < speeds.length - 1) {
+                    handleAnimationSpeedChange(speeds[currentIndex + 1]);
+                  }
+                }}
+                disabled={settings.animationSpeed === 0.1}
+                size={35}
+              />
             </div>
-          </div>
-          <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '-8px', marginBottom: '8px', paddingLeft: '12px' }}>
-            Controls the pause between steps in the scoring breakdown animation
           </div>
         </div>
 
         <div style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>Audio Settings</h2>
+          <h2 style={sectionTitleStyle}>Audio</h2>
           
           <div style={settingRowStyle}>
             <label style={labelStyle}>Sound Effects</label>
-            <div style={sliderContainerStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
               <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={settings.soundEffectsVolume}
-                onChange={(e) => handleSoundEffectsVolumeChange(parseFloat(e.target.value))}
-                style={sliderStyle}
+                type="checkbox"
+                checked={settings.soundEffectsEnabled}
+                onChange={(e) => {
+                  const newSettings = { ...settings, soundEffectsEnabled: e.target.checked };
+                  setSettings(newSettings);
+                  saveUISettings({ soundEffectsEnabled: e.target.checked });
+                }}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer'
+                }}
               />
-              <span style={valueStyle}>{Math.round(settings.soundEffectsVolume * 100)}%</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: '#2c3e50', minWidth: '45px' }}>Volume:</span>
+                <VolumeBars 
+                  volume={settings.soundEffectsVolume} 
+                  enabled={settings.soundEffectsEnabled}
+                  onChange={(vol) => handleSoundEffectsVolumeChange(vol)}
+                />
+                <span style={{ ...valueStyle, fontSize: '12px', minWidth: '35px' }}>{Math.round(settings.soundEffectsVolume * 100)}%</span>
+              </div>
             </div>
           </div>
 
           <div style={settingRowStyle}>
             <label style={labelStyle}>Music</label>
-            <div style={sliderContainerStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
               <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={settings.musicVolume}
-                onChange={(e) => handleMusicVolumeChange(parseFloat(e.target.value))}
-                style={sliderStyle}
+                type="checkbox"
+                checked={settings.musicEnabled}
+                onChange={(e) => {
+                  const newSettings = { ...settings, musicEnabled: e.target.checked };
+                  setSettings(newSettings);
+                  saveUISettings({ musicEnabled: e.target.checked });
+                  // Update music state based on enabled setting
+                  updateMusicEnabled();
+                }}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer'
+                }}
               />
-              <span style={valueStyle}>{Math.round(settings.musicVolume * 100)}%</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: '#2c3e50', minWidth: '45px' }}>Volume:</span>
+                <VolumeBars 
+                  volume={settings.musicVolume} 
+                  enabled={settings.musicEnabled}
+                  onChange={(vol) => handleMusicVolumeChange(vol)}
+                />
+                <span style={{ ...valueStyle, fontSize: '12px', minWidth: '35px' }}>{Math.round(settings.musicVolume * 100)}%</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      <style>{`
-        input[type="range"]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: #007bff;
-          cursor: pointer;
-          border: 2px solid #ffffff;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        input[type="range"]::-moz-range-thumb {
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: #007bff;
-          cursor: pointer;
-          border: 2px solid #ffffff;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        input[type="range"]::-webkit-slider-thumb:hover {
-          background: #0056b3;
-        }
-        
-        input[type="range"]::-moz-range-thumb:hover {
-          background: #0056b3;
-        }
-      `}</style>
     </Modal>
   );
 };

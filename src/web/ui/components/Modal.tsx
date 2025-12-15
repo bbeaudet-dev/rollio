@@ -38,7 +38,9 @@ export const Modal: React.FC<ModalProps & { showCloseButton?: boolean }> = ({
           padding: '20px',
           borderRadius: '8px',
           minWidth: '300px',
-          maxWidth: '500px'
+          maxWidth: '600px',
+          maxHeight: '90vh',
+          overflowY: 'auto'
         }}
         onClick={(e) => e.stopPropagation()}
       >

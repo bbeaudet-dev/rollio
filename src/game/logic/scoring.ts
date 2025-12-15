@@ -299,6 +299,11 @@ export function calculateScoringBreakdown(
   
   // Pip effects are now tracked individually in applyAllPipEffects
   scoringElements = pipResult.scoringElements;
+  
+  // Check for combination upgrade in pip effects
+  if (pipResult.sideEffects && pipResult.sideEffects.some((se: any) => se.combinationUpgraded)) {
+    (gameState as any).__combinationUpgraded = true;
+  }
 
   // Step 4: Apply material effects (each material tracked individually)
   const materialValues = applyMaterialEffects(

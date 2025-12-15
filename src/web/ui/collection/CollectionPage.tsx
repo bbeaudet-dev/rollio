@@ -11,6 +11,7 @@ import { DiceFace } from '../game/board/dice/DiceFace';
 import { useAuth } from '../../contexts/AuthContext';
 import { progressApi } from '../../services/api';
 import { LockIcon } from '../components/LockIcon';
+import { playBackgroundMusic } from '../../utils/music';
 
 // Simple hover tooltip component
 const HoverTooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ text, children }) => {
@@ -51,6 +52,11 @@ const HoverTooltip: React.FC<{ text: string; children: React.ReactNode }> = ({ t
 export const CollectionPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [unlockedItems, setUnlockedItems] = useState<Set<string>>(new Set());
+
+  // Play main menu music
+  useEffect(() => {
+    playBackgroundMusic('main-title.mp3');
+  }, []);
 
   // Fetch unlock status when authenticated
   useEffect(() => {

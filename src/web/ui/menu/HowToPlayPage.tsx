@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainMenuReturnButton } from '../components/MenuButton';
+import { playBackgroundMusic } from '../../utils/music';
 
 export const HowToPlayPage: React.FC = () => {
   const navigate = useNavigate();
+
+  // Play main menu music
+  useEffect(() => {
+    playBackgroundMusic('main-title.mp3');
+  }, []);
 
   const containerStyle: React.CSSProperties = {
     fontFamily: 'Arial, sans-serif',
