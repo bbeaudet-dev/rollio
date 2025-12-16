@@ -236,15 +236,19 @@ export const CharmCard: React.FC<CharmCardProps> = ({
               if (charm.id === 'stairstepper') {
                 values.currentValue = charmAny.stairstepperBonus ?? 20;
               } else if (charm.id === 'rerollRanger') {
-                values.currentValue = charmAny.rerollRangerBonus ?? 5;
+                if (charmState?.rerollRanger?.multiplierBonus !== undefined) {
+                  values.currentValue = charmState.rerollRanger.multiplierBonus;
+                } else {
+                  values.currentValue = charmAny.rerollRangerBonus ?? 0.05;
+                }
               } else if (charm.id === 'oddOdyssey') {
-                values.currentValue = charmAny.oddOdysseyBonus ?? 0.25;
+                values.currentValue = charmAny.oddOdysseyBonus ?? 0;
               } else if (charm.id === 'bankBaron' && charmState?.bankBaron?.bankCount !== undefined) {
-                values.currentValue = charmState.bankBaron.bankCount * 10;
+                values.currentValue = charmState.bankBaron.bankCount * 0;
               } else if (charm.id === 'sandbagger' && charmState?.sandbagger?.flopCount !== undefined) {
-                values.currentValue = charmState.sandbagger.flopCount * 50;
+                values.currentValue = charmState.sandbagger.flopCount * 0;
               } else if (charm.id === 'rabbitsFoot' && charmState?.rabbitsFoot?.rainbowTriggers !== undefined) {
-                values.currentValue = charmState.rabbitsFoot.rainbowTriggers * 0.1;
+                values.currentValue = charmState.rabbitsFoot.rainbowTriggers * 0;
               } else if (charm.id === 'assassin' && charmState?.assassin?.destroyedDice !== undefined) {
                 values.currentValue = charmState.assassin.destroyedDice;
               } else if (charm.id === 'sleeperAgent' && charmState?.sleeperAgent?.totalDiceScored !== undefined) {

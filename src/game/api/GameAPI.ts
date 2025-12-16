@@ -27,7 +27,7 @@ import { isGameOver, isFlop, isHotDice, isLevelCompleted, canBankPoints as canBa
 import { endGame, advanceToNextLevel, selectNextWorld } from '../logic/gameActions';
 import { getAvailableWorldChoices, getWorldIdForNode } from '../logic/mapGeneration';
 import { tallyLevel as tallyLevelFunction, calculateLevelRewards, LevelRewards } from '../logic/tallying';
-import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, sellCharm as sellCharmLogic, sellConsumable as sellConsumableLogic, reorderCharm as reorderCharmLogic } from '../logic/shop';
+import { generateShopInventory, purchaseCharm, purchaseConsumable, purchaseBlessing, sellCharm as sellCharmLogic, sellConsumable as sellConsumableLogic, reorderCharm as reorderCharmLogic, applyDynamicBlessingEffects } from '../logic/shop';
 import { validateRerollSelection } from '../logic/rerollLogic';
 import { applyConsumableEffect, updateLastConsumableUsed, determineConsumableInputs } from '../logic/consumableEffects';
 import { calculateScoringBreakdown } from '../logic/scoring';
@@ -312,7 +312,7 @@ export class GameAPI {
     currentGameState = updateRollHistory(currentGameState, historyEntry);
     
     // Track dice scored for Sleeper Agent charm
-    const { trackDiceScoredForSleeperAgent } = await import('../logic/charms/RareCharms');
+    const { trackDiceScoredForSleeperAgent } = await import('../logic/charms/LegendaryCharms');
     currentGameState = trackDiceScoredForSleeperAgent(currentGameState, selectedIndices.length);
     
     // Update Generator charm category after scoring breakdown completes
@@ -475,6 +475,9 @@ export class GameAPI {
     newGameState = endRound(newGameState, 'flop');
     newGameState = applyFlopPenalty(newGameState);
     newGameState = checkMaxFlopsPerLevel(newGameState);
+    
+    // Apply dynamic blessing effects (e.g., rerollOnFlop)
+    newGameState = applyDynamicBlessingEffects(newGameState, 'flop');
     
     const consecutiveFlops = newGameState.consecutiveFlops;
     

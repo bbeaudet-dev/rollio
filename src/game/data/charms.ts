@@ -1,7 +1,7 @@
 import { Charm, CharmRarity } from '../types';
 
 export type CharmType = 
-  // Common charms
+  // Common charms 
   | 'flopShield'
   | 'stairstepper'
   | 'generator'
@@ -41,37 +41,51 @@ export type CharmType =
   | 'frequentFlyer'
   | 'hoarder'
   | 'comebackKid'
+  | 'savingGrace'
+  | 'primeTime'
+  | 'luckyLeprechaun'
+  | 'fourForYourFavor'
+  | 'fiveAlive'
+  | 'sixShooter'
+  | 'hotPocket'
+  | 'wildCard'
+  | 'doubleAgent'
+  | 'botox'
   | 'ticketEater'
 
-  // Uncommon charms
+  // Uncommon charms 
   | 'quadBoosters'
   | 'snowball'
   | 'rabbitsFoot'
   | 'weightedDice'
   | 'luckySevens'
-  | 'savingGrace'
   | 'tasteTheRainbow'
   | 'swordInTheStone'
-  | 'primeTime'
-  | 'luckyLeprechaun'
   | 'irrational'
-  | 'ferrisEuler'
-  | 'fourForYourFavor'
-  | 'fiveAlive'
-  | 'sixShooter'
-  | 'hedgeFund'
   | 'luckyLotus'
-  | 'hotPocket'
-  | 'wildCard'
   | 'whimWhisperer'
-  | 'doubleAgent'
+  | 'assassin'
+  | 'againstTheGrain'
+  | 'aceInTheHole'
+  | 'jefferson'
+  | 'ruleOfThree'
+  | 'quarterback'
+  | 'cincoDeRollio'
+  | 'hex'
+  | 'battingTheCycle'
+  | 'shootingStar'
+  | 'blankSlate'
+  | 'bodyDouble'
+  | 'inheritance'
+  | 'sizeMatters'
+  | 'queensGambit'
+  | 'russianRoulette'
+  | 'brotherhood'
   | 'purist'
   | 'drumpfCard'
-  
+
   // Rare charms
-  | 'shootingStar'
   | 'kingslayer'
-  | 'blankSlate'
   | 'doubleDown'
   | 'perfectionist'
   | 'divineIntervention'
@@ -80,19 +94,22 @@ export type CharmType =
   | 'dukeOfDice'
   | 'eyeOfHorus'
   | 'leadTitan'
-  | 'bodyDouble'
-  | 'inheritance'
   | 'resonance'
   | 'bloom'
-  | 'sizeMatters'
   | 'vesuvius'
   | 'armadilloArmor'
   | 'refinery'
-  | 'russianRoulette'
+  | 'mustBeThisTallToRide'
+  | 'ferrisEuler'
+  | 'howlAtTheMoon'
+  | 'lunarTides'
 
-  // Legendary charms
+  // Legendary charms 
   | 'paranoia'
-  | 'trumpCard';
+  | 'matterhorn'
+  | 'trumpCard'
+  | 'hedgeFund'
+  | 'sleeperAgent';
 
 // Rarity price mapping
 export const CHARM_PRICES: Record<string, { buy: number; sell: number }> = {
@@ -206,7 +223,7 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'goldenTouch',
     name: 'Golden Touch',
-    description: '+$1 for each Golden die scored',
+    description: '+$2 for each Golden die scored',
     rarity: 'common'
   },
   {
@@ -454,12 +471,6 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'uncommon'
   },
   {
-    id: 'hedgeFund',
-    name: 'Hedge Fund',
-    description: '+1 EXP for every $100 owned',
-    rarity: 'uncommon'
-  },
-  {
     id: 'luckyLotus',
     name: 'Lucky Lotus',
     description: '+$4 when scoring a combination worth 3000+ PTS',
@@ -467,8 +478,8 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   },
   {
     id: 'whimWhisperer',
-    name: 'Whim Whisperer',
-    description: 'Whims have a 25% chance to not be consumed when used',
+    name: 'Antimatter',
+    description: 'Consumables have a 15% chance to not be consumed when used',
     rarity: 'uncommon'
   },
   {
@@ -585,8 +596,8 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     description: '50/50 chance for either +1.5 MLT or -1.5 MLT for each other Charm in inventory',
     rarity: 'uncommon'
   },
-
-
+  
+  
   // RARE CHARMS
   
   {
@@ -680,19 +691,27 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     rarity: 'rare'
   },
   {
-    id: 'sleeperAgent',
-    name: 'Sleeper Agent',
-    description: 'Copies the effect of the charm to the left after 100 dice have been scored (Remaining: [100])',
-    rarity: 'rare'
-  },
-  {
     id: 'ferrisEuler',
     name: 'Ferris Euler',
     description: '^2.71 EXP if scored hand contains 1,2,7',
     rarity: 'rare'
   },
+  {
+    id: 'howlAtTheMoon',
+    name: 'Howl at the Moon',
+    description: 'Lunar dice retrigger their effects 2 additional times',
+    rarity: 'rare'
+  },
+  {
+    id: 'lunarTides',
+    name: 'Lunar Tides',
+    description: 'Each Lunar trigger gives 1.25x MLT',
+    rarity: 'rare'
+  },
+  
+  
   // LEGENDARY CHARMS
-
+  
   {
     id: 'paranoia',
     name: 'Paranoia',
@@ -708,14 +727,19 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
   {
     id: 'trumpCard',
     name: 'Trump Card',
-    description: '+2^n MLT where n is the highest value scored',
+    description: '+1.5^n MLT where n is the highest value scored',
     rarity: 'legendary'
   },
-
+  {
+    id: 'hedgeFund',
+    name: 'Hedge Fund',
+    description: '+1 EXP for every $100 owned',
+    rarity: 'legendary'
+  },
+  {
+    id: 'sleeperAgent',
+    name: 'Sleeper Agent',
+    description: 'Copies the effect of the charm to the left after 100 dice have been scored (Remaining: [100])',
+    rarity: 'legendary'
+  },
 ];
-
-
-
-// play some combo in a row, gain mult
-// disabling boss battles and stuff
-

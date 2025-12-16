@@ -180,14 +180,13 @@ export class NinetyEightPercentAPlusCharm extends BaseCharm {
 
 export class OddOdysseyCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +0.25 points when scoring. Add +0.25 for each odd value scored (cumulative)
     // Find this charm in gameState to update its state
     const charm = context.gameState.charms.find((c: any) => c.id === this.id);
     if (!charm) return {};
     
     // Initialize state if needed
     if (charm.oddOdysseyBonus === undefined) {
-      charm.oddOdysseyBonus = 5; // Starts at 5
+      charm.oddOdysseyBonus = 0; // Starts at 0
     }
     
     // Count odd values in current selection
@@ -412,7 +411,7 @@ export class GoldenTouchCharm extends BaseCharm {
       if (die?.material === 'golden') {
         // Add money for each golden die
         if (context.gameState) {
-          context.gameState.money = (context.gameState.money || 0) + 1;
+          context.gameState.money = (context.gameState.money || 0) + 2;
         }
         
         modifications.push({
@@ -420,7 +419,7 @@ export class GoldenTouchCharm extends BaseCharm {
           triggerContext: {
             dieIndex: idx,
             material: 'golden',
-            description: `Golden Touch (Golden Die #${goldenDieNumber}: +$1)`
+            description: `Golden Touch (Golden Die #${goldenDieNumber}: +$2)`
           }
         });
         goldenDieNumber++;
@@ -645,33 +644,28 @@ export class StairstepperCharm extends BaseCharm {
 
 export class RerollRangerCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +5 points when scoring. Add +5 for each reroll used (cumulative)
-    // Find this charm in gameState to update its state
-    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
-    if (!charm) return {};
+    // Increment +0.05 MLT for each reroll used (cumulative across the run)
+    // Read total rerolls from gameState.history (tracked when rerolls are used)
     
-    // Initialize state if needed
-    if (charm.rerollRangerBonus === undefined) {
-      charm.rerollRangerBonus = 0.05; // Starts at 0.05 MLT
+    // Initialize history tracking if needed
+    if (!context.gameState.history.charmState) {
+      context.gameState.history.charmState = {};
+    }
+    if (!context.gameState.history.charmState.rerollRanger) {
+      context.gameState.history.charmState.rerollRanger = {
+        multiplierBonus: 0
+      };
     }
     
-    // Count rerolls used in this round (before this scoring)
-    const rerollsUsed = context.roundState.rollHistory?.filter((roll: any) => roll.isReroll).length || 0;
+    // Get total rerolls used from history (tracked in decrementRerolls)
+    const totalRerollsUsed = context.gameState.history.totalRerollsUsed || 0;
     
-    // Apply current bonus
-    const bonus = charm.rerollRangerBonus;
-    
-    // Increase bonus for next time: +0.05 MLT per reroll used
-    charm.rerollRangerBonus += 0.05 * rerollsUsed;
-    
-    // Update description
-    const originalCharm = CHARMS.find((c: any) => c.id === this.id);
-    const baseDescription = originalCharm?.description || charm.description;
-    charm.description = baseDescription.replace(/\+?[\d.]+/, `+${charm.rerollRangerBonus.toFixed(2)}`);
-    this.description = charm.description; // Update instance description too
+    // Calculate bonus: 0.05 base + 0.05 per reroll used
+    const multiplierBonus = 0.05 * totalRerollsUsed;
+    context.gameState.history.charmState.rerollRanger.multiplierBonus = multiplierBonus;
     
     return {
-      multiplierAdd: bonus
+      multiplierAdd: multiplierBonus
     };
   }
 }
@@ -955,7 +949,8 @@ export class OneSongGloryCharm extends BaseCharm {
    */
   calculateLevelCompletionBonus(levelNumber: number, levelState: any, gameState: any): number {
     // +$5 for completing a level with a single bank
-    if (levelState.banksUsed === 1) {
+    // Track uses via LevelState.banksThisLevel (incremented in processBankPoints)
+    if ((levelState.banksThisLevel || 0) === 1) {
       return 5;
     }
     return 0;

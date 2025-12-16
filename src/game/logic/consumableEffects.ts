@@ -180,6 +180,13 @@ async function trackConsumableUsage(gameState: GameState, consumable: Consumable
   gameState.history.charmState.consumableUsage.totalUsed = 
     (gameState.history.charmState.consumableUsage.totalUsed || 0) + 1;
   
+  // Track individual consumable ID usage (for profile stats)
+  if (!gameState.history.charmState.consumableUsage[consumable.id]) {
+    gameState.history.charmState.consumableUsage[consumable.id] = 0;
+  }
+  gameState.history.charmState.consumableUsage[consumable.id] = 
+    (gameState.history.charmState.consumableUsage[consumable.id] || 0) + 1;
+  
   // Track by type - check if it's a whim or wish by checking if it's in the respective arrays
   const isWhim = WHIMS.some(w => w.id === consumable.id);
   const isWish = WISHES.some(w => w.id === consumable.id);
@@ -196,11 +203,11 @@ async function trackConsumableUsage(gameState: GameState, consumable: Consumable
   // This is set here for tracking purposes, but updateLastConsumableUsed will set it properly after successful use
   // We don't set it here to avoid overwriting the object set by updateLastConsumableUsed
   
-  // Check for Whim Whisperer charm (25% chance to not consume whim)
-  if (isWhim && charmManager) {
+  // Check for Antimatter charm (15% chance to not consume consumable)
+  if (charmManager) {
     const whimWhisperer = charmManager.getActiveCharms().find((c: any) => c.id === 'whimWhisperer');
-    if (whimWhisperer && Math.random() < 0.25) {
-      // 25% chance to not consume - this will be handled by the caller
+    if (whimWhisperer && Math.random() < 0.15) {
+      // 15% chance to not consume - this will be handled by the caller
       // We'll set a flag that the consumable should not be removed
       (gameState as any).whimWhispererPreventedConsumption = true;
     }
@@ -365,14 +372,10 @@ export async function applyConsumableEffect(
     }
 
     case 'groceryList': {
+      // Try to create 2 random consumables
       const maxConsumables = newGameState.consumableSlots || 2;
-      // Account for the fact that groceryList will be removed, so we have 1 more slot
-      const availableSlots = maxConsumables - (newGameState.consumables.length - 1);
-      if (availableSlots < 2) {
-        shouldRemove = false;
-        wasSuccessfullyUsed = false;
-        break;
-      }
+      const availableSlotsAfterRemoval = maxConsumables - (newGameState.consumables.length - 1);
+      
       // Get all consumables, excluding ones already owned
       const ownedIds = new Set(newGameState.consumables.map(c => c.id));
       const allConsumables = [...CONSUMABLES, ...WHIMS, ...WISHES];
@@ -382,25 +385,41 @@ export async function applyConsumableEffect(
         wasSuccessfullyUsed = false;
         break;
       }
-      // Select 2 random consumables
+      
+      // Select up to 2 random consumables
       const selected: any[] = [];
       const indices = new Set<number>();
-      while (selected.length < 2 && indices.size < available.length) {
+      const numToSelect = Math.min(2, available.length);
+      while (selected.length < numToSelect && indices.size < available.length) {
         const randomIdx = Math.floor(Math.random() * available.length);
         if (!indices.has(randomIdx)) {
           indices.add(randomIdx);
           selected.push(available[randomIdx]);
         }
       }
-      const toAdd = Math.min(selected.length, availableSlots);
+      
       // Create consumable objects with uses property
-      const consumablesToAdd = selected.slice(0, toAdd).map(c => ({ ...c, uses: 1 }));
-      newGameState.consumables = [...newGameState.consumables, ...consumablesToAdd];
+      const newConsumables = selected.map(c => ({ ...c, uses: 1 }));
+      
+      // If we have 1+ slots available after removal, we can create 2 (1 in new slot + 1 replacing groceryList)
+      if (availableSlotsAfterRemoval >= 1 && newConsumables.length >= 2) {
+        // Add both consumables and remove groceryList
+        newGameState.consumables = [...newGameState.consumables, ...newConsumables];
+        // Remove groceryList (will be handled by shouldRemove = true)
+      } else if (newConsumables.length >= 1) {
+        // If 0 slots available, only create 1 (replacing groceryList)
+        newGameState.consumables[idx] = newConsumables[0];
+        shouldRemove = false;
+      } else {
+        shouldRemove = false;
+        wasSuccessfullyUsed = false;
+      }
+      
       // Flag for sound effect
       (newGameState as any).__consumableGenerated = true;
       // Dispatch events to unlock each generated consumable
       if (typeof window !== 'undefined') {
-        consumablesToAdd.forEach(consumable => {
+        newConsumables.forEach((consumable: any) => {
           window.dispatchEvent(new CustomEvent('itemGenerated', { 
             detail: { type: 'consumable', id: consumable.id } 
           }));
@@ -463,26 +482,23 @@ export async function applyConsumableEffect(
       }
       // Add value of blessings (fixed price)
       totalValue += (newGameState.blessings.length * 5); // BLESSING_PRICE = 5
-      newGameState.money = (newGameState.money || 0) + totalValue;
+      newGameState.money = (newGameState.money || 0) + Math.min(totalValue, 100);
       break;
     }
 
     case 'doubleMoneyCapped': { // Legacy/placeholder - not in current consumable data
       const currentMoney = newGameState.money || 0;
       const doubled = currentMoney * 2;
-      newGameState.money = Math.min(doubled, 50);
+      newGameState.money = Math.min(doubled, 100);
       break;
     }
 
     case 'grabBag': {
-      // Create 2 random combination upgrades
+      // Try to create 2 random combination upgrades
+      // Available slots after removing grab bag = max slots - (current consumables - 1)
       const maxConsumables = newGameState.consumableSlots || 2;
-      const availableSlots = maxConsumables - (newGameState.consumables.length - 1);
-      if (availableSlots < 2) {
-        shouldRemove = false;
-        wasSuccessfullyUsed = false;
-        break;
-      }
+      const availableSlotsAfterRemoval = maxConsumables - (newGameState.consumables.length - 1);
+      
       // Get all combination upgrades, excluding ones already owned
       const ownedIds = new Set(newGameState.consumables.map(c => c.id));
       const available = COMBINATION_UPGRADES.filter(c => !ownedIds.has(c.id));
@@ -491,20 +507,31 @@ export async function applyConsumableEffect(
         wasSuccessfullyUsed = false;
         break;
       }
-      // Select 2 random combination upgrades
+      
+      // Select up to 2 random combination upgrades
       const selected: any[] = [];
       const indices = new Set<number>();
-      while (selected.length < 2 && indices.size < available.length) {
+      const numToSelect = Math.min(2, available.length);
+      while (selected.length < numToSelect && indices.size < available.length) {
         const randomIdx = Math.floor(Math.random() * available.length);
         if (!indices.has(randomIdx)) {
           indices.add(randomIdx);
           selected.push(available[randomIdx]);
         }
       }
-      const toAdd = Math.min(selected.length, availableSlots);
+      
       // Create consumable objects with uses property
-      const newConsumables = selected.slice(0, toAdd).map(c => ({ ...c, uses: c.uses || 1 }));
-      newGameState.consumables = [...newGameState.consumables, ...newConsumables];
+      const newConsumables = selected.map(c => ({ ...c, uses: c.uses || 1 }));
+      
+      if (availableSlotsAfterRemoval >= 1 && newConsumables.length >= 2) {
+        newGameState.consumables = [...newGameState.consumables, ...newConsumables];
+      } else if (newConsumables.length >= 1) {
+        newGameState.consumables[idx] = newConsumables[0];
+        shouldRemove = false;
+      } else {
+        shouldRemove = false;
+        wasSuccessfullyUsed = false;
+      }
       break;
     }
 
@@ -524,7 +551,18 @@ export async function applyConsumableEffect(
     }
 
     case 'freebie': {
-      const newDieId = `d${newGameState.diceSet.length + 1}`;
+      // Generate unique ID by finding the highest existing die number and incrementing
+      // Parse all existing IDs to find the max numeric part
+      const existingIds = newGameState.diceSet.map(d => {
+        // Match patterns like "d1", "d2_1234567890", etc.
+        const match = d.id.match(/^d(\d+)(?:_\d+)?$/);
+        return match ? parseInt(match[1], 10) : 0;
+      });
+      const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+      // Use timestamp + random to ensure uniqueness even if multiple freebies are used simultaneously
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000);
+      const newDieId = `d${maxId + 1}_${timestamp}_${random}`;
       const newDie = {
         id: newDieId,
         sides: 6,
@@ -577,11 +615,16 @@ export async function applyConsumableEffect(
     }
 
     case 'welfare': {
-      // Upgrade all combinations by 2 levels
+      // Upgrade all combination categories by 2 levels
       const combinationLevels = { ...newGameState.history.combinationLevels };
+      
       for (const key in combinationLevels) {
-        combinationLevels[key] = (combinationLevels[key] || 1) + 2;
+        const currentLevel = combinationLevels[key] || 1;
+        combinationLevels[key] = currentLevel + 2;
       }
+      
+      (newGameState as any).__combinationUpgraded = true;
+      
       newGameState.history = {
         ...newGameState.history,
         combinationLevels
@@ -670,6 +713,7 @@ export async function applyConsumableEffect(
 
     case 'origin': {
       const maxCharms = newGameState.charmSlots || 3;
+      // Check if use was successful (has slot and available charms)
       if (newGameState.charms.length >= maxCharms) {
         shouldRemove = false;
         wasSuccessfullyUsed = false;
@@ -683,22 +727,21 @@ export async function applyConsumableEffect(
         wasSuccessfullyUsed = false;
         break;
       }
+      // Use was successful - consume the consumable
       // For 'origin', 50% chance to create legendary charm
-      if (Math.random() >= 0.5) {
-        shouldRemove = false;
-        wasSuccessfullyUsed = false;
-        break;
+      if (Math.random() < 0.5) {
+        const randomIdx = Math.floor(Math.random() * available.length);
+        const newCharm = { ...available[randomIdx], active: true };
+        newGameState.charms = [...newGameState.charms, newCharm];
+        charmManager.addCharm(newCharm);
+        // Dispatch event to unlock the generated charm
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('itemGenerated', { 
+            detail: { type: 'charm', id: newCharm.id } 
+          }));
+        }
       }
-      const randomIdx = Math.floor(Math.random() * available.length);
-      const newCharm = { ...available[randomIdx], active: true };
-      newGameState.charms = [...newGameState.charms, newCharm];
-      charmManager.addCharm(newCharm);
-      // Dispatch event to unlock the generated charm
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('itemGenerated', { 
-          detail: { type: 'charm', id: newCharm.id } 
-        }));
-      }
+      // Consume the consumable regardless of whether legendary was created
       break;
     }
 
@@ -1211,7 +1254,7 @@ export function applyDieSelectionConsumable(
     const currentMaterial = currentDie.material;
     
     // Get all non-plastic materials (excluding plastic as it's the default)
-    const nonPlasticMaterials: DiceMaterialType[] = ['crystal', 'flower', 'golden', 'volcano', 'mirror', 'rainbow', 'ghost', 'lead'];
+    const nonPlasticMaterials: DiceMaterialType[] = ['crystal', 'flower', 'golden', 'volcano', 'mirror', 'rainbow', 'ghost', 'lead', 'lunar'];
     
     // Exclude the current material to guarantee a change
     const availableMaterials = nonPlasticMaterials.filter(m => m !== currentMaterial);
@@ -1300,7 +1343,7 @@ export function applyDieSelectionConsumable(
       if (toModify) {
         const newAllowedValues = die.allowedValues.map(val => {
           if (consumableId === 'chisel') {
-            return Math.min(6, val + 1) as any;
+            return val + 1 as any; 
           } else {
             return Math.max(1, val - 1) as any;
           }
@@ -1315,7 +1358,7 @@ export function applyDieSelectionConsumable(
       if (selectedIndices.includes(i)) {
         const currentValue = die.rolledValue ?? 1;
         if (consumableId === 'chisel') {
-          return { ...die, rolledValue: Math.min(6, currentValue + 1) };
+          return { ...die, rolledValue: currentValue + 1 };
         } else {
           return { ...die, rolledValue: Math.max(1, currentValue - 1) };
         }

@@ -190,18 +190,6 @@ export class SixShooterCharm extends BaseCharm {
   }
 }
 
-export class HedgeFundCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +1 EXP for every $100 owned
-    const money = context.gameState.money || 0;
-    const expCount = Math.floor(money / 100);
-    
-    return {
-      exponentAdd: expCount
-    };
-  }
-}
-
 export class LuckyLotusCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // +$4 when scoring a combination worth 3000+ points
@@ -261,7 +249,7 @@ export class SwordInTheStoneCharm extends BaseCharm {
 
 export class WhimWhispererCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Whims have a 25% chance to not be consumed when used
+    // Consumables have a 15% chance to not be consumed when used
     // This is handled in trackConsumableUsage in consumableEffects.ts
     return {};
   }

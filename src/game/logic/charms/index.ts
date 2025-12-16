@@ -56,7 +56,6 @@ import {
   FourForYourFavorCharm,
   FiveAliveCharm,
   SixShooterCharm,
-  HedgeFundCharm,
   LuckyLotusCharm,
   HotPocketCharm,
   WildCardCharm,
@@ -103,7 +102,8 @@ import {
   SizeMattersCharm,
   RefineryCharm,
   BrotherhoodCharm,
-  SleeperAgentCharm,
+  HowlAtTheMoonCharm,
+  LunarTidesCharm,
 } from './RareCharms';
 
 import {
@@ -111,6 +111,8 @@ import {
   TrumpCardCharm,
   DrumpfCardCharm,
   MatterhornCharm,
+  HedgeFundCharm,
+  SleeperAgentCharm,
 } from './LegendaryCharms';
 
 /**
@@ -173,7 +175,6 @@ export function registerCharms(): void {
   registry.register(FourForYourFavorCharm, 'fourForYourFavor');
   registry.register(FiveAliveCharm, 'fiveAlive');
   registry.register(SixShooterCharm, 'sixShooter');
-  registry.register(HedgeFundCharm, 'hedgeFund');
   registry.register(LuckyLotusCharm, 'luckyLotus');
   registry.register(HotPocketCharm, 'hotPocket');
   registry.register(WildCardCharm, 'wildCard');
@@ -219,11 +220,14 @@ export function registerCharms(): void {
   registry.register(SizeMattersCharm, 'sizeMatters'); 
   registry.register(RefineryCharm, 'refinery');
   registry.register(BrotherhoodCharm, 'brotherhood');
-  registry.register(SleeperAgentCharm, 'sleeperAgent');
+  registry.register(HowlAtTheMoonCharm, 'howlAtTheMoon');
+  registry.register(LunarTidesCharm, 'lunarTides');
   
   // Legendary charms
   registry.register(ParanoiaCharm, 'paranoia');
   registry.register(TrumpCardCharm, 'trumpCard');
   registry.register(DrumpfCardCharm, 'drumpfCard');
   registry.register(MatterhornCharm, 'matterhorn');
+  registry.register(HedgeFundCharm, 'hedgeFund');
+  registry.register(SleeperAgentCharm, 'sleeperAgent');
 } 
