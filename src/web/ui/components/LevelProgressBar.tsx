@@ -12,7 +12,7 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
   pot = 0
 }) => {
   const bankedPercentage = threshold > 0 ? Math.min((current / threshold) * 100, 100) : 0;
-  const potPercentage = threshold > 0 ? Math.min((pot / threshold) * 100, 100) : 0;
+  const potPercentage = threshold > 0 ? (pot / threshold) * 100 : 0;
   const isNegative = current < 0;
   
   return (
@@ -30,10 +30,10 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
         alignItems: 'flex-end',
         gap: '3px'
       }}>
-        {pot > 0 && (
+        {pot !== 0 && (
           <div style={{
             fontSize: '16px',
-            color: '#ffc107',
+            color: pot < 0 ? '#dc3545' : '#ffc107',
             fontWeight: '600'
           }}>
             Pot: {pot}
@@ -55,8 +55,8 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
         gap: '6px',
         width: '100%'
       }}>
-        {/* Top bar - Pot (yellow) */}
-        {pot > 0 && (
+        {/* Top bar - Pot */}
+        {pot !== 0 && (
           <div style={{
             width: '100%',
             height: '18px',
@@ -65,12 +65,12 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
             overflow: 'hidden',
             border: '1px solid rgba(255, 255, 255, 0.5)',
             display: 'flex',
-            justifyContent: 'flex-end'
+            justifyContent: pot < 0 ? 'flex-start' : 'flex-end'
           }}>
             <div style={{
-              width: `${potPercentage}%`,
+              width: `${Math.abs(potPercentage)}%`,
               height: '100%',
-              backgroundColor: '#ffc107',
+              backgroundColor: pot < 0 ? '#dc3545' : '#ffc107',
               transition: 'width 0.3s ease',
               borderRadius: '9px'
             }} />

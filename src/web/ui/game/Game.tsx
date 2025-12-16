@@ -116,6 +116,8 @@ export const Game: React.FC<GameProps> = ({
   
   // Check if modals should disable interactions
   const modalOpen = isGameOver || (showTallyModal && pendingRewards);
+  const breakdownState: 'hidden' | 'animating' | 'complete' = board.breakdownState || 'hidden';
+  const isDuringBreakdown = breakdownState === 'animating';
   
   // Play world map sound when entering world map
   const prevIsInMapSelectionRef = React.useRef(false);
@@ -216,7 +218,10 @@ export const Game: React.FC<GameProps> = ({
             backgroundColor: '#f8f9fa',
             borderTop: '1px solid #dee2e6'
           }}>
-            <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+            <MainMenuReturnButton
+              style={{ position: 'relative', top: 'auto', left: 'auto' }}
+              disabled={isDuringBreakdown}
+            />
             <SettingsButton 
               onClick={() => setIsSettingsOpen(true)} 
               style={{ position: 'relative', top: 'auto', right: 'auto' }}
@@ -264,7 +269,10 @@ export const Game: React.FC<GameProps> = ({
         backgroundColor: '#f8f9fa',
         borderTop: '1px solid #dee2e6'
       }}>
-        <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+        <MainMenuReturnButton
+          style={{ position: 'relative', top: 'auto', left: 'auto' }}
+          disabled={isDuringBreakdown}
+        />
         <SettingsButton 
           onClick={() => setIsSettingsOpen(true)} 
           style={{ position: 'relative', top: 'auto', right: 'auto' }}
@@ -281,7 +289,7 @@ export const Game: React.FC<GameProps> = ({
     // No active round and not showing tally modal - error state
     return (
       <>
-        <MainMenuReturnButton />
+        <MainMenuReturnButton disabled={isDuringBreakdown} />
         <SettingsButton onClick={() => setIsSettingsOpen(true)} />
         <SettingsModal 
           isOpen={isSettingsOpen} 
@@ -348,6 +356,9 @@ export const Game: React.FC<GameProps> = ({
           onCompleteBreakdown={rollActions.handleCompleteBreakdown}
           diceSet={gameState.diceSet}
           hotDiceCounter={roundState?.isActive && roundState.hotDiceCounter > 0 ? roundState.hotDiceCounter : 0}
+          levelPoints={gameState.currentWorld?.currentLevel.pointsBanked || 0}
+          levelThreshold={gameState.currentWorld?.currentLevel.levelThreshold || 0}
+          roundPoints={roundState?.roundPoints || 0}
         />
 
         {/* Game Controls - Bottom Center Overlay */}
@@ -402,6 +413,7 @@ export const Game: React.FC<GameProps> = ({
             levelPoints={gameState.currentWorld?.currentLevel.pointsBanked || 0}
             levelThreshold={gameState.currentWorld?.currentLevel.levelThreshold || 0}
             roundPoints={roundState?.roundPoints || 0}
+            flopsThisLevel={gameState.currentWorld?.currentLevel.flopsThisLevel || 0}
             hotDiceCounter={roundState?.isActive && roundState.hotDiceCounter > 0 ? roundState.hotDiceCounter : 0}
             previewScoring={board.previewScoring}
             breakdownState={board.breakdownState}
@@ -430,7 +442,10 @@ export const Game: React.FC<GameProps> = ({
               onClick={() => setIsSettingsOpen(true)} 
               style={{ position: 'relative', top: 'auto', right: 'auto' }}
             />
-            <MainMenuReturnButton style={{ position: 'relative', top: 'auto', left: 'auto' }} />
+            <MainMenuReturnButton
+              style={{ position: 'relative', top: 'auto', left: 'auto' }}
+              disabled={isDuringBreakdown}
+            />
           </>
         }
       />

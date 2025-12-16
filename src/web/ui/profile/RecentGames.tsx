@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DiceFace } from '../game/board/dice/DiceFace';
 import { Die } from '../../../game/types';
 import { CharmCard } from '../components/CharmCard';
 import { ConsumableCard } from '../components/ConsumableCard';
 import { BlessingCard } from '../components/BlessingCard';
+import { ActionButton } from '../components/ActionButton';
 
 export interface GameHistory {
   id: string;
@@ -16,6 +17,7 @@ export interface GameHistory {
   highSingleRoll: number;
   highBank: number;
   levelLostOn: number;
+  worldNumber?: number;
   diceSet?: Die[];
   charms?: any[];
   consumables?: any[];
@@ -33,6 +35,8 @@ const formatDifficulty = (difficulty: string): string => {
 };
 
 const GameHistoryCard: React.FC<{ game: GameHistory }> = ({ game }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   const getEndReasonColor = (reason: string) => {
     switch (reason) {
       case 'win': return '#28a745';
@@ -72,144 +76,180 @@ const GameHistoryCard: React.FC<{ game: GameHistory }> = ({ game }) => {
         <div style={{
           fontSize: '16px',
           fontWeight: '600',
-          color: '#2c3e50'
+          color: '#2c3e50',
+          flex: 1
         }}>
           {new Date(game.completedAt).toLocaleDateString('en-US', { 
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             year: 'numeric',
             month: 'short',
             day: 'numeric'
-          })}  •  {game.diceSetName}  •  {formatDifficulty(game.difficulty)}
+          })}  •  {formatDifficulty(game.difficulty)}
+          {game.worldNumber && (
+            <span style={{ marginLeft: '8px', color: '#6c757d', fontWeight: 'normal' }}>
+              (World {game.worldNumber}, Level {game.levelLostOn})
+            </span>
+          )}
         </div>
         <div style={{
-          fontSize: '18px',
-          fontWeight: 'bold',
-          color: getEndReasonColor(game.endReason)
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
         }}>
-          {getEndReasonText(game.endReason, game.levelLostOn)}
+          <div style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: getEndReasonColor(game.endReason)
+          }}>
+            {getEndReasonText(game.endReason, game.levelLostOn)}
+          </div>
+          <ActionButton
+            onClick={() => setIsExpanded(!isExpanded)}
+            variant="secondary"
+            size="small"
+            style={{
+              padding: '4px 8px',
+              minWidth: '60px'
+            }}
+          >
+            {isExpanded ? '▲' : '▼'}
+          </ActionButton>
         </div>
       </div>
       
-      {/* Dice Set Display */}
-      {diceSet.length > 0 && (
+      {/* Expanded content - hidden by default */}
+      {isExpanded && (
         <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '8px',
-          marginBottom: '12px',
-          padding: '10px',
-          backgroundColor: '#ffffff',
-          borderRadius: '6px',
-          border: '1px solid #dee2e6'
+          marginTop: '12px',
+          paddingTop: '12px',
+          borderTop: '1px solid #dee2e6'
         }}>
-          {diceSet.map((die, idx) => {
-            // Get pip effect for display (check first allowed value, or use a default)
-            const firstValue = die.allowedValues?.[0] || 3;
-            const pipEffect = die.pipEffects?.[firstValue];
-            
-            return (
-              <DiceFace
-                key={`${game.id}-${die.id}-${idx}`}
-                value={firstValue}
-                size={35}
-                material={die.material}
-                pipEffect={pipEffect}
-              />
-            );
-          })}
+          {/* Dice Set Display */}
+          {diceSet.length > 0 && (
+            <div style={{
+              marginBottom: '16px'
+            }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: '#6c757d',
+                marginBottom: '8px'
+              }}>
+                Dice Set ({diceSet.length})
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                padding: '10px',
+                backgroundColor: '#ffffff',
+                borderRadius: '6px',
+                border: '1px solid #dee2e6'
+              }}>
+                {diceSet.map((die, idx) => {
+                  const firstValue = die.allowedValues?.[0] || 3;
+                  const pipEffect = die.pipEffects?.[firstValue];
+                  
+                  return (
+                    <DiceFace
+                      key={`${game.id}-${die.id}-${idx}`}
+                      value={firstValue}
+                      size={35}
+                      material={die.material}
+                      pipEffect={pipEffect}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Charms, Consumables, and Blessings Display */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px'
+          }}>
+            {/* Charms */}
+            {game.charms && game.charms.length > 0 && (
+              <div>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  color: '#6c757d',
+                  marginBottom: '8px'
+                }}>
+                  Charms ({game.charms.length})
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px'
+                }}>
+                  {game.charms.map((charm, idx) => (
+                    <CharmCard
+                      key={`${game.id}-charm-${idx}`}
+                      charm={charm}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Consumables */}
+            {game.consumables && game.consumables.length > 0 && (
+              <div>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  color: '#6c757d',
+                  marginBottom: '8px'
+                }}>
+                  Consumables ({game.consumables.length})
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px'
+                }}>
+                  {game.consumables.map((consumable, idx) => (
+                    <ConsumableCard
+                      key={`${game.id}-consumable-${idx}`}
+                      consumable={consumable}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Blessings */}
+            {game.blessings && game.blessings.length > 0 && (
+              <div>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  color: '#6c757d',
+                  marginBottom: '8px'
+                }}>
+                  Blessings ({game.blessings.length})
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px'
+                }}>
+                  {game.blessings.map((blessing, idx) => (
+                    <BlessingCard
+                      key={`${game.id}-blessing-${idx}`}
+                      blessing={blessing}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
-
-      {/* Charms, Consumables, and Blessings Display */}
-      {(game.charms && game.charms.length > 0) || 
-       (game.consumables && game.consumables.length > 0) || 
-       (game.blessings && game.blessings.length > 0) ? (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '12px',
-          marginBottom: '12px'
-        }}>
-          {/* Charms */}
-          {game.charms && game.charms.length > 0 && (
-            <div>
-              <div style={{
-                fontSize: '12px',
-                fontWeight: 'bold',
-                color: '#6c757d',
-                marginBottom: '6px'
-              }}>
-                Charms ({game.charms.length})
-              </div>
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '6px'
-              }}>
-                {game.charms.map((charm, idx) => (
-                  <CharmCard
-                    key={`${game.id}-charm-${idx}`}
-                    charm={charm}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Consumables */}
-          {game.consumables && game.consumables.length > 0 && (
-            <div>
-              <div style={{
-                fontSize: '12px',
-                fontWeight: 'bold',
-                color: '#6c757d',
-                marginBottom: '6px'
-              }}>
-                Consumables ({game.consumables.length})
-              </div>
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '6px'
-              }}>
-                {game.consumables.map((consumable, idx) => (
-                  <ConsumableCard
-                    key={`${game.id}-consumable-${idx}`}
-                    consumable={consumable}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Blessings */}
-          {game.blessings && game.blessings.length > 0 && (
-            <div>
-              <div style={{
-                fontSize: '12px',
-                fontWeight: 'bold',
-                color: '#6c757d',
-                marginBottom: '6px'
-              }}>
-                Blessings ({game.blessings.length})
-              </div>
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '6px'
-              }}>
-                {game.blessings.map((blessing, idx) => (
-                  <BlessingCard
-                    key={`${game.id}-blessing-${idx}`}
-                    blessing={blessing}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      ) : null}
-      
     </div>
   );
 };
@@ -242,4 +282,3 @@ export const RecentGames: React.FC<RecentGamesProps> = ({ games }) => {
     </div>
   );
 };
-

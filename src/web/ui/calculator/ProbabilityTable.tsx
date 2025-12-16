@@ -2,6 +2,7 @@ import React from 'react';
 import { SpecificCombinationProbability } from '../../../game/logic/probability';
 import { formatCombinationKey } from '../../../game/utils/combinationTracking';
 import { ProbabilityTimeIndicator } from './ProbabilityTimeIndicator';
+import { ActionButton } from '../components/ActionButton';
 
 interface ProbabilityTableProps {
   probabilities: SpecificCombinationProbability[];
@@ -52,57 +53,22 @@ export const ProbabilityTable: React.FC<ProbabilityTableProps> = ({
             {progress.currentRoll.toLocaleString()} / {progress.totalRolls.toLocaleString()} rolls
           </span>
         )}
-        <button
+        <ActionButton
           onClick={onCompute}
           disabled={isComputing}
-          style={{
-            backgroundColor: isComputing ? '#6c757d' : '#007bff',
-            color: '#fff',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            fontSize: '16px',
-            cursor: isComputing ? 'not-allowed' : 'pointer',
-            fontWeight: '600',
-            transition: 'background-color 0.2s ease',
-            opacity: isComputing ? 0.6 : 1
-          }}
-          onMouseEnter={(e) => {
-            if (!isComputing) {
-              e.currentTarget.style.backgroundColor = '#0056b3';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isComputing) {
-              e.currentTarget.style.backgroundColor = '#007bff';
-            }
-          }}
+          variant="primary"
+          size="medium"
         >
           {isComputing ? 'Computing...' : 'Compute Probabilities'}
-        </button>
+        </ActionButton>
         {isComputing && (
-          <button
+          <ActionButton
             onClick={onCancel}
-            style={{
-              backgroundColor: '#dc3545',
-              color: '#fff',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '6px',
-              fontSize: '16px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              transition: 'background-color 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#c82333';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#dc3545';
-            }}
+            variant="danger"
+            size="medium"
           >
             Cancel
-          </button>
+          </ActionButton>
         )}
       </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { statsApi } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { ActionButton } from '../components/ActionButton';
 
 interface ProfilePictureSelectorProps {
   currentPicture: string;
@@ -29,11 +30,28 @@ export const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
     const loadPictures = async () => {
       try {
         const result = await statsApi.getProfilePictures();
+        const loadedPictures: ProfilePicture[] = [];
+        
+        // Add default option first
+        loadedPictures.push({
+          id: 'default',
+          name: 'Default (Die)',
+          imagePath: '' // No image path for default
+        });
+        
         if (result.success && (result as any).pictures) {
-          setPictures((result as any).pictures);
+          loadedPictures.push(...(result as any).pictures);
         }
+        
+        setPictures(loadedPictures);
       } catch (error) {
         console.error('Failed to load profile pictures:', error);
+        // Still add default option even on error
+        setPictures([{
+          id: 'default',
+          name: 'Default (Die)',
+          imagePath: ''
+        }]);
       } finally {
         setLoading(false);
       }
@@ -112,18 +130,20 @@ export const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
           }}>
             Select Profile Picture
           </h2>
-          <button
+          <ActionButton
             onClick={onClose}
+            variant="secondary"
+            size="small"
             style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#6c757d'
+              padding: '4px 8px',
+              minWidth: '32px',
+              minHeight: '32px',
+              fontSize: '20px',
+              lineHeight: '1'
             }}
           >
             ×
-          </button>
+          </ActionButton>
         </div>
 
         {loading ? (
@@ -163,25 +183,31 @@ export const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
                   }}
                   title={pic.name}
                 >
-                  <img
-                    src={pic.imagePath}
-                    alt={pic.name}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      opacity: selected === pic.id ? 1 : 0.7
-                    }}
-                    onError={(e) => {
-                      // Try alternative extensions if first fails
-                      const img = e.target as HTMLImageElement;
-                      if (pic.imagePath.endsWith('.png')) {
-                        img.src = pic.imagePath.replace('.png', '.jpeg');
-                      } else if (pic.imagePath.endsWith('.jpeg')) {
-                        img.src = pic.imagePath.replace('.jpeg', '.jpg');
-                      }
-                    }}
-                  />
+                  {pic.id === 'default' ? (
+                    <span style={{ fontSize: '40px' }}>🎲</span>
+                  ) : (
+                    <img
+                      src={pic.imagePath}
+                      alt={pic.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        opacity: selected === pic.id ? 1 : 0.7
+                      }}
+                      onError={(e) => {
+                        // Try alternative extensions if first fails
+                        const img = e.target as HTMLImageElement;
+                        if (pic.imagePath.endsWith('.png')) {
+                          img.src = pic.imagePath.replace('.png', '.jpeg');
+                        } else if (pic.imagePath.endsWith('.jpeg')) {
+                          img.src = pic.imagePath.replace('.jpeg', '.jpg');
+                        } else if (pic.imagePath.endsWith('.jpg')) {
+                          img.src = pic.imagePath.replace('.jpg', '.png');
+                        }
+                      }}
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -193,35 +219,21 @@ export const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
           gap: '10px',
           justifyContent: 'flex-end'
         }}>
-          <button
+          <ActionButton
             onClick={onClose}
-            style={{
-              backgroundColor: '#6c757d',
-              color: '#fff',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
+            variant="secondary"
+            size="medium"
           >
             Cancel
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             onClick={handleSave}
             disabled={saving}
-            style={{
-              backgroundColor: saving ? '#6c757d' : '#007bff',
-              color: '#fff',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '6px',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              fontSize: '14px'
-            }}
+            variant="primary"
+            size="medium"
           >
             {saving ? 'Saving...' : 'Save'}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>

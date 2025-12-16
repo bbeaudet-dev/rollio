@@ -408,8 +408,21 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
               Step {currentStepIndex + 1} of {breakdown.steps.length}
             </div>
           </div>
-          <div style={{ fontSize: '11px', color: '#424242' }}>
-            {formatStepDescription(currentStep)}
+          <div style={{ 
+            fontSize: '11px', 
+            color: (() => {
+              const desc = formatStepDescription(currentStep);
+              if (/-?\d+/.test(desc) && /→\s*-/.test(desc)) {
+                return '#dc3545';
+              }
+              return '#424242';
+            })()
+          }}>
+            {(() => {
+              let desc = formatStepDescription(currentStep);
+              desc = desc.replace(/-(\+)(\d+)/g, '-$2');
+              return desc;
+            })()}
           </div>
         </div>
       )}
@@ -423,13 +436,13 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
           transition: 'gap 0.5s ease-in-out',
           overflow: 'hidden'
         }}>
-          {/* Base Points - Green */}
+          {/* Base Points */}
           <div style={{
             flex: isComplete ? '0 0 0' : 1,
             padding: '6px',
-            backgroundColor: '#c8e6c9',
+            backgroundColor: displayElements.basePoints < 0 ? '#ffcdd2' : '#c8e6c9',
             borderRadius: isComplete ? '4px 0 0 4px' : '4px',
-            border: '1px solid #4caf50',
+            border: `1px solid ${displayElements.basePoints < 0 ? '#c62828' : '#4caf50'}`,
             textAlign: 'center',
             animation: animatingValues.basePoints ? 'valueChange 0.6s ease-out' : 'none',
             display: 'flex',
@@ -441,7 +454,7 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
             overflow: 'hidden',
             whiteSpace: 'nowrap'
           }}>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e7d32' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', color: displayElements.basePoints < 0 ? '#c62828' : '#2e7d32' }}>
               {formatNumber(displayElements.basePoints, 'points')}
             </div>
           </div>
@@ -511,10 +524,21 @@ export const ScoringBreakdownComponent: React.FC<ScoringBreakdownProps> = ({
         }}>
           <div style={{
             fontSize: '18px',
-            color: '#1976d2'
+            color: (() => {
+              const finalScore = calculateFinalScore(breakdown.final);
+              return finalScore < 0 ? '#dc3545' : '#1976d2';
+            })()
           }}>
-            <span style={{ fontWeight: 'normal' }}>+</span>
-            <span style={{ fontWeight: 'bold' }}>{formatNumber(calculateFinalScore(breakdown.final), 'points')}</span>
+            {(() => {
+              const finalScore = calculateFinalScore(breakdown.final);
+              const sign = finalScore >= 0 ? '+' : '';
+              return (
+                <>
+                  <span style={{ fontWeight: 'normal' }}>{sign}</span>
+                  <span style={{ fontWeight: 'bold' }}>{formatNumber(finalScore, 'points')}</span>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

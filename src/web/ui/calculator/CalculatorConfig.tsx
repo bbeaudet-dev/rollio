@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DiceConfig } from './DiceConfig';
-
+import { ActionButton } from '../components/ActionButton';
 import { CombinationCategory } from '../../../game/logic/probability';
 
 interface CalculatorConfigProps {
@@ -147,28 +147,13 @@ export const CalculatorConfig: React.FC<CalculatorConfigProps> = ({ diceFaces, o
               />
               Homogenous Set
             </label>
-            <button
+            <ActionButton
               onClick={handleReset}
-              style={{
-                backgroundColor: '#dc3545',
-                color: '#fff',
-                border: 'none',
-                padding: '4px 10px',
-                borderRadius: '3px',
-                fontSize: '11px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'background-color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#c82333';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#dc3545';
-              }}
+              variant="danger"
+              size="small"
             >
               Reset All
-            </button>
+            </ActionButton>
           </div>
           <div style={{
             display: 'flex',

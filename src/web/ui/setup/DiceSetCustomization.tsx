@@ -605,6 +605,11 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diceSet, creditsRemaining, baseLevelRerolls, baseLevelBanks, charmSlots, consumableSlots]);
 
+  // If difficulty is locked, hide the entire customization UI 
+  if (isLocked) {
+    return null;
+  }
+
   return (
     <div style={{
       backgroundColor: '#fff',
@@ -615,12 +620,6 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
       maxWidth: '900px',
       margin: '0 auto'
     }}>
-
-      <CreditsBar
-        creditsRemaining={creditsRemaining}
-        startingCredits={startingCredits}
-        creditsUsed={creditsUsed}
-      />
 
       <DiceSetDisplay
         diceSet={diceSet}
@@ -643,7 +642,7 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
         }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: '3fr 2fr',
             gap: '16px',
             alignItems: 'flex-start'
           }}>
@@ -786,13 +785,15 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
         </div>
       </div>
 
-      {/* Reset Button and Randomize Button */}
+      {/* Reset / Randomize row and compact credits bar */}
       <div style={{
         display: 'flex',
-        justifyContent: 'flex-start',
+      justifyContent: 'space-between',
         gap: '12px',
-        alignItems: 'center'
+      alignItems: 'center',
+      marginTop: '12px'
       }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
         <ActionButton
           onClick={handleReset}
           variant="secondary"
@@ -807,6 +808,15 @@ export const DiceSetCustomization: React.FC<DiceSetCustomizationProps> = ({
         >
           Randomize
         </ActionButton>
+        </div>
+        <div style={{ flexShrink: 0 }}>
+          <CreditsBar
+            creditsRemaining={creditsRemaining}
+            startingCredits={startingCredits}
+            creditsUsed={creditsUsed}
+            compact
+          />
+        </div>
       </div>
     </div>
   );

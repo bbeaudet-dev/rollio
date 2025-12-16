@@ -4,12 +4,14 @@ interface CreditsBarProps {
   creditsRemaining: number;
   startingCredits: number;
   creditsUsed: number;
+  compact?: boolean;
 }
 
 export const CreditsBar: React.FC<CreditsBarProps> = ({
   creditsRemaining,
   startingCredits,
-  creditsUsed
+  creditsUsed,
+  compact = false
 }) => {
   const getCreditColor = () => {
     const percentage = creditsRemaining / startingCredits;
@@ -19,7 +21,7 @@ export const CreditsBar: React.FC<CreditsBarProps> = ({
   };
 
   return (
-    <div style={{ marginBottom: '20px' }}>
+    <div style={{ marginBottom: compact ? 0 : '20px' }}>
       {/* Credits text and indicators on the same row */}
       <div style={{
         display: 'flex',
@@ -29,9 +31,9 @@ export const CreditsBar: React.FC<CreditsBarProps> = ({
       }}>
         {/* Credits text */}
         <span style={{  fontWeight: 'bold' }}>
-          <span style={{ fontSize: '24px', color: getCreditColor(), fontWeight: 'bold' }}>{creditsRemaining}</span>
-          <span style={{ fontSize: '20px', color: '#2c3e50' }}> / </span>
-          <span style={{ fontSize: '24px', color: '#2c3e50', fontWeight: 'bold' }}>{startingCredits}</span>
+          <span style={{ fontSize: compact ? '18px' : '24px', color: getCreditColor(), fontWeight: 'bold' }}>{creditsRemaining}</span>
+          <span style={{ fontSize: compact ? '16px' : '20px', color: '#2c3e50' }}> / </span>
+          <span style={{ fontSize: compact ? '18px' : '24px', color: '#2c3e50', fontWeight: 'bold' }}>{startingCredits}</span>
         </span>
         {/* Individual Bars - Order: Green (available) on left -> Gray (used) in middle -> Red (unavailable) on right */}
         <div style={{
@@ -40,7 +42,7 @@ export const CreditsBar: React.FC<CreditsBarProps> = ({
           flexWrap: 'wrap',
           alignItems: 'center'
         }}>
-        {Array.from({ length: 30 }, (_, index) => {
+        {Array.from({ length: compact ? 20 : 30 }, (_, index) => {
           // Order: Green (available) on left -> Gray (used) in middle -> Red (unavailable) on right
           // Green: index < creditsRemaining (available, not used)
           // Gray: creditsRemaining <= index < startingCredits (used)
@@ -64,8 +66,8 @@ export const CreditsBar: React.FC<CreditsBarProps> = ({
             <div
               key={index}
               style={{
-                width: '20px',
-                height: '24px',
+                width: compact ? '14px' : '20px',
+                height: compact ? '18px' : '24px',
                 backgroundColor,
                 border: `2px solid ${borderColor}`,
                 borderRadius: '4px',

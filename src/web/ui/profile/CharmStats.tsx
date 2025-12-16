@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { statsApi, ApiResponse } from '../../services/api';
 import { CHARMS } from '../../../game/data/charms';
+import { CharmCard } from '../components/CharmCard';
 
 interface CharmUsage {
   charmId: string;
@@ -47,20 +48,22 @@ export const CharmStats: React.FC = () => {
         padding: '20px',
         backgroundColor: '#f8f9fa',
         borderRadius: '8px',
-        border: '1px solid #e1e5e9'
+        border: '1px solid #e1e5e9',
+        marginBottom: '30px'
       }}>
         <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#2c3e50' }}>
           Most Used Charms
         </h3>
         <div style={{ color: '#6c757d', fontSize: '14px' }}>
-          No charm usage data yet. Play some games to see your most-used charms!
+          No charm usage data yet. Play some games to see your stats!
         </div>
       </div>
     );
   }
 
-  // Get top 10 most used charms
-  const topCharms = charms.slice(0, 10);
+  // Get all charms with their owned count (totalUsage = timesPurchased + timesGenerated + timesCopied)
+  // Sort by totalUsage descending
+  const sortedCharms = [...charms].sort((a, b) => b.totalUsage - a.totalUsage);
 
   return (
     <div style={{
@@ -73,48 +76,47 @@ export const CharmStats: React.FC = () => {
       <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#2c3e50' }}>
         Most Used Charms
       </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {topCharms.map((charm, index) => {
-          const charmData = CHARMS.find(c => c.id === charm.charmId);
-          const charmName = charmData?.name || charm.charmId;
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+        gap: '12px'
+      }}>
+        {sortedCharms.map((charmUsage) => {
+          const charmData = CHARMS.find(c => c.id === charmUsage.charmId);
+          if (!charmData) return null;
+          
+          // totalUsage represents total times owned (purchased + generated + copied)
+          const ownedCount = charmUsage.totalUsage;
           
           return (
             <div
-              key={charm.charmId}
+              key={charmUsage.charmId}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px',
-                backgroundColor: '#ffffff',
-                borderRadius: '6px',
-                border: '1px solid #e1e5e9'
+                position: 'relative'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
-                <span style={{
-                  fontSize: '14px',
+              <CharmCard
+                charm={charmData}
+                isInActiveGame={false}
+              />
+              {/* Owned count overlay in bottom right */}
+              {ownedCount > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '4px',
+                  right: '4px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  color: 'white',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
                   fontWeight: 'bold',
-                  color: '#6c757d',
-                  minWidth: '30px'
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  zIndex: 10
                 }}>
-                  #{index + 1}
-                </span>
-                <span style={{ fontSize: '14px', color: '#2c3e50', flex: 1 }}>
-                  {charmName}
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: '15px', fontSize: '12px', color: '#6c757d' }}>
-                {charm.timesGenerated > 0 && (
-                  <span>Generated: {charm.timesGenerated}</span>
-                )}
-                {charm.timesCopied > 0 && (
-                  <span>Copied: {charm.timesCopied}</span>
-                )}
-                <span style={{ fontWeight: 'bold', color: '#2c3e50' }}>
-                  Total: {charm.totalUsage}
-                </span>
-              </div>
+                  Owned: {ownedCount}
+                </div>
+              )}
             </div>
           );
         })}
@@ -122,4 +124,3 @@ export const CharmStats: React.FC = () => {
     </div>
   );
 };
-

@@ -131,34 +131,20 @@ export const DiceViewerModal: React.FC<DiceViewerModalProps> = ({
           }}>
             {title}
           </h2>
-          <button
+          <ActionButton
             onClick={onClose}
+            variant="secondary"
+            size="small"
             style={{
-              border: 'none',
-              background: 'none',
-              fontSize: '28px',
-              cursor: 'pointer',
-              color: '#6c757d',
-              padding: '0',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '4px',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f8f9fa';
-              e.currentTarget.style.color = '#2c3e50';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#6c757d';
+              padding: '4px 8px',
+              minWidth: '32px',
+              minHeight: '32px',
+              fontSize: '20px',
+              lineHeight: '1'
             }}
           >
             ×
-          </button>
+          </ActionButton>
         </div>
 
         {/* Description */}
@@ -194,32 +180,17 @@ export const DiceViewerModal: React.FC<DiceViewerModalProps> = ({
               gap: '8px'
             }}>
               {consumables.map((consumable, idx) => (
-                <button
+                <ActionButton
                   key={consumable.id}
                   onClick={() => setSelectedConsumableIndex(idx)}
+                  variant={selectedConsumableIndex === idx ? 'primary' : 'secondary'}
+                  size="small"
                   style={{
-                    padding: '8px 12px',
-                    fontSize: '12px',
-                    backgroundColor: selectedConsumableIndex === idx ? '#007bff' : '#fff',
-                    color: selectedConsumableIndex === idx ? '#fff' : '#2c3e50',
-                    border: `2px solid ${selectedConsumableIndex === idx ? '#007bff' : '#dee2e6'}`,
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedConsumableIndex !== idx) {
-                      e.currentTarget.style.backgroundColor = '#e9ecef';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedConsumableIndex !== idx) {
-                      e.currentTarget.style.backgroundColor = '#fff';
-                    }
+                    opacity: selectedConsumableIndex === idx ? 1 : 0.7
                   }}
                 >
                   {consumable.name}
-                </button>
+                </ActionButton>
               ))}
             </div>
           </div>

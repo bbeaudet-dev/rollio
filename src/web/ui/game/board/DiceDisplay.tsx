@@ -60,11 +60,27 @@ export const DiceDisplay: React.FC<DiceDisplayProps> = ({
       maxWidth: 'calc(100% - clamp(20px, 4vw, 40px))',
       boxSizing: 'border-box'
     }}>
-      {rolledDice.map((die) => {
+      {rolledDice.map((die, rolledIndex) => {
         // Find the original index in the full dice array by matching id
-        const originalIndex = allDice.findIndex(d => d.id === die.id);
+        // Track which indices have already been matched to handle duplicate IDs
+        let originalIndex = -1;
+        
+        // Build a map of already-matched indices from previous dice in this render
+        const matchedIndices = new Set<number>();
+        for (let i = 0; i < rolledIndex; i++) {
+          const prevDie = rolledDice[i];
+          // Find the first unmatched index for this previous die
+          const prevMatch = allDice.findIndex((d, idx) => d.id === prevDie.id && !matchedIndices.has(idx));
+          if (prevMatch !== -1) {
+            matchedIndices.add(prevMatch);
+          }
+        }
+        
+        // Now find the index for this die, excluding already matched indices
+        originalIndex = allDice.findIndex((d, idx) => d.id === die.id && !matchedIndices.has(idx));
+        
         if (originalIndex === -1) {
-          console.warn(`Die ${die.id} not found in allDice array`);
+          console.warn(`Die ${die.id} not found in allDice array or all matches already used`);
           return null;
         }
         

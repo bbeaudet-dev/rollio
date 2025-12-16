@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '../components/Modal';
 import { Input } from '../components/Input';
 import { useAuth } from '../../contexts/AuthContext';
+import { ActionButton } from '../components/ActionButton';
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -22,8 +23,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError(null);
     setIsLoading(true);
 
@@ -70,7 +70,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Register">
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {error && (
           <div style={{
             padding: '10px',
@@ -135,23 +135,15 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-          <button
-            type="submit"
+          <ActionButton
+            onClick={handleSubmit}
             disabled={isLoading}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '16px',
-              fontWeight: '500',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1
-            }}
+            variant="success"
+            size="medium"
+            style={{ width: '100%' }}
           >
             {isLoading ? 'Registering...' : 'Register'}
-          </button>
+          </ActionButton>
 
           {onSwitchToLogin && (
             <button
