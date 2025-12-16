@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '../components/Modal';
 import { Input } from '../components/Input';
 import { useAuth } from '../../contexts/AuthContext';
+import { ActionButton } from '../components/ActionButton';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -20,8 +21,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError(null);
     setIsLoading(true);
 
@@ -47,7 +47,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Login">
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {error && (
           <div style={{
             padding: '10px',
@@ -88,15 +88,47 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             type="submit"
             disabled={isLoading}
             style={{
-              padding: '10px 20px',
-              backgroundColor: '#007bff',
+              padding: '8px 16px',
+              fontSize: '14px',
+              borderRadius: '10px',
+              minHeight: '38px',
+              fontWeight: 600,
+              border: '2px solid #000',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2), 0 0 6px rgba(255, 255, 255, 0.1)',
+              backgroundColor: isLoading ? '#6c757d' : '#007bff',
               color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '16px',
-              fontWeight: '500',
+              opacity: isLoading ? 0.6 : 1,
               cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1
+              transition: 'all 0.2s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+              width: '100%'
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(255, 255, 255, 0.2)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2), 0 0 6px rgba(255, 255, 255, 0.1)';
+              }
+            }}
+            onMouseDown={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.transform = 'translateY(0)';
+              }
+            }}
+            onMouseUp={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }
             }}
           >
             {isLoading ? 'Logging in...' : 'Login'}

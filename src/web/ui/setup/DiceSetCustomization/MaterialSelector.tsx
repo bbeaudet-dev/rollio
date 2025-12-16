@@ -33,7 +33,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
       </div>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
         gap: '6px'
       }}>
         {MATERIALS.map((material) => {

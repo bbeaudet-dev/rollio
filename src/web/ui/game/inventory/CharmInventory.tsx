@@ -8,9 +8,23 @@ import { CHARM_CARD_SIZE } from '../../components/cardSizes';
 
 export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCharm, onMoveCharm, maxSlots, charmState }) => {
   const { highlightedCharmIds } = useScoringHighlights();
-  const { unlockedItems } = useUnlocks();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [selectedCharmId, setSelectedCharmId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Update selected index when charms array changes (e.g., after moving)
+  useEffect(() => {
+    if (selectedCharmId !== null) {
+      const newIndex = charms.findIndex(c => c.id === selectedCharmId);
+      if (newIndex !== -1) {
+        setSelectedIndex(newIndex);
+      } else {
+        // Charm was removed (sold), clear selection
+        setSelectedIndex(null);
+        setSelectedCharmId(null);
+      }
+    }
+  }, [charms, selectedCharmId]);
 
   // Deselect when clicking outside
   useEffect(() => {
@@ -41,7 +55,13 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
             
             return (
               <div key={charm.id} onClick={() => {
-                setSelectedIndex(isSelected ? null : index);
+                if (isSelected) {
+                  setSelectedIndex(null);
+                  setSelectedCharmId(null);
+                } else {
+                  setSelectedIndex(index);
+                  setSelectedCharmId(charm.id);
+                }
               }} style={{ position: 'relative' }}>
                 <CharmCard
                   charm={charm}
@@ -51,6 +71,7 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
                     if (onSellCharm) {
                       onSellCharm(index);
                       setSelectedIndex(null);
+                      setSelectedCharmId(null);
                     }
                   }}
                   isInActiveGame={true}
@@ -102,6 +123,7 @@ export const CharmInventory: React.FC<CharmInventoryProps> = ({ charms, onSellCh
                           e.stopPropagation();
                           onSellCharm(index);
                           setSelectedIndex(null);
+                          setSelectedCharmId(null);
                         }}
                         style={{
                           backgroundColor: '#4CAF50',

@@ -39,11 +39,37 @@ export const ProfilePicture: React.FC<ProfilePictureProps> = ({
 
   const imagePath = getProfilePicturePath(profilePictureId);
   const alternatives = tryAlternativeExtensions(imagePath);
-  let currentAlternativeIndex = 0;
+  const [currentAlternativeIndex, setCurrentAlternativeIndex] = React.useState(0);
+  const [imageError, setImageError] = React.useState(false);
+
+  // Reset error state when profilePictureId changes
+  React.useEffect(() => {
+    setImageError(false);
+    setCurrentAlternativeIndex(0);
+  }, [profilePictureId]);
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.target as HTMLImageElement;
+    if (currentAlternativeIndex < alternatives.length) {
+      img.src = alternatives[currentAlternativeIndex];
+      setCurrentAlternativeIndex(prev => prev + 1);
+    } else {
+      setImageError(true);
+    }
+  };
+
+  if (imageError) {
+    return (
+      <div style={containerStyle} onClick={onClick}>
+        <span style={{ fontSize: `${size * 0.45}px` }}>🎲</span>
+      </div>
+    );
+  }
 
   return (
     <div style={containerStyle} onClick={onClick}>
       <img
+        key={profilePictureId} // Force re-render when profilePictureId changes
         src={imagePath}
         alt="Profile"
         style={{
@@ -52,19 +78,7 @@ export const ProfilePicture: React.FC<ProfilePictureProps> = ({
           objectFit: 'cover',
           borderRadius: '50%'
         }}
-        onError={(e) => {
-          const img = e.target as HTMLImageElement;
-          if (currentAlternativeIndex < alternatives.length) {
-            img.src = alternatives[currentAlternativeIndex];
-            currentAlternativeIndex++;
-          } else {
-            img.style.display = 'none';
-            const parent = img.parentElement;
-            if (parent) {
-              parent.innerHTML = `<span style="font-size: ${size * 0.45}px;">🎲</span>`;
-            }
-          }
-        }}
+        onError={handleImageError}
       />
     </div>
   );

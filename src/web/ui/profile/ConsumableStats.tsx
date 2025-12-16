@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { statsApi, ApiResponse } from '../../services/api';
-import { CONSUMABLES } from '../../../game/data/consumables';
+import { CONSUMABLES, WHIMS, WISHES, COMBINATION_UPGRADES } from '../../../game/data/consumables';
+import { ConsumableCard } from '../components/ConsumableCard';
+import { ActionButton } from '../components/ActionButton';
 
 interface ConsumableUsage {
   consumableId: string;
@@ -9,9 +11,12 @@ interface ConsumableUsage {
   lastUsedAt: string | null;
 }
 
+type FilterType = 'all' | 'wishes' | 'whims' | 'upgrades';
+
 export const ConsumableStats: React.FC = () => {
   const [consumables, setConsumables] = useState<ConsumableUsage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<FilterType>('all');
 
   useEffect(() => {
     const loadConsumables = async () => {
@@ -30,6 +35,28 @@ export const ConsumableStats: React.FC = () => {
     loadConsumables();
   }, []);
 
+  // Filter consumables based on selected filter
+  const filteredConsumables = useMemo(() => {
+    if (filter === 'all') {
+      return consumables;
+    }
+    
+    return consumables.filter(usage => {
+      const consumableData = CONSUMABLES.find(c => c.id === usage.consumableId);
+      if (!consumableData) return false;
+      
+      if (filter === 'wishes') {
+        return WISHES.some(w => w.id === usage.consumableId);
+      } else if (filter === 'whims') {
+        return WHIMS.some(w => w.id === usage.consumableId);
+      } else if (filter === 'upgrades') {
+        return COMBINATION_UPGRADES.some(cu => cu.id === usage.consumableId);
+      }
+      
+      return true;
+    });
+  }, [consumables, filter]);
+
   if (loading) {
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: '#6c757d' }}>
@@ -44,20 +71,21 @@ export const ConsumableStats: React.FC = () => {
         padding: '20px',
         backgroundColor: '#f8f9fa',
         borderRadius: '8px',
-        border: '1px solid #e1e5e9'
+        border: '1px solid #e1e5e9',
+        marginBottom: '30px'
       }}>
         <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#2c3e50' }}>
-          Most Used Consumables
+          Consumables Used
         </h3>
         <div style={{ color: '#6c757d', fontSize: '14px' }}>
-          No consumable usage data yet. Use some consumables to see your most-used items!
+          No consumable usage data yet. Use some consumables to see your stats!
         </div>
       </div>
     );
   }
 
-  // Get top 10 most used consumables
-  const topConsumables = consumables.slice(0, 10);
+  // Sort by timesUsed descending
+  const sortedConsumables = [...filteredConsumables].sort((a, b) => b.timesUsed - a.timesUsed);
 
   return (
     <div style={{
@@ -67,45 +95,74 @@ export const ConsumableStats: React.FC = () => {
       border: '1px solid #e1e5e9',
       marginBottom: '30px'
     }}>
-      <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#2c3e50' }}>
-        Most Used Consumables
-      </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {topConsumables.map((consumable, index) => {
-          const consumableData = CONSUMABLES.find(c => c.id === consumable.consumableId);
-          const consumableName = consumableData?.name || consumable.consumableId;
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '15px'
+      }}>
+        <h3 style={{ margin: 0, color: '#2c3e50' }}>
+          Consumables Used
+        </h3>
+        {/* Filter buttons */}
+        <div style={{
+          display: 'flex',
+          gap: '8px'
+        }}>
+          {(['all', 'wishes', 'whims', 'upgrades'] as FilterType[]).map((filterType) => (
+            <ActionButton
+              key={filterType}
+              onClick={() => setFilter(filterType)}
+              variant={filter === filterType ? 'primary' : 'secondary'}
+              size="small"
+              style={{
+                textTransform: 'capitalize',
+                opacity: filter === filterType ? 1 : 0.7
+              }}
+            >
+              {filterType}
+            </ActionButton>
+          ))}
+        </div>
+      </div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+        gap: '12px'
+      }}>
+        {sortedConsumables.map((consumableUsage) => {
+          const consumableData = CONSUMABLES.find(c => c.id === consumableUsage.consumableId);
+          if (!consumableData) return null;
           
           return (
             <div
-              key={consumable.consumableId}
+              key={consumableUsage.consumableId}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px',
-                backgroundColor: '#ffffff',
-                borderRadius: '6px',
-                border: '1px solid #e1e5e9'
+                position: 'relative'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
-                <span style={{
-                  fontSize: '14px',
+              <ConsumableCard
+                consumable={consumableData}
+                isInActiveGame={false}
+              />
+              {/* Used count overlay in bottom right */}
+              {consumableUsage.timesUsed > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '4px',
+                  right: '4px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  color: 'white',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
                   fontWeight: 'bold',
-                  color: '#6c757d',
-                  minWidth: '30px'
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  zIndex: 10
                 }}>
-                  #{index + 1}
-                </span>
-                <span style={{ fontSize: '14px', color: '#2c3e50', flex: 1 }}>
-                  {consumableName}
-                </span>
-              </div>
-              <div style={{ fontSize: '12px', color: '#6c757d' }}>
-                <span style={{ fontWeight: 'bold', color: '#2c3e50' }}>
-                  Used: {consumable.timesUsed}
-                </span>
-              </div>
+                  Used: {consumableUsage.timesUsed}
+                </div>
+              )}
             </div>
           );
         })}
@@ -113,4 +170,3 @@ export const ConsumableStats: React.FC = () => {
     </div>
   );
 };
-

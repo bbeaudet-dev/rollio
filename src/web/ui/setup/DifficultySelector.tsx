@@ -7,8 +7,10 @@ import { useUnlocks } from '../../contexts/UnlockContext';
 import { LockIcon } from '../components/LockIcon';
 import { ArrowSelector } from '../components/ArrowSelector';
 
+type DifficultySelection = DifficultyLevel | 'unselected';
+
 interface DifficultySelectorProps {
-  difficulty: DifficultyLevel;
+  difficulty: DifficultySelection;
   onChange: (difficulty: DifficultyLevel) => void;
 }
 
@@ -30,9 +32,10 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
   const { isAuthenticated } = useAuth();
   const { unlockedItems } = useUnlocks();
   const [completedDifficulties, setCompletedDifficulties] = useState<Set<string>>(new Set());
-  const currentIndex = DIFFICULTY_ORDER.indexOf(difficulty);
-  const config = DIFFICULTY_CONFIGS[difficulty];
-  const isLocked = difficulty !== 'plastic' && !unlockedItems.has(`difficulty:${difficulty}`);
+  const isUnselected = difficulty === 'unselected';
+  const currentIndex = isUnselected ? -1 : DIFFICULTY_ORDER.indexOf(difficulty as DifficultyLevel);
+  const config = !isUnselected ? DIFFICULTY_CONFIGS[difficulty as DifficultyLevel] : undefined;
+  const isLocked = !isUnselected && difficulty !== 'plastic' && !unlockedItems.has(`difficulty:${difficulty}`);
 
   // Fetch completion status when authenticated
   useEffect(() => {
@@ -50,6 +53,9 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
   }, [isAuthenticated]);
 
   const handlePrevious = () => {
+    if (isUnselected) {
+      return;
+    }
     if (currentIndex > 0) {
       const prevDiff = DIFFICULTY_ORDER[currentIndex - 1];
       onChange(prevDiff);
@@ -57,6 +63,11 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
   };
 
   const handleNext = () => {
+    // From unselected, move to the first difficulty
+    if (isUnselected) {
+      onChange(DIFFICULTY_ORDER[0]);
+      return;
+    }
     if (currentIndex < DIFFICULTY_ORDER.length - 1) {
       const nextDiff = DIFFICULTY_ORDER[currentIndex + 1];
       onChange(nextDiff);
@@ -126,7 +137,17 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <DifficultyDiceDisplay difficulty={difficulty} size={70} />
+                {isUnselected ? (
+                  // Unselected state: show a D4 wireframe using the design-spec shape with dotted edges
+                  <DifficultyDiceDisplay
+                    difficulty={'plastic'}
+                    size={70}
+                    diceTypeOverride="D4"
+                    edgeStyle="dashed"
+                  />
+                ) : (
+                  <DifficultyDiceDisplay difficulty={difficulty as DifficultyLevel} size={70} />
+                )}
               </div>
               <div style={{ 
                 fontSize: '14px', 
@@ -137,8 +158,8 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
                 wordWrap: 'break-word',
                 lineHeight: '1.2'
               }}>
-                {config.name}
-                {isLocked && ' (Locked)'}
+                {isUnselected ? 'Select a difficulty' : config?.name}
+                {!isUnselected && isLocked && ' (Locked)'}
               </div>
             </div>
 
@@ -243,13 +264,13 @@ export const DifficultySelector: React.FC<DifficultySelectorProps> = ({ difficul
             textAlign: 'center',
             fontWeight: 'normal',
             lineHeight: '1.5',
-            ...(difficulty !== 'plastic' && {
+          ...(!isUnselected && difficulty !== 'plastic' && {
               borderBottom: '1px solid #e9ecef'
             })
           }}>
-            {config.description}
+            {isUnselected ? 'Select a difficulty to view its description and effects.' : config?.description}
           </div>
-          {difficulty !== 'plastic' && (
+          {!isUnselected && difficulty !== 'plastic' && (
             <div style={{
               padding: '10px',
               backgroundColor: '#e7f3ff',

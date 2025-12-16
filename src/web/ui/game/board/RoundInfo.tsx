@@ -41,15 +41,11 @@ export const RoundInfo: React.FC<RoundInfoProps> = ({
     <>
       {/* HUD overlay - styled to match game */}
       <div style={{
-        position: 'absolute',
-        top: '10px',
-        left: '10px',
-        zIndex: 20,
         backgroundColor: 'rgba(40, 44, 52, 0.9)',
         color: 'white',
         padding: '8px 12px',
         borderRadius: '8px',
-        fontSize: '12px',
+        fontSize: '14px',
         fontWeight: 'normal',
         border: '1px solid rgba(255, 255, 255, 0.1)',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
@@ -87,7 +83,7 @@ export const RoundInfo: React.FC<RoundInfoProps> = ({
         {/* Second row: Effects */}
         {(worldEffectsText || levelEffectsText) && (
           <div style={{
-            fontSize: '10px',
+            fontSize: '12px',
             color: '#ccc',
             lineHeight: '1.4',
             borderTop: '1px solid rgba(255, 255, 255, 0.1)',

@@ -11,6 +11,9 @@ import { DifficultyDiceDisplay } from '../../components/DifficultyDiceDisplay';
 import { useDifficulty } from '../../../contexts/DifficultyContext';
 import { useScoringHighlights } from '../../../contexts/ScoringHighlightContext';
 import { HotDiceCounter } from './HotDiceCounter';
+import { LevelBackground } from './LevelBackground';
+import { LevelScoreBars } from './LevelScoreBars';
+import { LevelFlopCounter } from './LevelFlopCounter';
 
 interface BoardProps {
   dice: any[];
@@ -45,6 +48,10 @@ interface BoardProps {
   onCompleteBreakdown?: () => void;
   diceSet?: Die[];
   hotDiceCounter?: number;
+  levelPoints?: number;
+  levelThreshold?: number;
+  roundPoints?: number;
+  flopsThisLevel?: number;
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -65,11 +72,15 @@ export const Board: React.FC<BoardProps> = ({
   lastRollPoints = 0,
   justBanked = false,
   justFlopped = false,
-  scoringBreakdown = null,
-  breakdownState = 'hidden',
-  onCompleteBreakdown = () => {},
+      scoringBreakdown = null,
+      breakdownState = 'hidden',
+      onCompleteBreakdown = () => {},
       diceSet = [],
-      hotDiceCounter = 0
+      hotDiceCounter = 0,
+      levelPoints = 0,
+      levelThreshold = 0,
+      roundPoints = 0,
+      flopsThisLevel = 0
     }) => {
   const difficulty = useDifficulty();
   const { highlightedDiceIndices, setHighlightedDice, clearAll } = useScoringHighlights();
@@ -140,37 +151,52 @@ export const Board: React.FC<BoardProps> = ({
   }, [rollNumber, lastRollNumber, currentSelectedDiceIds, lastSelectedDiceIds]);
 
   return (
-    <div style={{ 
-      backgroundColor: levelColor.backgroundColor,
-      border: `3px solid ${levelColor.borderColor}`,
-      borderTop: 'none',
-      borderTopLeftRadius: '0',
-      borderTopRightRadius: '0',
-      borderBottomLeftRadius: '0',
-      borderBottomRightRadius: '0',
-      padding: '10px',
-      minHeight: '400px', 
-      height: '500px', 
-      width: '100%',
-      position: 'relative',
-      overflow: 'hidden',
-      boxSizing: 'border-box'
-    }}>
-      <RoundInfo 
-        levelNumber={levelNumber || 1}
-        roundNumber={roundNumber}
-        rollNumber={rollNumber}
-        worldNumber={worldNumber}
-        worldEffects={worldEffects}
-        levelEffects={levelEffects}
-        consecutiveFlops={consecutiveFlops}
-      />
+    <LevelBackground
+      levelNumber={levelNumber || 1}
+      backgroundColor={levelColor.backgroundColor}
+      borderColor={levelColor.borderColor}
+    >
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        left: '10px',
+        zIndex: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        alignItems: 'flex-start'
+      }}>
+        <RoundInfo 
+          levelNumber={levelNumber || 1}
+          roundNumber={roundNumber}
+          rollNumber={rollNumber}
+          worldNumber={worldNumber}
+          worldEffects={worldEffects}
+          levelEffects={levelEffects}
+          consecutiveFlops={consecutiveFlops}
+        />
+        
+        {/* Level Score Bars */}
+        <LevelScoreBars 
+          current={levelPoints} 
+          threshold={levelThreshold}
+          pot={roundPoints}
+        />
+        
+        {/* Level Flop Counter - beneath score bars */}
+        {flopsThisLevel > 0 && levelThreshold > 0 && (
+          <LevelFlopCounter 
+            flopsThisLevel={flopsThisLevel}
+            levelThreshold={levelThreshold}
+          />
+        )}
+      </div>
 
-      {/* Difficulty Dice Display - Top Right */}
+      {/* Difficulty Dice Display  */}
       {difficulty && (
         <div style={{
           position: 'absolute',
-          top: '10px',
+          top: '90px',
           right: '10px',
           zIndex: 10
         }}>
@@ -235,7 +261,7 @@ export const Board: React.FC<BoardProps> = ({
         justFlopped={justFlopped}
       />
 
-    </div>
+    </LevelBackground>
   );
 };
 

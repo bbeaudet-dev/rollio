@@ -37,7 +37,7 @@ export const BankIndicator: React.FC<BankIndicatorProps> = ({
   return (
     <div style={{ 
       display: 'flex', 
-      gap: '2px', 
+      gap: '4px', 
       alignItems: 'center', 
       justifyContent: 'center',
       marginTop: '1px'

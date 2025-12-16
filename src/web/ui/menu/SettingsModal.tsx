@@ -5,6 +5,17 @@ import { updateMusicVolume, updateMusicEnabled } from '../../utils/music';
 import { updateSoundEffectsVolume } from '../../utils/sounds';
 import { ArrowSelector } from '../components/ArrowSelector';
 
+// Animation speed options - single source of truth
+const ANIMATION_SPEEDS = [2.0, 1.5, 1.0, 0.5, 0.3, 0.1] as const;
+const SPEED_LABELS: Record<number, string> = {
+  2.0: 'Very Slow',
+  1.5: 'Slow',
+  1.0: 'Normal',
+  0.5: 'Fast',
+  0.3: 'Very Fast',
+  0.1: 'Speedrunner'
+};
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -125,13 +136,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               <ArrowSelector
                 direction="left"
                 onClick={() => {
-                  const speeds = [2.0, 1.5, 1.0, 0.5, 0.2, 0.1];
-                  const currentIndex = speeds.indexOf(settings.animationSpeed);
+                  const currentIndex = ANIMATION_SPEEDS.indexOf(settings.animationSpeed as any);
                   if (currentIndex > 0) {
-                    handleAnimationSpeedChange(speeds[currentIndex - 1]);
+                    handleAnimationSpeedChange(ANIMATION_SPEEDS[currentIndex - 1]);
                   }
                 }}
-                disabled={settings.animationSpeed === 2.0}
+                disabled={settings.animationSpeed === ANIMATION_SPEEDS[0]}
                 size={35}
               />
               <span style={{ 
@@ -141,23 +151,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 minWidth: '120px',
                 textAlign: 'center'
               }}>
-                {settings.animationSpeed === 2.0 ? 'Very Slow' :
-                 settings.animationSpeed === 1.5 ? 'Slow' :
-                 settings.animationSpeed === 1.0 ? 'Normal' :
-                 settings.animationSpeed === 0.5 ? 'Fast' :
-                 settings.animationSpeed === 0.2 ? 'Very Fast' :
-                 'Speedrunner'}
+                {SPEED_LABELS[settings.animationSpeed] || 'Normal'}
               </span>
               <ArrowSelector
                 direction="right"
                 onClick={() => {
-                  const speeds = [2.0, 1.5, 1.0, 0.5, 0.2, 0.1];
-                  const currentIndex = speeds.indexOf(settings.animationSpeed);
-                  if (currentIndex < speeds.length - 1) {
-                    handleAnimationSpeedChange(speeds[currentIndex + 1]);
+                  const currentIndex = ANIMATION_SPEEDS.indexOf(settings.animationSpeed as any);
+                  if (currentIndex < ANIMATION_SPEEDS.length - 1) {
+                    handleAnimationSpeedChange(ANIMATION_SPEEDS[currentIndex + 1]);
                   }
                 }}
-                disabled={settings.animationSpeed === 0.1}
+                disabled={settings.animationSpeed === ANIMATION_SPEEDS[ANIMATION_SPEEDS.length - 1]}
                 size={35}
               />
             </div>

@@ -5,6 +5,8 @@ import { DIFFICULTY_COLORS } from '../../utils/colors';
 interface DiceDisplayProps {
   difficulty: DifficultyLevelString | null;
   size?: number;
+  diceTypeOverride?: keyof typeof DICE_DATA;
+  edgeStyle?: 'solid' | 'dashed';
 }
 
 // Vertex and edge data - using pixel coordinates directly
@@ -50,6 +52,35 @@ const DICE_DATA: Record<string, DiceData> = {
       { points: [4, 5, 6, 4] }, // Left half
       { points: [4, 7, 6, 4] }  // Right half
     ]
+  },
+  D6: {
+    vertices: [
+      { id: 0, x: 134.33, y: 994.00 },
+      { id: 1, x: 1270.00, y: 1647.00 },
+      { id: 2, x: 1270.33, y: 2957.00 },
+      { id: 3, x: 127.50, y: 2305.50 },
+      { id: 4, x: 2405.00, y: 994.00 },
+      { id: 5, x: 2411.50, y: 2306.50 },
+      { id: 6, x: 1269.00, y: 328.50 },
+    ],
+    edges: [
+      // Thick edges (outer cube frame)
+      { from: 3, to: 0, type: "thick" },
+      { from: 3, to: 2, type: "thick" },
+      { from: 5, to: 2, type: "thick" },
+      { from: 5, to: 4, type: "thick" },
+      { from: 6, to: 4, type: "thick" },
+      { from: 6, to: 0, type: "thick" },
+      // Thin edges (top face connections)
+      { from: 1, to: 0, type: "thin" },
+      { from: 1, to: 2, type: "thin" },
+      { from: 1, to: 4, type: "thin" },
+    ],
+    facets: [
+      { points: [0, 1, 4, 6, 0] }, // Top face
+      { points: [0, 1, 2, 3, 0] }, // Left face
+      { points: [1, 2, 5, 4, 1] }, // Right face
+    ],
   },
   D8: {
     vertices: [
@@ -216,23 +247,29 @@ const DICE_DATA: Record<string, DiceData> = {
 
 /**
  * Determines which dice shape to display based on difficulty level
+ * Plastic now uses the D6 cube; D4 is reserved for the unselected placeholder.
  */
 const getDiceType = (difficulty: DifficultyLevelString): keyof typeof DICE_DATA => {
-  if (difficulty === 'plastic') return 'D4';
+  if (difficulty === 'plastic') return 'D6';
   if (difficulty === 'copper' || difficulty === 'silver') return 'D8';
   if (difficulty === 'gold' || difficulty === 'roseGold' || difficulty === 'platinum') return 'D10';
   if (difficulty === 'sapphire' || difficulty === 'emerald' || difficulty === 'ruby') return 'D12';
   if (difficulty === 'diamond' || difficulty === 'quantum') return 'D20';
-  return 'D4'; // Default to D4
+  return 'D6'; // Default to D6
 };
 
 /**
  * Renders a wireframe dice display based on 2D coordinates
  */
-export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, size = 60 }) => {
+export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({
+  difficulty,
+  size = 60,
+  diceTypeOverride,
+  edgeStyle = 'solid',
+}) => {
   if (!difficulty) return null;
   
-  const diceType = getDiceType(difficulty);
+  const diceType = diceTypeOverride || getDiceType(difficulty);
   const diceData = DICE_DATA[diceType];
   
   const thickWidth = 3; // Thick edges
@@ -509,17 +546,29 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                   .join(' ');
                 
                 if (!facetPoints) return null;
-                
-              // Simple 3D effect: darker on one side, lighter on the other (reversed)
-              const isLeft = facetIdx === 0;
-              return (
-                <polygon
-                  key={facetIdx}
-                  points={facetPoints}
-                  fill={isLeft ? '#eeeeee' : '#f5f5f5'}
-                  opacity={0.9}
-                />
-              );
+
+                let fillColor = '#f5f5f5';
+
+                if (diceType === 'D4') {
+                  // Lighter, softer D4 for unselected state
+                  const isLeft = facetIdx === 0;
+                  fillColor = isLeft ? '#f7f7f7' : '#ffffff';
+                } else if (diceType === 'D6') {
+                  // Simple 3-face shading for plastic D6:
+                  // facetIdx 0: top (lightest), 1: left (darkest), 2: right (mid)
+                  if (facetIdx === 0) fillColor = '#fafafa';      // Top
+                  else if (facetIdx === 1) fillColor = '#d6d6d6'; // Left
+                  else if (facetIdx === 2) fillColor = '#e6e6e6'; // Right
+                }
+
+                return (
+                  <polygon
+                    key={facetIdx}
+                    points={facetPoints}
+                    fill={fillColor}
+                    opacity={0.95}
+                  />
+                );
               })}
             </>
           )}
@@ -663,7 +712,6 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
           )}
 
           {/* Draw all edges with effects */}
-          {/* Draw all edges with effects */}
           {diceData.edges.map((edge, idx) => {
             const start = pixelVertices[edge.from];
             const end = pixelVertices[edge.to];
@@ -671,6 +719,7 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
 
             const edgeColor = getEdgeColor(edge, idx);
             const isThick = edge.type === "thick";
+            const isDashed = edgeStyle === 'dashed';
             
             return (
               <g key={idx}>
@@ -682,6 +731,7 @@ export const DifficultyDiceDisplay: React.FC<DiceDisplayProps> = ({ difficulty, 
                   y2={end.y}
                   stroke={edgeColor}
                   strokeWidth={isThick ? thickWidth : thinWidth}
+                  strokeDasharray={isDashed ? (isThick ? '6,4' : '3,3') : undefined}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   opacity={difficulty === 'plastic' ? 1 : 0.9}

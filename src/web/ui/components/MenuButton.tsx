@@ -1,33 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { playClickSound } from '../../utils/sounds';
+import { ActionButton } from './ActionButton';
 
 interface MainMenuReturnButtonProps {
   onClick?: () => void;
   style?: React.CSSProperties;
+  disabled?: boolean;
 }
 
-export const MainMenuReturnButton: React.FC<MainMenuReturnButtonProps> = ({ onClick, style }) => {
+export const MainMenuReturnButton: React.FC<MainMenuReturnButtonProps> = ({ onClick, style, disabled }) => {
   const navigate = useNavigate();
-  
-  const defaultStyle: React.CSSProperties = {
-    position: 'fixed',
-    top: '10px',
-    left: '10px',
-    zIndex: 100,
-    padding: '10px 20px',
-    backgroundColor: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    fontWeight: '500',
-    whiteSpace: 'nowrap'
-  };
 
   const handleClick = () => {
-    playClickSound();
+    if (disabled) return;
     if (onClick) {
       onClick();
     } else {
@@ -35,19 +20,25 @@ export const MainMenuReturnButton: React.FC<MainMenuReturnButtonProps> = ({ onCl
     }
   };
 
+  const defaultStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: '10px',
+    left: '10px',
+    zIndex: 100,
+    whiteSpace: 'nowrap',
+    ...style
+  };
+
   return (
-    <button
+    <ActionButton
       onClick={handleClick}
-      style={{ ...defaultStyle, ...style }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#5a6268';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = '#6c757d';
-      }}
+      variant="secondary"
+      size="medium"
+      disabled={disabled}
+      style={defaultStyle}
     >
       Main Menu
-    </button>
+    </ActionButton>
   );
 };
 

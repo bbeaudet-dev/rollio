@@ -1,4 +1,5 @@
 import React from 'react';
+import { ActionButton } from './ActionButton';
 
 export type ButtonVariant = 'primary' | 'success' | 'secondary';
 
@@ -10,27 +11,6 @@ interface MainMenuButtonProps {
   style?: React.CSSProperties;
 }
 
-const getVariantStyles = (variant: ButtonVariant) => {
-  switch (variant) {
-    case 'success':
-      return {
-        backgroundColor: '#28a745',
-        hoverColor: '#218838'
-      };
-    case 'primary':
-      return {
-        backgroundColor: '#007bff',
-        hoverColor: '#0056b3'
-      };
-    case 'secondary':
-    default:
-      return {
-        backgroundColor: '#6c757d',
-        hoverColor: '#5a6268'
-      };
-  }
-};
-
 export const MainMenuButton: React.FC<MainMenuButtonProps> = ({
   onClick,
   children,
@@ -38,40 +18,21 @@ export const MainMenuButton: React.FC<MainMenuButtonProps> = ({
   disabled = false,
   style
 }) => {
-  const variantStyles = getVariantStyles(variant);
+  // Map ButtonVariant to ActionButton variant
+  const actionButtonVariant = variant === 'success' ? 'success' : 
+                               variant === 'primary' ? 'primary' : 
+                               'secondary';
 
   return (
-    <button
+    <ActionButton
       onClick={onClick}
+      variant={actionButtonVariant}
+      size="large"
       disabled={disabled}
-      style={{
-        backgroundColor: variantStyles.backgroundColor,
-        color: '#fff',
-        border: 'none',
-        padding: '12px 24px',
-        borderRadius: '6px',
-        fontSize: '15px',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        fontWeight: '500',
-        transition: 'background-color 0.2s ease',
-        fontFamily: 'Arial, sans-serif',
-        minHeight: '44px',
-        opacity: disabled ? 0.6 : 1,
-        ...style
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.backgroundColor = variantStyles.hoverColor;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.backgroundColor = variantStyles.backgroundColor;
-        }
-      }}
+      style={style}
     >
       {children}
-    </button>
+    </ActionButton>
   );
 };
 

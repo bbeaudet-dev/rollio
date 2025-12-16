@@ -1,5 +1,5 @@
 import React from 'react';
-import { playClickSound } from '../../utils/sounds';
+import { ActionButton } from './ActionButton';
 
 interface SettingsButtonProps {
   onClick: () => void;
@@ -12,35 +12,19 @@ export const SettingsButton: React.FC<SettingsButtonProps> = ({ onClick, style }
     top: '10px',
     right: '10px',
     zIndex: 100,
-    padding: '10px 20px',
-    backgroundColor: '#6c757d',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    fontWeight: '500',
-    whiteSpace: 'nowrap'
-  };
-
-  const handleClick = () => {
-    playClickSound();
-    onClick();
+    whiteSpace: 'nowrap',
+    ...style
   };
 
   return (
-    <button
-      onClick={handleClick}
-      style={{ ...defaultStyle, ...style }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#5a6268';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = '#6c757d';
-      }}
+    <ActionButton
+      onClick={onClick}
+      variant="secondary"
+      size="medium"
+      style={defaultStyle}
     >
       Settings
-    </button>
+    </ActionButton>
   );
 };
 

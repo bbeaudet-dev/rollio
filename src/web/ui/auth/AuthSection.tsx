@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LoginModal, RegisterModal } from './index';
 import { ProfilePicture } from '../components/ProfilePicture';
 import { SettingsButton } from '../components/SettingsButton';
+import { ActionButton } from '../components/ActionButton';
 
 interface AuthSectionProps {
   onSettingsClick?: () => void;
@@ -53,101 +54,43 @@ export const AuthSection: React.FC<AuthSectionProps> = ({ onSettingsClick }) => 
                 </div>
               )}
             </div>
-            <button
+            <ActionButton
               onClick={() => navigate('/profile')}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '16px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#5a6268';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#6c757d';
-              }}
+              variant="secondary"
+              size="medium"
             >
               Profile
-            </button>
+            </ActionButton>
             {onSettingsClick && (
               <SettingsButton 
                 onClick={onSettingsClick}
                 style={{ position: 'relative', top: 'auto', right: 'auto' }}
               />
             )}
-            <button
+            <ActionButton
               onClick={logout}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '13px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#c82333';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#dc3545';
-              }}
+              variant="danger"
+              size="small"
             >
               Logout
-            </button>
+            </ActionButton>
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-            <button
+            <ActionButton
               onClick={() => setIsLoginOpen(true)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#0056b3';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#007bff';
-              }}
+              variant="primary"
+              size="medium"
             >
               Login
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               onClick={() => setIsRegisterOpen(true)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '14px',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#218838';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#28a745';
-              }}
+              variant="success"
+              size="medium"
             >
               Register
-            </button>
+            </ActionButton>
             {onSettingsClick && (
               <SettingsButton 
                 onClick={onSettingsClick}

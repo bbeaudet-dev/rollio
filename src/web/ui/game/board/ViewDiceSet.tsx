@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DiceFace } from './dice/DiceFace';
 import { Die } from '../../../../game/types';
+import { ActionButton } from '../../components/ActionButton';
 
 interface ViewDiceSetProps {
   diceSet: Die[];
@@ -56,43 +57,51 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
   };
 
   if (!isExpanded) {
-    // Show single die icon
+    // Show single die icon with arrow indicator
     return (
-      <button
-        onClick={handleToggle}
-        style={{
-          position: 'relative',
-          width: '40px',
-          height: '40px',
-          border: '2px solid rgba(0, 0, 0, 0.3)',
-          borderRadius: '6px',
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 20,
-          transition: 'all 0.2s ease',
-          padding: '3px'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 1)';
-          e.currentTarget.style.transform = 'scale(1.1)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-          e.currentTarget.style.transform = 'scale(1)';
-        }}
-      >
-        {diceSet.length > 0 && (
-          <DiceFace
-            value={diceSet[0].allowedValues[0] || 1}
-            size={32}
-            material={diceSet[0].material}
-            pipEffect={diceSet[0].pipEffects?.[diceSet[0].allowedValues[0] || 1]}
-          />
-        )}
-      </button>
+      <div style={{ position: 'relative', display: 'inline-block', paddingRight: '16px' }}>
+        <ActionButton
+          onClick={handleToggle}
+          variant="secondary"
+          size="small"
+          style={{
+            position: 'relative',
+            width: '40px',
+            minWidth: '40px',
+            height: '40px',
+            minHeight: '40px',
+            padding: '3px',
+            zIndex: 20,
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            border: '2px solid rgba(0, 0, 0, 0.3)'
+          }}
+        >
+          {diceSet.length > 0 && (
+            <DiceFace
+              value={diceSet[0].allowedValues[0] || 1}
+              size={32}
+              material={diceSet[0].material}
+              pipEffect={diceSet[0].pipEffects?.[diceSet[0].allowedValues[0] || 1]}
+            />
+          )}
+        </ActionButton>
+        {/* Arrow indicator pointing right - bigger and more visible */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '4px',
+            right: '-12px',
+            width: '0',
+            height: '0',
+            borderLeft: '12px solid rgba(0, 0, 0, 0.8)',
+            borderTop: '10px solid transparent',
+            borderBottom: '10px solid transparent',
+            zIndex: 21,
+            pointerEvents: 'none',
+            filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))'
+          }}
+        />
+      </div>
     );
   }
 
@@ -200,30 +209,20 @@ export const ViewDiceSet: React.FC<ViewDiceSetProps> = ({ diceSet }) => {
       })}
 
       {/* Close button at bottom */}
-      <button
+      <ActionButton
         onClick={handleToggle}
+        variant="secondary"
+        size="small"
         style={{
           marginTop: '12px',
           width: '100%',
-          padding: '6px 10px',
-          border: '1px solid rgba(255, 255, 255, 0.5)',
-          borderRadius: '4px',
           backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          color: 'white',
-          cursor: 'pointer',
-          fontSize: '12px',
-          fontWeight: '500',
-          transition: 'background-color 0.2s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+          border: '1px solid rgba(255, 255, 255, 0.5)',
+          color: 'white'
         }}
       >
         Close
-      </button>
+      </ActionButton>
       </div>
     </div>
   );

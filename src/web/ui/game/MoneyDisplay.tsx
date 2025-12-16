@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatNumber } from '../../utils/numberFormatting';
 
 interface MoneyDisplayProps {
   money: number;
@@ -20,7 +21,7 @@ export const MoneyDisplay: React.FC<MoneyDisplayProps> = ({ money }) => {
       justifyContent: 'center',
       minWidth: '60px'
     }}>
-      ${money}
+      ${formatNumber(money)}
     </div>
   );
 };

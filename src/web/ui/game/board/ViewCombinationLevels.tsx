@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GameState } from '../../../../game/types';
 import { formatCombinationKey } from '../../../../game/utils/combinationTracking';
+import { ActionButton } from '../../components/ActionButton';
 
 interface ViewCombinationLevelsProps {
   gameState: GameState | null;
@@ -19,38 +20,30 @@ export const ViewCombinationLevels: React.FC<ViewCombinationLevelsProps> = ({ ga
   if (!isExpanded) {
     // Show hand icon button
     return (
-      <button
+      <ActionButton
         onClick={handleToggle}
+        variant="secondary"
+        size="small"
         style={{
           position: 'absolute',
           bottom: '15px',
           right: '65px', // Positioned to the left of ViewDiceSet (which is at right: 15px, width: 40px, so 15 + 40 + 10 = 65px)
           width: '40px',
+          minWidth: '40px',
           height: '40px',
-          border: '2px solid rgba(255, 255, 255, 0.5)',
-          borderRadius: '6px',
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          minHeight: '40px',
+          padding: '0',
           zIndex: 20,
-          transition: 'all 0.2s ease',
-          padding: '3px',
-          fontSize: '24px'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-          e.currentTarget.style.transform = 'scale(1.1)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
-          e.currentTarget.style.transform = 'scale(1)';
+          fontSize: '24px',
+          lineHeight: '1',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          border: '2px solid rgba(255, 255, 255, 0.5)',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2), 0 0 6px rgba(255, 255, 255, 0.1)'
         }}
         title="View Combination Levels"
       >
         ✋
-      </button>
+      </ActionButton>
     );
   }
 
@@ -99,24 +92,23 @@ export const ViewCombinationLevels: React.FC<ViewCombinationLevelsProps> = ({ ga
         }}>
           Combination Levels
         </h3>
-        <button
+        <ActionButton
           onClick={handleToggle}
+          variant="secondary"
+          size="small"
           style={{
-            background: 'none',
-            border: 'none',
-            color: '#fff',
-            fontSize: '20px',
-            cursor: 'pointer',
-            padding: '0',
-            width: '24px',
-            height: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            padding: '2px 6px',
+            minWidth: '24px',
+            minHeight: '24px',
+            fontSize: '16px',
+            lineHeight: '1',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            color: 'white'
           }}
         >
           ×
-        </button>
+        </ActionButton>
       </div>
 
       {!hasLevels ? (
