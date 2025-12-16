@@ -204,6 +204,10 @@ export function useGameState() {
 
   const handleConsumableUse = useCallback(async (index: number) => {
     if (!webState || !gameManagerRef.current || !webState.gameState) return;
+    // Disable consumable use while scoring breakdown is animating or visible
+    if (webState.breakdownState === 'animating' || webState.breakdownState === 'complete') {
+      return;
+    }
     const newState = await gameManagerRef.current.useConsumable(webState, index);
     setWebState(newState);
   }, [webState]);
@@ -241,6 +245,10 @@ export function useGameState() {
       startNewGame,
       loadGame,
       handleFlopShieldChoice,
+      saveAndQuit: useCallback(async () => {
+        if (!webState || !gameManagerRef.current || !webState.gameState) return;
+        await gameManagerRef.current.saveGame(webState.gameState);
+      }, [webState]),
       getDiceToRollCount: useCallback((gameState: any) => {
         if (!gameManagerRef.current) return 0;
         return gameManagerRef.current.getDiceToRollCount(gameState);
@@ -256,11 +264,19 @@ export function useGameState() {
       handleConsumableUse,
       handleSellCharm: useCallback(async (index: number) => {
         if (!webState || !gameManagerRef.current) return;
+        // Disable selling while scoring breakdown is animating or visible
+        if (webState.breakdownState === 'animating' || webState.breakdownState === 'complete') {
+          return;
+        }
         const newState = await gameManagerRef.current.sellCharm(webState, index);
         setWebState(newState);
       }, [webState]),
       handleSellConsumable: useCallback(async (index: number) => {
         if (!webState || !gameManagerRef.current) return;
+        // Disable selling while scoring breakdown is animating or visible
+        if (webState.breakdownState === 'animating' || webState.breakdownState === 'complete') {
+          return;
+        }
         const newState = await gameManagerRef.current.sellConsumable(webState, index);
         setWebState(newState);
       }, [webState]),

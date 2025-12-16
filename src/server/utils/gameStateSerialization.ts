@@ -16,6 +16,14 @@ export function serializeGameState(gameState: GameState): string {
     if (typeof value === 'function') {
       return undefined;
     }
+    // Convert Map to plain object for gameMap.connections
+    if (value instanceof Map) {
+      const obj: any = {};
+      value.forEach((val, mapKey) => {
+        obj[mapKey] = val;
+      });
+      return obj;
+    }
     return value;
   }));
 

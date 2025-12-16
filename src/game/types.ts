@@ -124,7 +124,17 @@ export interface DiceMaterial {
   abbreviation?: string;
 }
 
-export type DiceMaterialType = 'plastic' | 'crystal' | 'flower' | 'golden' | 'volcano' | 'mirror' | 'rainbow' | 'ghost' | 'lead';
+export type DiceMaterialType =
+  | 'plastic'
+  | 'crystal'
+  | 'flower'
+  | 'golden'
+  | 'volcano'
+  | 'mirror'
+  | 'rainbow'
+  | 'ghost'
+  | 'lead'
+  | 'lunar';
 
 // Combination category types (used by Generator charm and potentially others)
 export type CombinationCategory = 'singleN' | 'nPairs' | 'nTuplets' | 'straightOfN' | 'pyramidOfN' | 'nOfAKind';
@@ -231,7 +241,9 @@ export type BlessingEffect =
   | { type: "moneyOnRerollUsed"; amount: number }
   | { type: "shopVoucherPreservation"; percentage: number }
   | { type: "shopVoucherBonus"; amount: number }
-  | { type: "shopVoucherMultiplier"; multiplier: number };
+  | { type: "shopVoucherMultiplier"; multiplier: number }
+  | { type: "shopItemsAvailable"; charms: number; consumables: number; blessings: number }
+  | { type: "sellAtPurchasePrice" };
 
 
 export type CombinationCounters = Record<string, number>;
@@ -297,6 +309,8 @@ export interface EffectContext {
 
 // Game history and tracking data (consolidated here)
 export interface GameHistory {
+  totalRerollsUsed?: number; // Total rerolls used across the entire run (for Reroll Ranger charm)
+  totalBanksUsed?: number; // Total banks used across the entire run (for future use)
   // Usage/purchase tracking
   combinationCounters: CombinationCounters;
   combinationLevels: CombinationLevels; // Track combination upgrade levels (key -> level, default: 1)

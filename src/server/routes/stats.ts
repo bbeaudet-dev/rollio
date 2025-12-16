@@ -114,6 +114,7 @@ router.get('/history', requireAuth, async (req: Request, res: Response) => {
       let consumables: any[] = [];
       let blessings: any[] = [];
       let levelLostOn = row.levels_completed + 1; // Fallback
+      let worldNumber: number | undefined = undefined;
       
       if (row.game_state) {
         try {
@@ -129,6 +130,8 @@ router.get('/history', requireAuth, async (req: Request, res: Response) => {
           blessings = deserializedState.blessings || [];
           // Get the level they lost/won on from currentWorld.currentLevel
           levelLostOn = deserializedState.currentWorld?.currentLevel?.levelNumber || row.levels_completed + 1;
+          // Get world number from currentWorld
+          worldNumber = deserializedState.currentWorld?.worldNumber;
         } catch (error) {
           console.error('Failed to extract data from game state:', error);
         }
@@ -145,6 +148,7 @@ router.get('/history', requireAuth, async (req: Request, res: Response) => {
         highSingleRoll: row.high_single_roll,
         highBank: row.high_bank,
         levelLostOn, // Extracted from gameState
+        worldNumber, // Extracted from gameState
         diceSet, // Include extracted dice set
         charms, // Include extracted charms
         consumables, // Include extracted consumables

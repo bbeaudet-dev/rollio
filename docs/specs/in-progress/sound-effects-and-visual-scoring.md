@@ -97,13 +97,7 @@ function ScoringBreakdown(props: ScoringBreakdownProps): React.ReactElement;
 
 
 
-Implemented:
-- a few roll sounds
-- level complete sound
 
 Next:
-- buy from shop
 - score sounds - clicking score, scoring each die, scoring each charm, scoring each material
-- banking (progresive, crescendoing upwards if possible, as points are tallied? )
-- general menu navigation and button presses
-- game over, flop
+- banking/scoring (progresive, crescendoing upwards if possible, as points are tallied? )
