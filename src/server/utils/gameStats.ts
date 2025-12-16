@@ -15,12 +15,20 @@ export async function upsertCurrentGame(
   gameState: GameState
 ): Promise<void> {
   try {
+    // Don't update completed_games if game has ended
+    if (!gameState.isActive) {
+      return;
+    }
+    
     const diceSetName = gameState.config.diceSetConfig.name || 'Unknown';
     const difficulty = gameState.config.difficulty;
     
     const currentLevel = gameState.currentWorld?.currentLevel;
     const finalScore = currentLevel?.pointsBanked || 0;
-    const levelsCompleted = currentLevel?.levelNumber ? currentLevel.levelNumber - 1 : 0;
+    const isLevelCompleted = currentLevel && currentLevel.pointsBanked >= currentLevel.levelThreshold;
+    const levelsCompleted = currentLevel?.levelNumber 
+      ? (isLevelCompleted ? currentLevel.levelNumber : currentLevel.levelNumber - 1)
+      : 0;
     
     let totalRounds = 0;
     if (currentLevel?.currentRound) {
@@ -118,15 +126,12 @@ export async function saveGameCompletion(
   try {
     const diceSetName = gameState.config.diceSetConfig.name || 'Unknown';
     const difficulty = gameState.config.difficulty;
-    
-    // Calculate final score from current level's banked points
-    // Note: Level history tracking was removed, so we only have current level data
     const currentLevel = gameState.currentWorld?.currentLevel;
     const finalScore = currentLevel?.pointsBanked || 0;
-    
-    // Count levels completed - use current level number (levels are 1-indexed)
-    // If game ended, the current level number represents the last level reached
-    const levelsCompleted = currentLevel?.levelNumber ? currentLevel.levelNumber - 1 : 0;
+    const isLevelCompleted = currentLevel && currentLevel.pointsBanked >= currentLevel.levelThreshold;
+    const levelsCompleted = currentLevel?.levelNumber 
+      ? (isLevelCompleted ? currentLevel.levelNumber : currentLevel.levelNumber - 1)
+      : 0;
     
     // Count total rounds - estimate based on current level
     // Since we don't track round history, we'll use a simple estimate
@@ -451,8 +456,13 @@ async function saveConsumableUsage(userId: string, gameState: GameState): Promis
   try {
     const consumableUsage = gameState.history.charmState?.consumableUsage || {};
     
-    // Track consumable usage
+    // Track consumable usage 
+    const specialKeys = ['totalUsed', 'whimUsed', 'wishUsed'];
     for (const [consumableId, timesUsed] of Object.entries(consumableUsage)) {
+      if (specialKeys.includes(consumableId)) {
+        continue;
+      }
+      
       if (typeof timesUsed === 'number' && timesUsed > 0) {
         // Check if record exists
         let result = await query(

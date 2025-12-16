@@ -109,22 +109,16 @@ export function formatCategoryName(category: string): string {
       return 'Pairs';
     case 'nOfAKind':
       return 'N of a Kind';
+    case 'nTuplets':
     case 'nTriplets':
-      return 'Triplets';
     case 'nQuadruplets':
-      return 'Quadruplets';
     case 'nQuintuplets':
-      return 'Quintuplets';
     case 'nSextuplets':
-      return 'Sextuplets';
     case 'nSeptuplets':
-      return 'Septuplets';
     case 'nOctuplets':
-      return 'Octuplets';
     case 'nNonuplets':
-      return 'Nonuplets';
     case 'nDecuplets':
-      return 'Decuplets';
+      return 'Tuplets';
     case 'straightOfN':
       return 'Straights';
     case 'pyramidOfN':

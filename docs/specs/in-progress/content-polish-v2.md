@@ -40,37 +40,25 @@ Consider renaming the material system to "Essence" or "Core" for better thematic
 
 ## Charms
 
-### Rework/Update Existing Charms
-
-- **Sandbagger Charm**: Rework with the new flop penalty system
-- **Hoarder Charm**: Rename to `frequentFlyer` or `Regular`, something related to someone who comes to the bank often
-
-- Go through all charms and tweak to fit new systems
-
 ### New Charms
-
-#### Flop-Related
 
 - **New charm**: Save 50% of points lost when flopping
 - **New charm**: Gain some other bonus that scales with flop penalty
 
-#### Material-Specific
-
-- **Assassin charm**: Based on reroll ranger 2 picture
-- **Against the Grain**: Provides bonus when playing straights, pyramids, n=3 pairs? with a mirror die
 - **New charms for Angelic**: Increase odds, various reroll/flop/bank bonuses
 - **New charms for Lunar**: More points, different triggers
    Lunar retriggers effects realted to that die? pip effects, charms
-
-#### Dice Set Size
-
-- **New charm**: Multiplier based on dice set size, opposite of Queen's Gambit
-
-#### Retrigger Charms
+   If this is overpowered, this could be like the blank voucher in Balatro, which then gives you Antimatter / Lunar.
 
 - **Mime**: Retrigger held in hand abilities
 - **Hanging Chad**: Retrigger scored dice
 - General retrigger charm system
+
+// play some combo in a row, gain mult
+// disabling boss battles and stuff
+
+Charm based on consumables used
+Charm based on highest combination level
 
 ---
 
@@ -82,7 +70,6 @@ Consider renaming the material system to "Essence" or "Core" for better thematic
 
 ### New Consumables (Whims)
 
-- **Random Material/Essence Assignment**: Assigns a random material/essence to a chosen die
 - **Selective Material/Essence**: 1 in 4 chance to give a selected die a selected material/essence
 - **Point Recovery**: Turns your negative points positive (maximum? percentage of level threshold?)
 

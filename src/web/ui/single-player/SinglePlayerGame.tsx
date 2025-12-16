@@ -68,7 +68,15 @@ export const SinglePlayerGame: React.FC = () => {
     );
   }
 
-  const handleReturnToMenu = () => {
+  const handleReturnToMenu = async () => {
+    // Save-and-quit path when leaving to main menu from an active game
+    if (game.gameState && (game.gameActions as any).saveAndQuit) {
+      try {
+        await (game.gameActions as any).saveAndQuit();
+      } catch (error) {
+        console.error('Failed to save game before returning to menu:', error);
+      }
+    }
     navigate('/');
   };
 

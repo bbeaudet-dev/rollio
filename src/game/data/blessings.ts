@@ -60,34 +60,34 @@ export const ALL_BLESSINGS: Blessing[] = [
   {
     id: 'slotTier1',
     tier: 1,
-    effect: { type: 'charmSlots', amount: 1 }
+    effect: { type: 'consumableSlots', amount: 1 }
   },
   {
     id: 'slotTier2',
     tier: 2,
-    effect: { type: 'consumableSlots', amount: 1 }
+    effect: { type: 'charmSlots', amount: 1 }
   },
   {
     id: 'slotTier3',
     tier: 3,
-    effect: { type: 'charmSlots', amount: 1 }
+    effect: { type: 'shopItemsAvailable', charms: 1, consumables: 1, blessings: 1 }
   },
 
   // Shop Discount Blessings
   {
     id: 'discountTier1',
     tier: 1,
-    effect: { type: 'shopDiscount', percentage: 5 }
+    effect: { type: 'shopDiscount', percentage: 25 }
   },
   {
     id: 'discountTier2',
     tier: 2,
-    effect: { type: 'shopDiscount', percentage: 10 }
+    effect: { type: 'shopDiscount', percentage: 25 }
   },
   {
     id: 'discountTier3',
     tier: 3,
-    effect: { type: 'shopDiscount', percentage: 15 }
+    effect: { type: 'sellAtPurchasePrice' }
   },
 
   // Shop Voucher Blessings
@@ -209,7 +209,8 @@ export function getBlessingName(blessing: Blessing): string {
     'moneyOnLevelEnd': 'Money Blessing',
     'shopVoucherPreservation': 'Shop Voucher Blessing',
     'shopVoucherBonus': 'Shop Voucher Blessing',
-    'shopVoucherMultiplier': 'Shop Voucher Blessing'
+    'shopVoucherMultiplier': 'Shop Voucher Blessing',
+    'shopItemsAvailable': 'Slot Blessing'
   };
   
   const baseName = typeMap[blessing.effect.type] || 'Blessing';
@@ -236,7 +237,11 @@ export function getBlessingDescription(blessing: Blessing): string {
     case 'consumableSlots':
       return `+${blessing.effect.amount} Consumable Slot`;
     case 'shopDiscount':
-      return `Everything ${blessing.effect.percentage}% cheaper`;
+      // Calculate cumulative discount for display
+      const cumulativeDiscount = blessing.tier === 1 ? 25 : blessing.tier === 2 ? 50 : 25;
+      return `Everything ${cumulativeDiscount}% cheaper`;
+    case 'sellAtPurchasePrice':
+      return `Sell items for their purchase price`;
     case 'flopSubversion':
       return `${blessing.effect.percentage}% chance to subvert Flops`;
     case 'moneyPerBank':
@@ -249,6 +254,12 @@ export function getBlessingDescription(blessing: Blessing): string {
       return `Jackpot consumable gives ${blessing.effect.amount} Shop Vouchers instead of 2`;
     case 'shopVoucherMultiplier':
       return `Doubles ShopvVoucher rewards after each Level (${blessing.effect.multiplier}, ${blessing.effect.multiplier * 2} miniboss, ${blessing.effect.multiplier * 3} boss)`;
+    case 'shopItemsAvailable':
+      const parts: string[] = [];
+      if (blessing.effect.charms > 0) parts.push(`+${blessing.effect.charms} Charm`);
+      if (blessing.effect.consumables > 0) parts.push(`+${blessing.effect.consumables} Consumable`);
+      if (blessing.effect.blessings > 0) parts.push(`+${blessing.effect.blessings} Blessing`);
+      return `${parts.join(', ')} available in Shop`;
     default:
       return 'Unknown blessing';
   }

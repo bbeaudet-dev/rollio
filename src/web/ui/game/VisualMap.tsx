@@ -16,6 +16,19 @@ interface NodePosition {
 }
 
 export const VisualMap: React.FC<VisualMapProps> = ({ gameMap, onSelectNode, onReturnToMenu }) => {
+  // Ensure connections is a Map (convert from plain object if needed)
+  // This is a safety check in case the Map wasn't restored properly
+  if (gameMap.connections && !(gameMap.connections instanceof Map)) {
+    const connectionsMap = new Map<number, number[]>();
+    Object.entries(gameMap.connections as any).forEach(([fromNodeIdStr, connectedNodeIds]) => {
+      const fromNodeId = Number(fromNodeIdStr);
+      if (!isNaN(fromNodeId) && Array.isArray(connectedNodeIds)) {
+        connectionsMap.set(fromNodeId, connectedNodeIds as number[]);
+      }
+    });
+    gameMap.connections = connectionsMap;
+  }
+  
   // Get available nodes - handle case where currentNode might not be set
   // If no currentNode, show all nodes in column 1 (world 1 options)
   let availableNodeIds: number[];

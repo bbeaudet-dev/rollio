@@ -2,7 +2,7 @@
  * World configurations and definitions
  * Every 5 levels is a World
  * Levels 1-5 is always the same "Base" world
- * The 2nd and 4th levels of each world are minibosses (levels 2, 4, 7, 9, 12, 14, 17, 19, 22, 24)
+ * The 3rd level of each world is a miniboss (levels 3, 8, 13, 18, 23)
  * The final level of each world is the main boss (levels 5, 10, 15, 20, 25)
  */
 
@@ -212,11 +212,11 @@ export function getWorldNumber(levelNumber: number): number {
 }
 
 /**
- * Check if a level is a miniboss level (2nd or 4th level of each world)
+ * Check if a level is a miniboss level (3rd level of each world)
  */
 export function isMinibossLevel(levelNumber: number): boolean {
   const levelInWorld = ((levelNumber - 1) % 5) + 1;
-  return levelInWorld === 2 || levelInWorld === 4;
+  return levelInWorld === 3;
 }
 
 /**

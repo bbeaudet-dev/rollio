@@ -3,7 +3,7 @@ import { resetLevelColors } from '../utils/levelColors';
 import { GameAPI } from '../../game/api';
 import { GameState, RoundState, ShopState, GamePhase, DiceSetConfig } from '../../game/types';
 import type { ScoringBreakdown } from '../../game/logic/scoringBreakdown';
-import { playDiceRollSound, playNewLevelSound, playPurchaseSound, playSellSound, playSellMoneySound, playFlopSound, playMaterialSound, playGenericMaterialSound, playNewDieSound, playHotDiceSound, playShopRefreshSound, playBossSound, playConsumableSound, playCombinationUpgradeSound } from '../utils/sounds';
+import { playDiceRollSound, playNewLevelSound, playPurchaseSound, playSellSound, playSellMoneySound, playFlopSound, playMaterialSound, playGenericMaterialSound, playNewDieSound, playHotDiceSound, playHotDiceIncrementSound, playShopRefreshSound, playBossSound, playConsumableSound, playCombinationUpgradeSound, playVoucherSkipSound } from '../utils/sounds';
 import { progressApi, gameApi } from './api';
 import { registerStartingCharms } from '../../game/utils/factories';
 import { updateEchoDescription } from '../../game/logic/consumableEffects';
@@ -350,6 +350,17 @@ export class WebGameManager {
       throw new Error('No game state in response');
     }
     
+    if (gameState.gameMap && gameState.gameMap.connections && !(gameState.gameMap.connections instanceof Map)) {
+      const connectionsMap = new Map<number, number[]>();
+      Object.entries(gameState.gameMap.connections as any).forEach(([fromNodeIdStr, connectedNodeIds]) => {
+        const fromNodeId = Number(fromNodeIdStr);
+        if (!isNaN(fromNodeId) && Array.isArray(connectedNodeIds)) {
+          connectionsMap.set(fromNodeId, connectedNodeIds as number[]);
+        }
+      });
+      gameState.gameMap.connections = connectionsMap;
+    }
+    
     // Register charms with the charm manager
     // The backend already deserialized and rebuilt charm instances, so we just need to register them
     registerStartingCharms(gameState, (this.gameAPI as any).charmManager);
@@ -498,11 +509,6 @@ export class WebGameManager {
         delete (result.gameState as any).__combinationUpgraded; // Clean up
         playCombinationUpgradeSound();
       }
-      
-      // Play hot dice sound when hot dice is triggered
-      if (result.hotDice) {
-        playHotDiceSound();
-      }
             
       const roundState = result.gameState.currentWorld?.currentLevel.currentRound || null;
       const diceToReroll = roundState?.diceHand.length || 0;
@@ -551,9 +557,12 @@ export class WebGameManager {
       playCombinationUpgradeSound();
     }
 
-    // Play hot dice sound when hot dice is triggered
-    if (result.hotDice) {
-      playHotDiceSound();
+    // Check if hot dice counter increased (play increment sound when counter increases after breakdown)
+    const oldHotDiceCounter = state.roundState?.hotDiceCounter || 0;
+    const newHotDiceCounter = result.gameState.currentWorld?.currentLevel.currentRound?.hotDiceCounter || 0;
+    if (newHotDiceCounter > oldHotDiceCounter) {
+      // Counter increased - play increment sound (this happens after breakdown completes)
+      playHotDiceIncrementSound();
     }
 
     const roundState = result.gameState.currentWorld?.currentLevel.currentRound || null;
@@ -1065,8 +1074,12 @@ export class WebGameManager {
       return state;
     }
     
-    // Play refresh sound
+    // Play refresh sound (special sound when voucher is preserved)
+    if (result.message.includes('voucher preserved')) {
+      playVoucherSkipSound();
+    } else {
     playShopRefreshSound();
+    }
     
     // Regenerate the entire shop with new game state 
     const newShopState = this.gameAPI.generateShop(result.gameState);
@@ -1089,6 +1102,11 @@ export class WebGameManager {
    */
   async sellCharm(state: WebGameState, charmIndex: number): Promise<WebGameState> {
     if (!state.gameState) return state;
+    
+    // Allow selling even during breakdown complete state (after scoring, before rolling)
+    if (state.breakdownState === 'animating') {
+      return state; // Only block during animation
+    }
     
     if (charmIndex < 0 || charmIndex >= (state.gameState.charms?.length || 0)) {
       return state;
@@ -1116,6 +1134,11 @@ export class WebGameManager {
    */
   async sellConsumable(state: WebGameState, consumableIndex: number): Promise<WebGameState> {
     if (!state.gameState) return state;
+    
+    // Allow selling even during breakdown complete state (after scoring, before rolling)
+    if (state.breakdownState === 'animating') {
+      return state; // Only block during animation
+    }
     
     if (consumableIndex < 0 || consumableIndex >= (state.gameState.consumables?.length || 0)) {
       return state;
@@ -1202,6 +1225,9 @@ export class WebGameManager {
     if (completedLevelNumber >= 25) {
       // Player won - end the game
       const wonGameState = endGame(state.gameState, true);
+      this.saveGameStats(wonGameState, 'win').catch(err => {
+        console.error('Error saving game stats for win:', err);
+      });
       const finalRoundState = wonGameState.currentWorld?.currentLevel.currentRound || null;
       return this.createWebGameState(wonGameState, finalRoundState, [], null, false, false, false);
     }
@@ -1327,6 +1353,11 @@ export class WebGameManager {
    */
   private async autoSaveGame(gameState: GameState): Promise<void> {
     try {
+      // Don't create new auto-save if game has ended
+      if (!gameState.isActive) {
+        return;
+      }
+      
       // Check if user is authenticated by checking for token
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -1345,6 +1376,14 @@ export class WebGameManager {
       // Silently fail - don't interrupt gameplay if save fails
       console.error('Auto-save error:', error);
     }
+  }
+
+  /**
+   * Explicit save entry-point for UI (e.g., Save & Quit from main menu).
+   * Uses the same logic as auto-save but is callable from hooks/components.
+   */
+  async saveGame(gameState: GameState): Promise<void> {
+    await this.autoSaveGame(gameState);
   }
 
   resolvePendingAction(state: WebGameState, value: string): WebGameState {

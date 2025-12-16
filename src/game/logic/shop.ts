@@ -5,7 +5,7 @@
 import { GameState, Charm, Consumable, Blessing, ShopState, GamePhase } from '../types';
 import { CHARMS } from '../data/charms';
 import { CONSUMABLES, WHIMS, WISHES, COMBINATION_UPGRADES } from '../data/consumables';
-import { selectRandomBlessing, getBlessingName, getBlessingDescription, enrichBlessingForDisplay } from '../data/blessings';
+import { selectRandomBlessing, getBlessingName, getBlessingDescription, enrichBlessingForDisplay, getAvailableBlessings } from '../data/blessings';
 
 import { CHARM_PRICES } from '../data/charms';
 import { getDifficultyConfig, getDifficulty, DifficultyLevel } from '../logic/difficulty';
@@ -107,6 +107,19 @@ export function generateShopInventory(gameState: GameState): ShopState {
   const ownedCharmIds = new Set(gameState.charms.map(c => c.id));
   const ownedConsumableIds = new Set(gameState.consumables.map(c => c.id));
   
+  // Calculate bonus shop items from blessings
+  let bonusCharms = 0;
+  let bonusConsumables = 0;
+  let bonusBlessings = 0;
+  
+  for (const blessing of gameState.blessings) {
+    if (blessing.effect.type === 'shopItemsAvailable') {
+      bonusCharms += blessing.effect.charms;
+      bonusConsumables += blessing.effect.consumables;
+      bonusBlessings += blessing.effect.blessings;
+    }
+  }
+  
   // Select 4 random charms (excluding owned ones) with weighted rarity
   // 60% common, 30% uncommon, 9% rare, 1% legendary
   const availableCharms = CHARMS.filter(c => !ownedCharmIds.has(c.id));
@@ -128,7 +141,8 @@ export function generateShopInventory(gameState: GameState): ShopState {
   const selectedCharms: Charm[] = [];
   const selectedCharmIds = new Set<string>();
   
-  while (selectedCharms.length < 4 && selectedCharmIds.size < availableCharms.length) {
+  const targetCharmCount = 4 + bonusCharms;
+  while (selectedCharms.length < targetCharmCount && selectedCharmIds.size < availableCharms.length) {
     const rand = Math.random();
     let pool: CharmWithoutActive[];
     
@@ -173,7 +187,8 @@ export function generateShopInventory(gameState: GameState): ShopState {
   const selectedConsumables: Consumable[] = [];
   const consumableIndices = new Set<number>();
   
-  while (selectedConsumables.length < 2 && (consumableIndices.size < availableWhims.length + availableWishes.length + availableCombinationUpgrades.length)) {
+  const targetConsumableCount = 2 + bonusConsumables;
+  while (selectedConsumables.length < targetConsumableCount && (consumableIndices.size < availableWhims.length + availableWishes.length + availableCombinationUpgrades.length)) {
     const rand = Math.random();
     let pool: Consumable[];
     if (rand < 0.1) {
@@ -203,10 +218,20 @@ export function generateShopInventory(gameState: GameState): ShopState {
     }
   }
   
-  // Select one random blessing
+  // Select one random blessing (plus bonus from blessings)
   const purchasedBlessingIds = gameState.blessings.map(b => b.id);
-  const randomBlessing = selectRandomBlessing(purchasedBlessingIds);
-  const availableBlessings: Blessing[] = randomBlessing ? [enrichBlessingForDisplay(randomBlessing)] : [];
+  const availableBlessings: Blessing[] = [];
+  const selectedBlessingIds = new Set<string>();
+  
+  for (let i = 0; i < 1 + bonusBlessings; i++) {
+    const available = getAvailableBlessings(purchasedBlessingIds).filter(b => !selectedBlessingIds.has(b.id));
+    if (available.length === 0) break;
+    
+    const randomIndex = Math.floor(Math.random() * available.length);
+    const blessing = available[randomIndex];
+    selectedBlessingIds.add(blessing.id);
+    availableBlessings.push(enrichBlessingForDisplay(blessing));
+  }
   
   return {
     availableCharms: selectedCharms,
@@ -339,7 +364,19 @@ export function sellCharm(
   
   const charm = gameState.charms[charmIndex];
   const rarity = charm.rarity || 'common';
-  const sellValue = CHARM_PRICES[rarity]?.sell || 2;
+  
+  // Check if player has sellAtPurchasePrice blessing
+  const hasSellAtPurchasePrice = gameState.blessings.some(b => b.effect.type === 'sellAtPurchasePrice');
+  
+  let sellValue: number;
+  if (hasSellAtPurchasePrice) {
+    // Sell at base purchase price (before discount)
+    const difficulty = getDifficulty(gameState);
+    sellValue = getCharmPrice(charm, difficulty);
+  } else {
+    // Normal sell price (half of base)
+    sellValue = CHARM_PRICES[rarity]?.sell || 2;
+  }
   
   // Remove charm and add money
   const newCharms = gameState.charms.filter((_, idx) => idx !== charmIndex);
@@ -373,7 +410,19 @@ export function sellConsumable(
   const isWhim = WHIMS.some(w => w.id === consumable.id);
   const isCombinationUpgrade = COMBINATION_UPGRADES.some(cu => cu.id === consumable.id);
   const category = isWish ? 'wish' : (isWhim ? 'whim' : (isCombinationUpgrade ? 'combinationUpgrade' : 'whim'));
-  const sellValue = CONSUMABLE_PRICES[category]?.sell || 2;
+  
+  // Check if player has sellAtPurchasePrice blessing
+  const hasSellAtPurchasePrice = gameState.blessings.some(b => b.effect.type === 'sellAtPurchasePrice');
+  
+  let sellValue: number;
+  if (hasSellAtPurchasePrice) {
+    // Sell at base purchase price (before discount)
+    const difficulty = getDifficulty(gameState);
+    sellValue = getConsumablePrice(consumable, difficulty);
+  } else {
+    // Normal sell price (half of base)
+    sellValue = CONSUMABLE_PRICES[category]?.sell || 2;
+  }
   
   // Remove consumable and add money
   const newConsumables = gameState.consumables.filter((_, idx) => idx !== consumableIndex);
@@ -483,6 +532,69 @@ export function applyBlessingEffect(gameState: GameState, blessing: Blessing): G
     default:
       return gameState;
   }
+}
+
+/**
+ * Apply dynamic blessing effects that trigger during gameplay
+ * @param gameState Current game state
+ * @param context The context in which blessings should be applied ('bank' | 'flop' | 'rerollUsed' | 'levelEnd')
+ * @returns Updated game state with blessing effects applied
+ */
+export function applyDynamicBlessingEffects(
+  gameState: GameState,
+  context: 'bank' | 'flop' | 'rerollUsed' | 'levelEnd'
+): GameState {
+  let newGameState = { ...gameState };
+  
+  for (const blessing of gameState.blessings || []) {
+    switch (blessing.effect.type) {
+      case 'rerollOnBank':
+        if (context === 'bank') {
+          const rerollsToAdd = blessing.effect.amount;
+          if (rerollsToAdd > 0 && newGameState.currentWorld) {
+            const currentWorld = newGameState.currentWorld;
+            newGameState = {
+              ...newGameState,
+              currentWorld: {
+                ...currentWorld,
+                currentLevel: {
+                  ...currentWorld.currentLevel,
+                  rerollsRemaining: (currentWorld.currentLevel.rerollsRemaining || 0) + rerollsToAdd
+                }
+              }
+            };
+          }
+        }
+        break;
+        
+      case 'rerollOnFlop':
+        if (context === 'flop') {
+          const rerollsToAdd = blessing.effect.amount;
+          if (rerollsToAdd > 0 && newGameState.currentWorld) {
+            const currentWorld = newGameState.currentWorld;
+            newGameState = {
+              ...newGameState,
+              currentWorld: {
+                ...currentWorld,
+                currentLevel: {
+                  ...currentWorld.currentLevel,
+                  rerollsRemaining: (currentWorld.currentLevel.rerollsRemaining || 0) + rerollsToAdd
+                }
+              }
+            };
+          }
+        }
+        break;
+        
+      // Add other dynamic effects here as needed:
+      // case 'moneyOnRerollUsed':
+      //   if (context === 'rerollUsed') { ... }
+      // case 'moneyOnLevelEnd':
+      //   if (context === 'levelEnd') { ... }
+    }
+  }
+  
+  return newGameState;
 }
 
 /**
