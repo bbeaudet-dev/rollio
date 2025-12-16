@@ -45,13 +45,13 @@ export class ParanoiaCharm extends BaseCharm {
 
 export class TrumpCardCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
-    // +2^n MLT where n is the highest value scored
+    // +1.5^n MLT where n is the highest value scored
     const highestValue = Math.max(
       ...context.selectedIndices.map(idx => context.roundState.diceHand[idx]?.rolledValue || 0)
     );
     
     if (highestValue > 0) {
-      const multiplierToAdd = Math.pow(2, highestValue);
+      const multiplierToAdd = Math.pow(1.5, highestValue);
       return {
         multiplierAdd: multiplierToAdd  
       };
@@ -100,5 +100,58 @@ export class MatterhornCharm extends BaseCharm {
       exponentAdd: 3
     };
   }
+}
+
+export class HedgeFundCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +1 EXP for every $100 owned
+    const money = context.gameState.money || 0;
+    const expCount = Math.floor(money / 100);
+    
+    return {
+      exponentAdd: expCount
+    };
+  }
+}
+
+export class SleeperAgentCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // Copies the effect of the charm to the left after 100 dice have been scored
+    // Check if activated (100+ dice scored)
+    const totalDiceScored = context.gameState.history.charmState?.sleeperAgent?.totalDiceScored || 0;
+    const isActivated = totalDiceScored >= 100;
+    
+    if (!isActivated) {
+      return {};
+    }
+    
+    // Copy effect of charm to the left
+    if (context.charmManager) {
+      const leftCharm = context.charmManager.getCharmToLeft(this.id);
+      if (leftCharm && leftCharm.active) {
+        // Apply the left charm's onScoring effect
+        const leftCharmResult = leftCharm.onScoring(context);
+        return leftCharmResult;
+      }
+    }
+    
+    return {};
+  }
+}
+
+/**
+ * Track dice scored for Sleeper Agent charm
+ */
+export function trackDiceScoredForSleeperAgent(gameState: any, diceCount: number): any {
+  if (!gameState.history.charmState) {
+    gameState.history.charmState = {};
+  }
+  if (!gameState.history.charmState.sleeperAgent) {
+    gameState.history.charmState.sleeperAgent = { totalDiceScored: 0 };
+  }
+  gameState.history.charmState.sleeperAgent.totalDiceScored = 
+    (gameState.history.charmState.sleeperAgent.totalDiceScored || 0) + diceCount;
+  
+  return gameState;
 }
 

@@ -156,6 +156,7 @@ export interface CharmDieScoredContext {
   dieIndex: number; // Index in selectedIndices
   sideValue: number; // The rolled value (which side is face up)
   selectedIndices: number[];
+  triggerSource?: string;
 }
 
 export class CharmRegistry {

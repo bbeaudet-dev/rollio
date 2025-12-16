@@ -214,7 +214,7 @@ export class ArmadilloArmorCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModificationWithContext[] {
     // +1x multiplier for each reroll remaining - return one modification per reroll
     const modifications: ScoringValueModificationWithContext[] = [];
-    const rerollsRemaining = context.gameState.currentLevel?.rerollsRemaining || 0;
+    const rerollsRemaining = context.gameState.currentWorld?.currentLevel?.rerollsRemaining || 0;
     
     for (let i = 0; i < rerollsRemaining; i++) {
       modifications.push({
@@ -520,6 +520,46 @@ export class BrotherhoodCharm extends BaseCharm {
   }
 }
 
+/**
+ * Howl at the Moon
+ * 
+ * Behavior:
+ * - Lunar dice retrigger their effects 2 additional times.
+ * - The actual extra retriggers are implemented in pipEffectSystem based on this charm’s presence.
+ * - This charm itself doesn’t modify scoring directly in onScoring.
+ */
+export class HowlAtTheMoonCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // All behavior is handled in pipEffectSystem.ts by checking for this charm's ID.
+    return {};
+  }
+}
+
+/**
+ * Lunar Tides
+ * 
+ * Behavior:
+ * - Reads how many Lunar trigger passes actually occurred this score
+ *   (tracked by pipEffectSystem in gameState.history.charmState.lunar.triggersThisScore).
+ * - Applies a 1.25x multiplier per Lunar trigger by multiplying MLT by 1.25^triggers.
+ */
+export class LunarTidesCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    const triggers =
+      context.gameState.history?.charmState?.lunar?.triggersThisScore || 0;
+
+    if (triggers <= 0) {
+      return {};
+    }
+
+    const multiplier = Math.pow(1.25, triggers);
+
+    return {
+      multiplierMultiply: multiplier,
+    };
+  }
+}
+
 export class RefineryCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // No scoring effect - this is a banking effect
@@ -540,44 +580,4 @@ export class RefineryCharm extends BaseCharm {
   }
 }
 
-export class SleeperAgentCharm extends BaseCharm {
-  onScoring(context: CharmScoringContext): ScoringValueModification {
-    // Copies the effect of the charm to the left after 100 dice have been scored
-    // Check if activated (100+ dice scored)
-    const totalDiceScored = context.gameState.history.charmState?.sleeperAgent?.totalDiceScored || 0;
-    const isActivated = totalDiceScored >= 100;
-    
-    if (!isActivated) {
-      return {};
-    }
-    
-    // Copy effect of charm to the left
-    if (context.charmManager) {
-      const leftCharm = context.charmManager.getCharmToLeft(this.id);
-      if (leftCharm && leftCharm.active) {
-        // Apply the left charm's onScoring effect
-        const leftCharmResult = leftCharm.onScoring(context);
-        return leftCharmResult;
-      }
-    }
-    
-    return {};
-  }
-}
-
-/**
- * Track dice scored for Sleeper Agent charm
- */
-export function trackDiceScoredForSleeperAgent(gameState: any, diceCount: number): any {
-  if (!gameState.history.charmState) {
-    gameState.history.charmState = {};
-  }
-  if (!gameState.history.charmState.sleeperAgent) {
-    gameState.history.charmState.sleeperAgent = { totalDiceScored: 0 };
-  }
-  gameState.history.charmState.sleeperAgent.totalDiceScored = 
-    (gameState.history.charmState.sleeperAgent.totalDiceScored || 0) + diceCount;
-  
-  return gameState;
-}
 
