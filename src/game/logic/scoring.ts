@@ -276,10 +276,11 @@ export function calculateScoringBreakdown(
         
         // Show multiplier step
         const comboKeys = combos.map(c => c.key).join(', ');
+        const bonusSign = multiplierBonus >= 0 ? '+' : '';
         breakdown.addStep(
           'worldLevelMultiplier',
           scoringElements,
-          `${comboKeys} (${comboName}): ×${multiplier} → +${multiplierBonus} points (${afterPoints} total)`
+          `${comboKeys} (${comboName}): ×${multiplier} → ${bonusSign}${multiplierBonus} points (${afterPoints} total)`
         );
       }
     }

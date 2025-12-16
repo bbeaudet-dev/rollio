@@ -55,6 +55,12 @@ export const MATERIALS: DiceMaterial[] = [
     description: 'Lead dice remain in your hand after being scored',
     abbreviation: 'ld'
   },
+  {
+    id: 'lunar',
+    name: 'Lunar',
+    description: 'Retriggers pip effects and die-based charms',
+    abbreviation: 'ln'
+  },
 ]; 
 
 /* 

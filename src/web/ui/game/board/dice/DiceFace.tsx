@@ -105,6 +105,7 @@ export const DiceFace: React.FC<DiceFaceProps> = ({ value, size = 40, material =
   const pipSize = Math.max(size * 0.14, 3);
   const iconSize = Math.max(size * 0.20, 5);
   const hasPipEffect = pipEffect && pipEffect !== 'none';
+  const isLunar = material === 'lunar';
   
   return (
     <div style={{
@@ -136,13 +137,46 @@ export const DiceFace: React.FC<DiceFaceProps> = ({ value, size = 40, material =
         >
           {hasPipEffect ? (
             <PipEffectIcon type={pipEffect} size={iconSize} />
+          ) : isLunar ? (
+            // Lunar special pip: "eclipsed" moon using a full disk + smaller inner disk
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+              }}
+            >
+              {/* Base moon disk - dark bronze */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: colors.pip, // base bronze from MATERIAL_COLORS.lunar.pip
+                  borderRadius: '50%',
+                }}
+              />
+              {/* Smaller pale yellow disk on top, shifted up/left to expose a crescent on the lower-right */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '2%',
+                  left: '2%',
+                  right: '18%',
+                  bottom: '18%',
+                  borderRadius: '50%',
+                  backgroundColor: '#fff9c4', 
+                }}
+              />
+            </div>
           ) : (
-            <div style={{
+            <div
+              style={{
               width: '100%',
               height: '100%',
               backgroundColor: colors.pip,
-              borderRadius: '50%'
-            }} />
+                borderRadius: '50%',
+              }}
+            />
           )}
         </div>
       ))}

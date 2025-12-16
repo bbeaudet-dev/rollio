@@ -12,6 +12,7 @@ import { getDifficulty } from './difficulty';
 import { WORLD_POOL } from '../data/worlds';
 import { getBaseScoringElementValues } from '../data/combinations';
 import { getSpecificCombinationParams } from './findCombinations';
+import { applyDynamicBlessingEffects } from './shop';
 
 interface ScoringContext {
   charms: any[];
@@ -239,10 +240,18 @@ export function endRound(gameState: GameState, reason: 'bank' | 'flop'): GameSta
 
 /**
  * Decrement rerolls remaining
+ * Also tracks total rerolls used in gameState.history for charms like Reroll Ranger
  */
 export function decrementRerolls(gameState: GameState): GameState {
   const newGameState = { ...gameState };
   const currentWorld = gameState.currentWorld!;
+  
+  // Track total rerolls used in history
+  if (!newGameState.history.totalRerollsUsed) {
+    newGameState.history.totalRerollsUsed = 0;
+  }
+  newGameState.history.totalRerollsUsed = (newGameState.history.totalRerollsUsed || 0) + 1;
+  
   newGameState.currentWorld = {
     ...currentWorld,
     currentLevel: {
@@ -270,7 +279,6 @@ export function decrementBanks(gameState: GameState): GameState {
   };
   return newGameState;
 }
-
 
 /**
  * Increment consecutive banks counter
@@ -716,6 +724,9 @@ export function processBankPoints(
   newGameState = incrementConsecutiveBanks(newGameState);
   
   newGameState = endRound(newGameState, 'bank');
+  
+  // Apply dynamic blessing effects (e.g., rerollOnBank)
+  newGameState = applyDynamicBlessingEffects(newGameState, 'bank');
   
   // Apply charm effects AFTER banking (as bonuses)
   let finalBankedPoints = baseBankedPoints;

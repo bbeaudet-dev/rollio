@@ -69,15 +69,21 @@ export function isLevelCompleted(gameState: GameState): boolean {
 
 /**
  * Checks if the player can bank points
- * Requires: round is active, has round points (has rolled and scored), and has banks remaining
+ * Requires: round is active, has scored in this round (has roll history with scoring), and has banks remaining
  */
 export function canBankPoints(gameState: GameState): boolean {
   if (!gameState.currentWorld) return false;
   const currentLevel = gameState.currentWorld.currentLevel;
   const roundState = currentLevel.currentRound;
   if (!roundState) return false;
+  
+  // Check if player has scored in this round (has roll history with scoring)
+  const hasScored = roundState.rollHistory.some(roll => 
+    roll.scoringSelection && roll.scoringSelection.length > 0
+  );
+  
   return roundState.isActive 
-    && roundState.roundPoints > 0 
+    && hasScored
     && (currentLevel.banksRemaining || 0) > 0;
 }
 
