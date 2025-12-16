@@ -30,6 +30,96 @@ export interface PipEffectResult {
 }
 
 /**
+ * Internal helper to apply all per-die charm triggers for a single die.
+ * This is used for both normal processing and retrigger sources like Lunar.
+ */
+function applyPerDieCharmsForDie(
+  diceHand: Die[],
+  selectedIndices: number[],
+  dieSelectionIndex: number,
+  currentValues: ScoringElements,
+  gameState: GameState,
+  roundState: RoundState,
+  charmManager: CharmManager,
+  breakdownBuilder: any | undefined,
+  triggerSource: 'normal' | 'lunar'
+): ScoringElements {
+  let values = currentValues;
+
+  const dieIndex = selectedIndices[dieSelectionIndex];
+  const die = diceHand[dieIndex];
+  if (!die) return values;
+
+  const activeCharms = charmManager.getActiveCharms();
+  for (const charm of activeCharms) {
+    if (charm.onDieScored && charm.canUse()) {
+      const dieContext = {
+        gameState,
+        roundState,
+        scoringElements: values,
+        die,
+        dieIndex: dieSelectionIndex,
+        sideValue: die.rolledValue || 0,
+        selectedIndices,
+        triggerSource,
+      };
+
+      const charmResult = charm.onDieScored(dieContext);
+
+      if (charmResult !== null && charmResult !== undefined) {
+        const mod = charmResult as any;
+
+        // Points: ADD → MULTIPLY → EXPONENT
+        if (mod.basePointsAdd !== undefined) {
+          values.basePoints += mod.basePointsAdd;
+        }
+        if (mod.basePointsMultiply !== undefined) {
+          values.basePoints *= mod.basePointsMultiply;
+        }
+        if (mod.basePointsExponent !== undefined) {
+          values.basePoints = Math.pow(values.basePoints, mod.basePointsExponent);
+        }
+
+        // Multiplier: ADD → MULTIPLY → EXPONENT
+        if (mod.multiplierAdd !== undefined) {
+          values.multiplier += mod.multiplierAdd;
+        }
+        if (mod.multiplierMultiply !== undefined) {
+          values.multiplier *= mod.multiplierMultiply;
+        }
+        if (mod.multiplierExponent !== undefined) {
+          values.multiplier = Math.pow(values.multiplier, mod.multiplierExponent);
+        }
+
+        // Exponent: ADD → MULTIPLY → EXPONENT
+        if (mod.exponentAdd !== undefined) {
+          values.exponent += mod.exponentAdd;
+        }
+        if (mod.exponentMultiply !== undefined) {
+          values.exponent *= mod.exponentMultiply;
+        }
+        if (mod.exponentExponent !== undefined) {
+          values.exponent = Math.pow(values.exponent, mod.exponentExponent);
+        }
+
+        // Track in breakdown if builder provided
+        if (breakdownBuilder) {
+          const suffix = triggerSource === 'lunar' ? '_lunar' : '';
+          const labelSuffix = triggerSource === 'lunar' ? ' (Lunar retrigger)' : '';
+          breakdownBuilder.addStep(
+            `charm_perDie_${charm.id}_die${dieSelectionIndex + 1}${suffix}`,
+            values,
+            `Charm ${charm.name} triggered on die ${dieSelectionIndex + 1} (value ${die.rolledValue})${labelSuffix}`
+          );
+        }
+      }
+    }
+  }
+
+  return values;
+}
+
+/**
  * Apply a pip effect to scoring values
  */
 export function applyPipEffect(
@@ -242,6 +332,13 @@ export function applyAllPipEffects(
   let values = currentValues;
   const allSideEffects: any[] = [];
 
+  // Check if Howl at the Moon charm is active (adds extra Lunar retriggers)
+  const howlAtTheMoonActive = (gameState.charms || []).some((c: any) => c.id === 'howlAtTheMoon');
+  const extraLunarPassesFromHowl = howlAtTheMoonActive ? 2 : 0;
+
+  // Track how many times Lunar retriggers actually fired this scoring (for Lunar multiplier charm)
+  let lunarTriggerCount = 0;
+
   // Apply pip effects in order (left to right of selected dice)
   for (let i = 0; i < selectedIndices.length; i++) {
     const dieIndex = selectedIndices[i];
@@ -249,78 +346,22 @@ export function applyAllPipEffects(
     
     if (!die) continue;
 
-    // Check for per-die charm triggers BEFORE applying pip effect
-    const activeCharms = charmManager.getActiveCharms();
-    for (const charm of activeCharms) {
-      if (charm.onDieScored && charm.canUse()) {
-        const dieContext = {
-          gameState,
-          roundState,
-          scoringElements: values,
-          die,
-          dieIndex: i,
-          sideValue: die.rolledValue || 0,
-          selectedIndices,
-        };
-        
-        const charmResult = charm.onDieScored(dieContext);
-        
-        if (charmResult !== null && charmResult !== undefined) {
-          // Apply charm modification
-          const mod = charmResult as any;
-          
-          // Points: ADD → MULTIPLY → EXPONENT
-          if (mod.basePointsAdd !== undefined) {
-            values.basePoints += mod.basePointsAdd;
-          }
-          if (mod.basePointsMultiply !== undefined) {
-            values.basePoints *= mod.basePointsMultiply;
-          }
-          if (mod.basePointsExponent !== undefined) {
-            values.basePoints = Math.pow(values.basePoints, mod.basePointsExponent);
-          }
-          
-          // Multiplier: ADD → MULTIPLY → EXPONENT
-          if (mod.multiplierAdd !== undefined) {
-            values.multiplier += mod.multiplierAdd;
-          }
-          if (mod.multiplierMultiply !== undefined) {
-            values.multiplier *= mod.multiplierMultiply;
-          }
-          if (mod.multiplierExponent !== undefined) {
-            values.multiplier = Math.pow(values.multiplier, mod.multiplierExponent);
-          }
-          
-          // Exponent: ADD → MULTIPLY → EXPONENT
-          if (mod.exponentAdd !== undefined) {
-            values.exponent += mod.exponentAdd;
-          }
-          if (mod.exponentMultiply !== undefined) {
-            values.exponent *= mod.exponentMultiply;
-          }
-          if (mod.exponentExponent !== undefined) {
-            values.exponent = Math.pow(values.exponent, mod.exponentExponent);
-          }
-          
-          // Track in breakdown if builder provided
-          if (breakdownBuilder) {
-            breakdownBuilder.addStep(
-              `charm_perDie_${charm.id}_die${i + 1}`,
-              values,
-              `Charm ${charm.name} triggered on die ${i + 1} (value ${die.rolledValue})`
-            );
-          }
-        }
-      }
-    }
+    // First, run per-die charm triggers for this die (normal pass)
+    values = applyPerDieCharmsForDie(
+      diceHand,
+      selectedIndices,
+      i,
+      values,
+      gameState,
+      roundState,
+      charmManager,
+      breakdownBuilder,
+      'normal'
+    );
 
     const pipEffectType = getPipEffectForDie(die);
-    
-    // Skip two-faced and wild as they're handled during combination finding
-    if (pipEffectType === 'twoFaced' || pipEffectType === 'wild') {
-      continue;
-    }
 
+    // Prepare common context for pip effects
     const context: PipEffectContext = {
       die,
       dieIndex: i,
@@ -330,27 +371,111 @@ export function applyAllPipEffects(
       charmManager,
     };
 
-    const beforePipEffect = { ...values };
-    const result = applyPipEffect(pipEffectType, values, context);
-    values = result.scoringElements;
-    
-    // Track each pip effect individually in breakdown if builder provided
-    if (breakdownBuilder && JSON.stringify(beforePipEffect) !== JSON.stringify(values)) {
-      breakdownBuilder.addStep(
-        `pipEffect_${pipEffectType}_die${i + 1}`,
-        values,
-        `Pip effect ${pipEffectType} on die ${i + 1} (value ${die.rolledValue})`
-      );
+    // For non-twoFaced / non-wild, apply the base pip effect once (normal pass)
+    if (pipEffectType !== 'twoFaced' && pipEffectType !== 'wild') {
+      const beforePipEffect = { ...values };
+      const result = applyPipEffect(pipEffectType, values, context);
+      values = result.scoringElements;
+      
+      const changed = JSON.stringify(beforePipEffect) !== JSON.stringify(values);
+      const hasSideEffects = !!(result.sideEffects && Object.keys(result.sideEffects).length > 0);
+
+      // Track each pip effect individually in breakdown if builder provided.
+      if (
+        breakdownBuilder &&
+        (changed ||
+          pipEffectType === 'money' ||
+          pipEffectType === 'createConsumable' ||
+          pipEffectType === 'upgradeCombo' ||
+          hasSideEffects)
+      ) {
+        breakdownBuilder.addStep(
+          `pipEffect_${pipEffectType}_die${i + 1}`,
+          values,
+          `Pip effect ${pipEffectType} on die ${i + 1} (value ${die.rolledValue})`
+        );
+      }
+      
+      if (result.sideEffects) {
+        allSideEffects.push({
+          dieIndex,
+          pipEffect: pipEffectType,
+          ...result.sideEffects,
+        });
+      }
     }
-    
-    if (result.sideEffects) {
-      allSideEffects.push({
-        dieIndex,
-        pipEffect: pipEffectType,
-        ...result.sideEffects,
-      });
+
+    // Handle Lunar retriggers (material + Howl At The Moon charm)
+    if (die.material === 'lunar') {
+      // One Lunar pass from the material itself + extra passes from Howl At The Moon
+      const totalLunarPasses = 1 + extraLunarPassesFromHowl;
+
+      for (let pass = 0; pass < totalLunarPasses; pass++) {
+        // Retrigger per-die charms for this die
+        values = applyPerDieCharmsForDie(
+          diceHand,
+          selectedIndices,
+          i,
+          values,
+          gameState,
+          roundState,
+          charmManager,
+          breakdownBuilder,
+          'lunar'
+        );
+
+        // Retrigger pip effect for scoring-time pip effects
+        if (pipEffectType !== 'twoFaced' && pipEffectType !== 'wild') {
+          const beforeLunarPip = { ...values };
+          const lunarResult = applyPipEffect(pipEffectType, values, context);
+          values = lunarResult.scoringElements;
+
+          const changed = JSON.stringify(beforeLunarPip) !== JSON.stringify(values);
+          const hasSideEffects = !!(lunarResult.sideEffects && Object.keys(lunarResult.sideEffects).length > 0);
+
+          if (
+            breakdownBuilder &&
+            (changed ||
+              pipEffectType === 'money' ||
+              pipEffectType === 'createConsumable' ||
+              pipEffectType === 'upgradeCombo' ||
+              hasSideEffects)
+          ) {
+            breakdownBuilder.addStep(
+              `pipEffect_${pipEffectType}_die${i + 1}_lunar_pass${pass + 1}`,
+              values,
+              `Pip effect ${pipEffectType} on die ${i + 1} (value ${die.rolledValue}) (Lunar retrigger #${pass + 1})`
+            );
+          }
+
+          if (lunarResult.sideEffects) {
+            allSideEffects.push({
+              dieIndex,
+              pipEffect: pipEffectType,
+              retriggerSource: 'lunar',
+              pass: pass + 1,
+              ...lunarResult.sideEffects,
+            });
+          }
+        }
+
+        // Count each Lunar retrigger pass (for Lunar multiplier charm)
+        lunarTriggerCount++;
+      }
+    } else if (pipEffectType === 'twoFaced' || pipEffectType === 'wild') {
+      // For non-Lunar dice with twoFaced/wild, we skip scoring-time pip work entirely
+      continue;
     }
   }
+
+  // Persist total Lunar trigger count for this scoring into gameState history
+  if (!gameState.history.charmState) {
+    gameState.history.charmState = {};
+  }
+  if (!gameState.history.charmState.lunar) {
+    gameState.history.charmState.lunar = {};
+  }
+  gameState.history.charmState.lunar.triggersThisScore = lunarTriggerCount;
 
   return {
     scoringElements: values,

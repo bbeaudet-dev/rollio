@@ -22,6 +22,7 @@ const SOUND_FILES = [
   'board/roll3.mp3',
   'board/flop.wav',
   'board/hot-dice.wav',
+  'board/hot-dice-increment.wav',
   // Inventory sounds
   'inventory/coin1.mp3',
   'inventory/coin2.mp3',
@@ -39,7 +40,10 @@ const SOUND_FILES = [
   'ui/drumroll.wav',
   'ui/general-score.wav',
   'ui/score.wav',
+  'ui/score_2.wav',
+  'ui/score_3.wav',
   'ui/success.wav',
+  'ui/voucher-skip.wav',
   // Material sounds
   'materials/crystal.wav',
   'materials/flower.wav',
@@ -49,6 +53,7 @@ const SOUND_FILES = [
   'materials/mirror.wav',
   'materials/rainbow.wav',
   'materials/volcano.wav',
+  'materials/lunar.wav',
   // World sounds
   'world/boss.wav',
   'world/game-over.wav',
@@ -244,7 +249,9 @@ export function playFlopSound(): void {
  * Play score sound (for Roll, Reroll, Select, Skip reroll, Deselect buttons)
  */
 export function playScoreSound(): void {
-  playSound('ui/score.wav');
+  const scoreSounds = ['ui/score.wav', 'ui/score_2.wav', 'ui/score_3.wav'];
+  const randomSound = scoreSounds[Math.floor(Math.random() * scoreSounds.length)];
+  playSound(randomSound);
 }
 
 /**
@@ -259,6 +266,13 @@ export function playBellSound(): void {
  */
 export function playHotDiceSound(): void {
   playSound('board/hot-dice.wav');
+}
+
+/**
+ * Play hot dice increment sound (when counter increases after breakdown)
+ */
+export function playHotDiceIncrementSound(): void {
+  playSound('board/hot-dice-increment.wav');
 }
 
 /**
@@ -311,6 +325,13 @@ export function playVolcanoSound(): void {
 }
 
 /**
+ * Play lunar material sound
+ */
+export function playLunarSound(): void {
+  playSound('materials/lunar.wav');
+}
+
+/**
  * Play new die sound (when a die is added to the set)
  */
 export function playNewDieSound(): void {
@@ -322,6 +343,13 @@ export function playNewDieSound(): void {
  */
 export function playShopRefreshSound(): void {
   playSound('inventory/shop-refresh.wav');
+}
+
+/**
+ * Play voucher skip sound (when Shop Voucher blessing preserves a voucher)
+ */
+export function playVoucherSkipSound(): void {
+  playSound('ui/voucher-skip.wav');
 }
 
 /**
@@ -394,6 +422,9 @@ export function playMaterialSound(material: string): void {
       break;
     case 'volcano':
       playVolcanoSound();
+      break;
+    case 'lunar':
+      playLunarSound();
       break;
     default:
       playGenericMaterialSound(); // Fallback to generic material sound

@@ -22,10 +22,15 @@ export interface ScoringContext {
  * Count occurrences of each face value in dice array
  */
 export function countDice(dice: number[]): number[] {
-  const maxFace = Math.max(...dice, 6); // Default to 6 if dice is empty
+  if (dice.length === 0) {
+    return Array(6).fill(0); // Default to 6 if dice is empty
+  }
+  const maxFace = Math.max(...dice);
   const counts = Array(maxFace).fill(0);
   for (const die of dice) {
-    counts[die - 1]++;
+    if (die > 0) {
+      counts[die - 1]++;
+    }
   }
   return counts;
 }

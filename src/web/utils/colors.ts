@@ -24,8 +24,8 @@ export const MATERIAL_COLORS = {
     pip: '#f3e5f5' 
   },
   flower: { 
-    background: 'radial-gradient(circle at 30% 30%, #ffb3d9, #ffd700, #87ceeb, #98fb98)', 
-    border: '#4caf50', 
+    background: 'radial-gradient(circle at 30% 30%, #ffb3d9, #ffd700, #87ceeb, #4caf50, #98fb98)',
+    border: '#ff1493',
     pip: '#ff1493' 
   },
   golden: { 
@@ -39,17 +39,31 @@ export const MATERIAL_COLORS = {
     pip: '#8b0000' 
   },
   mirror: { 
-    background: 'linear-gradient(135deg, #c0c0c0, #e8e8e8, #f0f0f0, #d3d3d3)', 
-    border: '#808080', 
-    pip: '#404040' 
+    // Very slight cool/blue tint while remaining mostly metallic
+    background: 'linear-gradient(135deg, #cfd8dc, #e3f2fd, #eceff1, #d3d3d3)', 
+    border: '#78909c', 
+    pip: '#607d8b' // was #404040
   },
   rainbow: { 
     background: 'linear-gradient(45deg, #ff0000, #ffff00, #32cd32, #4169e1, #4b0082, #875fff, #ff69b4)', 
     border: '#333', 
     pip: '#fff' 
   },
-  ghost: { background: '#1a1a2e', border: '#0a0a0f', pip: '#7fffd4' },
-  lead: { background: '#4a4a4a', border: '#5a5a6a', pip: '#1a1a1a' }, // Darker pips for lead
+  ghost: { 
+    background: 'radial-gradient(circle at 30% 20%, #22243a, #17172a)', 
+    border: '#0a0a0f', 
+    pip: '#7fffd4' 
+  },
+  lead: { 
+    background: 'linear-gradient(135deg, #5a5a5a 0%, #6b6b6b 50%, #555555 100%)', 
+    border: '#5a5a6a', 
+    pip: '#1a1a1a' 
+  },
+  lunar: { 
+    background: 'radial-gradient(circle at 30% 20%, #f0fff8, #d5fff4, #a5f2e1, #53c5a5)', 
+    border: '#2e7d6b', 
+    pip: '#b8860b' 
+  },
 } as const;
 
 // Difficulty level colors for d20 display
@@ -178,6 +192,7 @@ export const GAME_CONCEPT_COLORS = {
   rainbow: '#ff9800',
   ghost: '#ff9800',
   lead: '#ff9800',
+  lunar: '#ff9800',
 } as const;
 
 /**
