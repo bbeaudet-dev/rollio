@@ -52,6 +52,8 @@ export type CharmType =
   | 'doubleAgent'
   | 'botox'
   | 'ticketEater'
+  | 'fleaMarket'
+  | 'itemMaster'
 
   // Uncommon charms 
   | 'quadBoosters'
@@ -416,6 +418,24 @@ export const CHARMS: Omit<Charm, 'active'>[] = [
     id: 'botox',
     name: 'Botox',
     description: '+2 MLT when scoring only Plastic dice',
+    rarity: 'common'
+  },
+  {
+    id: 'ticketEater',
+    name: 'Ticket Eater',
+    description: '+0.1 MLT for every shop voucher used',
+    rarity: 'common'
+  },
+  {
+    id: 'fleaMarket',
+    name: 'Flea Market',
+    description: '+0.1 MLT for each dollar of sell value',
+    rarity: 'common'
+  },
+  {
+    id: 'itemMaster',
+    name: 'Item Master',
+    description: '+0.25 MLT for each consumable used',
     rarity: 'common'
   },
 

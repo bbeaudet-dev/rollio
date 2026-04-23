@@ -19,6 +19,36 @@ export const CONSUMABLE_PRICES: Record<string, { buy: number; sell: number }> = 
 const BLESSING_PRICE = 5;
 
 /**
+ * Calculate total sell value of consumables, charms, and blessings
+ * This is used by both Garage Sale consumable and Flea Market charm
+ */
+export function calculateTotalSellValue(gameState: GameState): number {
+  let totalValue = 0;
+  
+  // Add value of consumables
+  for (const consumable of gameState.consumables || []) {
+    const isWish = WISHES.some(w => w.id === consumable.id);
+    const isWhim = WHIMS.some(w => w.id === consumable.id);
+    const isCombinationUpgrade = COMBINATION_UPGRADES.some(cu => cu.id === consumable.id);
+    const category = isWish ? 'wish' : (isWhim ? 'whim' : (isCombinationUpgrade ? 'combinationUpgrade' : 'whim'));
+    const priceInfo = CONSUMABLE_PRICES[category] || CONSUMABLE_PRICES.whim;
+    totalValue += priceInfo.sell;
+  }
+  
+  // Add value of charms
+  for (const charm of gameState.charms || []) {
+    const rarity = charm.rarity || 'common';
+    const priceInfo = CHARM_PRICES[rarity] || CHARM_PRICES.common;
+    totalValue += priceInfo.sell;
+  }
+  
+  // Add value of blessings (fixed price of 5)
+  totalValue += ((gameState.blessings || []).length * BLESSING_PRICE);
+  
+  return totalValue;
+}
+
+/**
  * Calculate shop discount percentage from blessings
  */
 export function calculateShopDiscount(gameState: GameState): number {

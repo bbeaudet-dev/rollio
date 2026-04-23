@@ -42,6 +42,8 @@ import {
   ComebackKidCharm,
   GeneratorCharm,
   TicketEaterCharm,
+  FleaMarketCharm,
+  ItemMasterCharm,
 } from './CommonCharms';
 
 import {
@@ -162,6 +164,8 @@ export function registerCharms(): void {
   registry.register(ComebackKidCharm, 'comebackKid');
   registry.register(GeneratorCharm, 'generator');
   registry.register(TicketEaterCharm, 'ticketEater');
+  registry.register(FleaMarketCharm, 'fleaMarket');
+  registry.register(ItemMasterCharm, 'itemMaster');
   
   // Uncommon charms
   registry.register(QuadBoostersCharm, 'quadBoosters');

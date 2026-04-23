@@ -151,9 +151,9 @@ export class DivineFavorCharm extends BaseCharm {
   onBank(context: CharmBankContext): number {
     // +10 / +100 / +1000 points when banking for each blessing tier 1 / 2 / 3 you own
     const blessings = context.gameState.blessings || [];
-    const tier1Count = blessings.filter((b: any) => b.tier === 1).length;
-    const tier2Count = blessings.filter((b: any) => b.tier === 2).length;
-    const tier3Count = blessings.filter((b: any) => b.tier === 3).length;
+    const tier1Count = blessings.filter((b: any) => b && (b.tier === 1 || b.tier === '1')).length;
+    const tier2Count = blessings.filter((b: any) => b && (b.tier === 2 || b.tier === '2')).length;
+    const tier3Count = blessings.filter((b: any) => b && (b.tier === 3 || b.tier === '3')).length;
     
     const bonus = (tier1Count * 10) + (tier2Count * 100) + (tier3Count * 1000);
     return Math.floor(context.bankedPoints + bonus);
