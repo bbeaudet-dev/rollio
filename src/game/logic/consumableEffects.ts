@@ -1,11 +1,11 @@
-import { CHARMS, CHARM_PRICES } from '../data/charms';
+import { CHARMS } from '../data/charms';
 import { CONSUMABLES, WHIMS, WISHES, COMBINATION_UPGRADES, Consumable } from '../data/consumables';
 import { MATERIALS } from '../data/materials';
 import { getNextDieSize, getPreviousDieSize } from '../utils/dieSizeUtils';
 import { GameState, RoundState, DiceMaterialType } from '../types';
 import { PipEffectType } from '../data/pipEffects';
 import { upgradeCombinations } from '../utils/combinationTracking';
-import { CONSUMABLE_PRICES } from './shop';
+import { CONSUMABLE_PRICES, calculateTotalSellValue } from './shop';
 
 /**
  * Update last consumable used tracking and Echo consumable description
@@ -464,24 +464,7 @@ export async function applyConsumableEffect(
     }
 
     case 'garagesale': {
-      let totalValue = 0;
-      // Add value of consumables
-      for (const consumable of newGameState.consumables) {
-        const isWish = WISHES.some(w => w.id === consumable.id);
-        const isWhim = WHIMS.some(w => w.id === consumable.id);
-        const isCombinationUpgrade = COMBINATION_UPGRADES.some(cu => cu.id === consumable.id);
-        const category = isWish ? 'wish' : (isWhim ? 'whim' : (isCombinationUpgrade ? 'combinationUpgrade' : 'whim'));
-        const priceInfo = CONSUMABLE_PRICES[category] || CONSUMABLE_PRICES.whim;
-        totalValue += priceInfo.sell;
-      }
-      // Add value of charms
-      for (const charm of newGameState.charms) {
-        const rarity = charm.rarity || 'common';
-        const priceInfo = CHARM_PRICES[rarity] || CHARM_PRICES.common;
-        totalValue += priceInfo.sell;
-      }
-      // Add value of blessings (fixed price)
-      totalValue += (newGameState.blessings.length * 5); // BLESSING_PRICE = 5
+      const totalValue = calculateTotalSellValue(newGameState);
       newGameState.money = (newGameState.money || 0) + Math.min(totalValue, 100);
       break;
     }

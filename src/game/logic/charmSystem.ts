@@ -222,6 +222,23 @@ export class CharmManager {
   }
 
   /**
+   * Get a charm by its ID
+   * Returns null if not found
+   */
+  getCharm(charmId: string): BaseCharm | null {
+    return this.charms.find(charm => charm.id === charmId) || null;
+  }
+
+  /**
+   * Check if a charm is active
+   * Returns true if the charm exists and is active
+   */
+  hasCharm(charmId: string): boolean {
+    const charm = this.getCharm(charmId);
+    return charm !== null && charm.active && charm.canUse();
+  }
+
+  /**
    * Get the position/index of a charm in the charms array
    * Returns -1 if charm not found
    */

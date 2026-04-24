@@ -3,6 +3,7 @@ import { Die, GameState, CombinationCategory } from '../../types';
 import { getPipEffectForDie } from '../pipEffectSystem';
 import { CHARMS } from '../../data/charms';
 import { CONSUMABLES } from '../../data/consumables';
+import { calculateTotalSellValue } from '../shop';
 
 /**
  * Common Charms Implementation
@@ -72,8 +73,29 @@ export class MoneyMagnetCharm extends BaseCharm {
   onScoring(context: CharmScoringContext): ScoringValueModification {
     // +5 points for every $1 you have
     const money = context.gameState.money || 0;
+    const bonus = money * 5;
+
+    // Update description to show current value, e.g. "Current: +100 PTS"
+    const charm = context.gameState.charms.find((c: any) => c.id === this.id);
+    if (charm) {
+      const originalCharm = CHARMS.find((c: any) => c.id === this.id);
+      const baseDescription = originalCharm?.description || charm.description || '';
+
+      const currentText = `(Current: +${bonus.toLocaleString('en-US')} PTS)`;
+
+      if (baseDescription.includes('(Current:')) {
+        // Replace any existing "(Current: ...)" section with the up-to-date value
+        charm.description = baseDescription.replace(/\(Current:[^)]+\)/, currentText);
+      } else {
+        // Fallback: append current text if template didn't include it
+        charm.description = `${baseDescription} ${currentText}`;
+      }
+
+      this.description = charm.description;
+    }
+
     return {
-      basePointsAdd: money * 5
+      basePointsAdd: bonus
     };
   }
 }
@@ -1022,6 +1044,48 @@ export class TicketEaterCharm extends BaseCharm {
     const vouchersUsed = context.gameState.history?.charmState?.ticketEater?.vouchersUsed || 0;
     return {
       multiplierAdd: vouchersUsed * 0.1
+    };
+  }
+}
+
+export class FleaMarketCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +0.1 MLT for each dollar of sell value (similar to garage sale consumable)
+    // Use the same calculation function as garage sale
+    const totalSellValue = calculateTotalSellValue(context.gameState);
+    
+    // +0.1 MLT per dollar of sell value
+    const multiplierBonus = totalSellValue * 0.1;
+    
+    return {
+      multiplierAdd: multiplierBonus
+    };
+  }
+}
+
+export class ItemMasterCharm extends BaseCharm {
+  onScoring(context: CharmScoringContext): ScoringValueModification {
+    // +0.25 MLT for each consumable used in the current game
+    // Counts whims, wishes, and combination upgrades
+    const consumableUsage = context.gameState.history?.charmState?.consumableUsage || {};
+    let totalUsed = 0;
+    
+    // Count all consumables used (excluding special tracking keys)
+    for (const [consumableId, timesUsed] of Object.entries(consumableUsage)) {
+      // Skip special tracking keys
+      if (['totalUsed', 'whimUsed', 'wishUsed'].includes(consumableId)) {
+        continue;
+      }
+      if (typeof timesUsed === 'number' && timesUsed > 0) {
+        totalUsed += timesUsed;
+      }
+    }
+    
+    // +0.25 MLT per consumable used
+    const multiplierBonus = totalUsed * 0.25;
+    
+    return {
+      multiplierAdd: multiplierBonus
     };
   }
 }
